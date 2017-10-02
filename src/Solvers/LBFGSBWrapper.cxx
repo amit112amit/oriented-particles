@@ -7,18 +7,18 @@
 #endif
 
 extern "C" void setulb_(int * n, int *m,
-                        double * x, double * l, double * u,
+                        double_t * x, double_t * l, double_t * u,
                         int * nbd,
-                        double * f, double * g,
-                        double * factr, double * pgtol,
-                        double * wa,
+                        double_t * f, double_t * g,
+                        double_t * factr, double_t * pgtol,
+                        double_t * wa,
                         int * iwa,
                         char * task,
                         int * iprint,
                         char * csave,
                         int * lsave,
                         int * isave,
-                        double * dsave );
+                        double_t * dsave );
 
 using std::cout;
 using std::endl;

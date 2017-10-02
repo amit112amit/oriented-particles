@@ -6,9 +6,10 @@ set(INCLD Bodies Model Solvers Helpers)
 #Add a new add_executable for each driver
 add_executable(opsConsistency TestOPSConsistency.cxx)
 add_executable(heatOPS BrownDynOPS.cxx)
+add_executable(freeDiff FreeDiffusion.cxx)
 
-#Add name of your executable to the DRIVERS variable
-set(DRIVERS opsConsistency heatOPS)
+#Add name of your executable target to the DRIVERS variable
+set(DRIVERS opsConsistency heatOPS freeDiff)
 
 #For each driver link libraries and set the include paths
 foreach(DRIVER ${DRIVERS})    

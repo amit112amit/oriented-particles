@@ -5,6 +5,10 @@
 #include <random>
 #include <Eigen/Dense>
 #include "Body.h"
+#include <vtkDoubleArray.h>
+#include <vtkPolyData.h>
+#include <vtkPolyDataWriter.h>
+#include <vtkSmartPointer.h>
 
 class BrownianBody: public Body{
 public:
@@ -17,6 +21,7 @@ public:
     void compute();
     void generateParallelKicks();
     double_t getBrownianEnergy(){return _brownEn;}
+    void printVTKFile(const std::string fName);
     void setCoefficient(double_t C);
 private:
     size_t _N;
