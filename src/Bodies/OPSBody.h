@@ -23,6 +23,7 @@
 #include <vtkDelaunay3D.h>
 #include <vtkDataSetSurfaceFilter.h>
 #include "Body.h"
+#include "HelperFunctions.h"
 
 // **************************** OPSParams *********************************//
 /*!
@@ -44,9 +45,18 @@ public:
                double_t s): D_e(E), r_e(r), a(av), b(bv), searchRadius(sr),
         gamma(s){}
 
+    //! Accessor methods
+    double getMorseEquilibriumEnergy(){return D_e;}
+    double getMorseEquilibriumDistance(){return r_e;}
+    double getMorseWellWidth(){return a;}
+    double getKernelStdDev(){return b;}
+    double getSearchRadius(){return searchRadius;}
+    double getFVK(){return gamma;}
+
     //! Update a parameter value
     void updateParameter(Parameter p, double_t val);
 
+private:
     double_t D_e, r_e, a; /*!< Morse potential parameters */
     double_t b;           /*!< Standard deviation of the Kernel Gaussian */
     double_t searchRadius;
@@ -77,43 +87,52 @@ public:
 
     OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd posGrad,
              RefM3Xd rotGrad, OPSParams &p);
+    void applyKabschAlgorithm();
     void compute();
-    void computeNormals();
+    void computeNormals();    
     void diffNormalRotVec(const RefCV3d &vi, RefM3d diff);
     double_t getAsphericity();
     double_t getAverageEdgeLength();
-    double_t getAverageRadius();    
+    double_t getAverageRadius();
+    double_t getAverageNumberOfNeighbors();
     double_t getCircularityEnergy(){return _circEn;}
     double_t getMeanSquaredDisplacement();
     double_t getMorseEnergy(){return _morseEn;}
     double_t getNormalityEnergy(){return _normalEn;}
-    double_t getTotalenergy() const { return _f;}
-    void printVTKFile(const std::string name);    
+    double_t getTotalEnergy();
+    double_t getVolume();
+    static void initialRotationVector(RefM3Xd pos, RefM3Xd rotVec);
+    void printVTKFile(const std::string name);
+    void saveInitialPosition(){ _initialPositions = _positions;}
     void updateNeighbors();
     void updatePolyDataAndKdTree();
+    void updateDataForKabsch();
     void viscousStep();
 
 private:
-    int _numPartilces;
-    double_t _f;
+    bool _updateRadius;
+    bool _updateVolume;
+    double_t &_f;
     double_t _radius;
     double_t _volume;
     double_t _morseEn;
     double_t _normalEn;
-    double_t _circEn;        
+    double_t _circEn;
+    double_t _msd;
+    int _numPartilces;
     Map3Xd _positions;
     Map3Xd _posGradient;
     Map3Xd _rotGradient;
     Map3Xd _rotationVectors;
     Matrix3Xd _normals;
     Matrix3Xd _prevPositions;
-    OPSParams _params;
-    std::mt19937 _e2; /*!< random number device engine */
-    std::normal_distribution<> _rng; /*!< random number generator */
+    Matrix3Xd _initialPositions;
+    OPSParams &_params;
     std::vector< vtkSmartPointer<vtkIdList> > _neighbors;
     std::vector< vtkIdType > _initialNearestNeighbor;
     vtkSmartPointer< vtkPolyData > _polyData;
-    vtkSmartPointer< vtkKdTree > _kdTree;    
+    vtkSmartPointer< vtkKdTree > _kdTree;
+    void updateRotationVectors();
 };
 //***************************************************************************//
 #endif //__OPSBODY_H__

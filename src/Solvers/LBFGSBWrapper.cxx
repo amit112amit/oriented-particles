@@ -30,8 +30,8 @@ using std::scientific;
 
 //! Constructor
 LBFGSBWrapper::LBFGSBWrapper(LBFGSBParams &p, Model &m, double_t &f,
-     RefV x, RefV g): _model(m), _f(f), _x(x.data(), 1, x.cols()),
-    _g(g.data(), 1, g.cols()){
+     RefV x, RefV g): _model(m), _f(f), _x(x.data(), x.size(),1),
+    _g(g.data(),g.size(),1){
     assert( _x.size() == _g.size());
     _n = _x.size();
     _m = p.getNumHessianCorrections();
@@ -73,6 +73,12 @@ void LBFGSBWrapper::resize(size_t n){
     _wa.resize(2*_m*_n+4*_n+12*_m*_m+12*_m);
     _iwa = IntVector_t::Zero(3*_n);
     _wa = Vector_t::Zero(2*_m*_n+4*_n+12*_m*_m+12*_m);
+    _nbd.resize(_n);
+    _l.resize(_n);
+    _u.resize(_n);
+    _nbd = IntVector_t::Zero(_n);
+    _l = Vector_t::Zero(_n);
+    _u = Vector_t::Zero(_n);
 }
 
 void LBFGSBWrapper::setBounds(const RefCI nbd, const RefCV l, const RefCV u) {
@@ -96,7 +102,7 @@ void LBFGSBWrapper::solve() {
     int lsave[4];
     for(int i=0; i<4; i++) lsave[i]=0;
 
-    double dsave[29];
+    double_t dsave[29];
     for(int i=0; i<29; i++) dsave[i]=0.0;
 
     int isave[44];

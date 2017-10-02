@@ -2,8 +2,8 @@
 
 //! Constructor
 ViscosityBody::ViscosityBody(size_t N, double_t viscosity, double_t &f,
-                             const RefCVXd &x, RefVXd g):_N(N),_f(f),
-    _x(x),_g(g.data(),1,N),_viscosity(viscosity){
+                             RefVXd x, RefVXd g):_N(N),_f(f),
+    _x(x.data(),N,1),_g(g.data(),N,1),_viscosity(viscosity){
     _prevX = _x;
 }
 
@@ -14,6 +14,12 @@ void ViscosityBody::viscousStep(){
 
 //! Compute the energy and forces
 void ViscosityBody::compute(){
-    _f += 0.5*_viscosity*((_x-_prevX).dot(_x-_prevX));
+    _viscoEn = 0.5*_viscosity*((_x-_prevX).dot(_x-_prevX));
+    _f += _viscoEn;
     _g += _viscosity*(_x - _prevX);
+}
+
+//! Set viscosity value
+void ViscosityBody::setViscosity(double_t v){
+    _viscosity = v;
 }

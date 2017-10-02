@@ -1,17 +1,18 @@
 project(Drivers)
 
 #Set the include directory names which are under ../../src/
-set(INCLD Bodies Model Solvers)
+set(INCLD Bodies Model Solvers Helpers)
 
 #Add a new add_executable for each driver
-add_executable(thermal BrownDynDriver.cxx)
+add_executable(opsConsistency TestOPSConsistency.cxx)
+add_executable(heatOPS BrownDynOPS.cxx)
 
 #Add name of your executable to the DRIVERS variable
-set(DRIVERS thermal)
+set(DRIVERS opsConsistency heatOPS)
 
 #For each driver link libraries and set the include paths
 foreach(DRIVER ${DRIVERS})    
-    target_link_libraries(${DRIVER} lbfgsb ${VTK_LIBRARIES})
+    target_link_libraries(${DRIVER} ${VTK_LIBRARIES})
     target_include_directories(${DRIVER} PRIVATE ${VTK_INCLUDE_DIRS} ${EIGEN_INCLUDE_DIRS})
     foreach(DIR ${INCLD})
         target_link_libraries(${DRIVER} ${DIR})

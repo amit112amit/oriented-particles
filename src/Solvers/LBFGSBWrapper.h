@@ -46,11 +46,11 @@ private:
 //! The l-BFGS-b Wrapper class
 class LBFGSBWrapper{
 public:
-    typedef Eigen::Matrix<double_t, 1, Eigen::Dynamic, Eigen::RowMajor> Vector_t;
+    typedef Eigen::VectorXd Vector_t;
     typedef Eigen::Ref<Vector_t> RefV;
     typedef Eigen::Ref<const Vector_t> RefCV;
     typedef Eigen::Map<Vector_t> MapV;
-    typedef Eigen::Matrix<int, 1, Eigen::Dynamic, Eigen::RowMajor> IntVector_t;
+    typedef Eigen::VectorXi IntVector_t;
     typedef Eigen::Ref<IntVector_t> RefI;
     typedef Eigen::Ref<const IntVector_t> RefCI;
 

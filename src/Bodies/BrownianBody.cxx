@@ -1,8 +1,8 @@
 #include "BrownianBody.h"
 
 BrownianBody::BrownianBody(size_t N, double_t coeff, double_t &f,
-                           const RefCVXd &x, RefVXd g):_N(N), _f(f),
-    _x(x),_g(g.data(),1,N),_coeff(1.41421356237*coeff){
+                           RefVXd x, RefVXd g):_N(N), _f(f),
+    _x(x.data(),N,1),_g(g.data(),N,1),_coeff(1.41421356237*coeff){
     //Initialize the random number generator
     std::random_device rd;
     _e2 = std::mt19937(rd());
@@ -22,6 +22,7 @@ void BrownianBody::setCoefficient(double_t C){
 }
 
 void BrownianBody::compute(){
-    _f -= _coeff*(_xi.dot(_x));
-    _g -= _coeff*_xi;
+    _brownEn = -1.0*_coeff*(_xi.dot(_x));
+    _f += _brownEn;
+    _g += -1.0*_coeff*_xi;
 }

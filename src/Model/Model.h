@@ -13,6 +13,7 @@ public:
     Model(size_t N, double_t &f, RefVXd g);
     void addBody(Body *b);
     void compute();
+    void zeroOutData();
 private:
     size_t _N;
     double &_f;
