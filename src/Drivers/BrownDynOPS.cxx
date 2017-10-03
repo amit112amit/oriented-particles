@@ -81,9 +81,12 @@ int main(int argc, char* argv[]){
     size_t N = mesh->GetNumberOfPoints();
 
     // Generate Rotation Vectors from input point coordinates
-    Eigen::Map<Eigen::Matrix3Xd> coords(
-                (double_t*)mesh->GetPoints()->GetData()->GetVoidPointer(0),
-                3,N);
+    Eigen::Matrix3Xd coords(3,N);
+    for(size_t i = 0; i < N; ++i){
+        Eigen::Vector3d cp = Eigen::Vector3d::Zero();
+        mesh->GetPoint(i, &(cp(0)));
+        coords.col(i) = cp;
+    }
     Eigen::Matrix3Xd rotVecs(3,N);
     OPSBody::initialRotationVector(coords, rotVecs);
 

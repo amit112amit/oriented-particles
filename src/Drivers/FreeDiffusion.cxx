@@ -59,20 +59,19 @@ int main(int argc, char* argv[]){
     // Set number of OPS particles
     size_t N = mesh->GetNumberOfPoints();
 
-    // Read point coordinates into a Matrix
-    Eigen::Map<Eigen::Matrix3Xd> coords(
-                (double_t*)mesh->GetPoints()->GetData()->GetVoidPointer(0),
-                3,N);
-
     // Prepare memory for energy and force
     double_t f;
     Eigen::VectorXd x(3*N), g(3*N);
     g.setZero(g.size());
     x.setZero(x.size());
 
-    // Fill x with coords and rotVecs
+    // Fill x with coords
     Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N);
-    xpos = coords;
+    for(size_t i = 0; i < N; ++i){
+        Eigen::Vector3d cp = Eigen::Vector3d::Zero();
+        mesh->GetPoint(i, &(cp(0)));
+        xpos.col(i) = cp;
+    }
 
     // Create Brownian and Viscosity bodies
     Eigen::Map<Eigen::VectorXd> thermalX(x.data(),3*N,1);
