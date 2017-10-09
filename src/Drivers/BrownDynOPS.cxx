@@ -148,7 +148,8 @@ int main(int argc, char* argv[]){
                  << "ViscosityEnergy" << "\t"                 
                  << "TotalFunctional" <<"\t"
                  << "MSD" << "\t"
-                 << "Neighbors"
+                 << "Neighbors" << "\t"
+                 << "AvgEdgeLen" << "\t"
                  << std::endl;
 
     ofstream outerLoopFile;
@@ -223,15 +224,12 @@ int main(int argc, char* argv[]){
         Eigen::Matrix3Xd averagePosition( 3, N ); /*!< Store avg particle positions */
         averagePosition = Eigen::Matrix3Xd::Zero(3,N);
 
-        for (int viter = 0; viter < viterMax; viter++) {
-            //Ensure only next nearest neighbor interactions
-            avgEdgeLen = ops.getAverageEdgeLength();
-            params.updateParameter(OPSParams::searchRadiusV,
-                                   searchRadFactor*avgEdgeLen);
+        for (int viter = 0; viter < viterMax; viter++) {            
             std::cout << std::endl
                  << "VISCOUS ITERATION: " << viter + stepCount
                  << std::endl
                  << std::endl;
+            std::cout<< "Search Radius = " << searchRadFactor*avgEdgeLen << std::endl;
 
             // Store the curren position for applying Kabsch algorithm
             ops.updateDataForKabsch();
@@ -244,6 +242,10 @@ int main(int argc, char* argv[]){
 
             // Apply Kabsch Algorithm
             ops.applyKabschAlgorithm();
+
+            //Update kdTree, polyData and neighbors
+            ops.updatePolyDataAndKdTree();
+            ops.updateNeighbors();
 
             // Add current solution to average position data
             averagePosition += xpos;
@@ -278,11 +280,14 @@ int main(int argc, char* argv[]){
                           << visco.getViscosityEnergy() << "\t"
                           << f << "\t"
                           << ops.getMeanSquaredDisplacement() << "\t"
-                          << ops.getAverageNumberOfNeighbors()
+                          << ops.getAverageNumberOfNeighbors() << "\t"
+                          << avgEdgeLen
                           << std::endl;
 
             // Update viscosity body reference
             visco.viscousStep();
+            // Update Brownian body reference
+            brown.brownianStep();
         }
         //************************************************//
 

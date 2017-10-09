@@ -156,12 +156,13 @@ void OPSBody::updatePolyDataAndKdTree() {
     if( final->GetNumberOfPolys() != idealTriCount){
         std::cout<<"The mesh has " << final->GetNumberOfPolys() << " triangles." << std::endl;
         std::cout<< "Bad Delaunay triangulation detected!" <<std::endl;
+        /*
         vtkSmartPointer<vtkPolyDataWriter> writer =
                 vtkSmartPointer<vtkPolyDataWriter>::New();
         writer->SetInputData(final);
         writer->SetFileName("BadMesh.vtk");
         writer->Write();
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);*/
     }
     interim = final->GetPolys();
     interim->InitTraversal();
@@ -176,7 +177,6 @@ void OPSBody::updatePolyDataAndKdTree() {
         }
     }
     _polyData->SetPolys(finalCells);
-
     //Finally update the _kdTree
     _kdTree->BuildLocatorFromPoints( _polyData );
 
@@ -506,7 +506,7 @@ double OPSBody::getAsphericity(){
 }
 
 //! Calculate Volume
-double OPSBody::getVolume(){
+double_t OPSBody::getVolume(){
     if(_updateVolume){
         _volume = 0.0;
         vtkSmartPointer<vtkCellArray> cells = _polyData->GetPolys();

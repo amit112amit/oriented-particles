@@ -9,6 +9,11 @@ BrownianBody::BrownianBody(size_t N, double_t coeff, double_t &f,
     _rng = std::normal_distribution<>(0,1);
     //Set initial kicks to zero
     _xi = VectorXd::Zero(N);
+    _prevX = _x;
+}
+
+void BrownianBody::brownianStep(){
+    _prevX = _x;
 }
 
 void BrownianBody::generateParallelKicks(){
@@ -22,7 +27,7 @@ void BrownianBody::setCoefficient(double_t C){
 }
 
 void BrownianBody::compute(){
-    _brownEn = -1.0*_coeff*(_xi.dot(_x));
+    _brownEn = -1.0*_coeff*(_xi.dot(_x - _prevX));
     _f += _brownEn;
     _g += -1.0*_coeff*_xi;
 }

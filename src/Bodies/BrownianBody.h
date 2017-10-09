@@ -18,11 +18,13 @@ public:
 
     BrownianBody(size_t N, double_t coefficient,
                   double_t &f, RefVXd x, RefVXd g);
+    void brownianStep();
     void compute();
     void generateParallelKicks();
     double_t getBrownianEnergy(){return _brownEn;}
     void printVTKFile(const std::string fName);
     void setCoefficient(double_t C);
+
 private:
     size_t _N;
     double_t _coeff;
@@ -31,6 +33,7 @@ private:
     MapVXd _x;
     MapVXd _g;
     VectorXd _xi;
+    VectorXd _prevX;
     std::mt19937 _e2;
     std::normal_distribution<> _rng;
 };
