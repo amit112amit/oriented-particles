@@ -265,8 +265,8 @@ int main(int argc, char* argv[]){
             ops.updateDataForKabsch();
 
             // *************** Augmented Lagrangian Loop ************** //
-            double_t volDiff = 1.0, xDiff=1.0, volTol = 0.1, xTol = 0.1;
-            size_t alIter = 0, alMaxIter = 10;
+            double_t volDiff = 1.0, xDiff=1.0, volTol = 1e-6, xTol = 1e-6;
+            size_t alIter = 0, alMaxIter = 100;
 
             // Set the starting guess for Lambda and K for Augmented Lagrangian
             double_t L_k, L_kp1, K_k, K_kp1;
