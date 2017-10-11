@@ -9,15 +9,14 @@ class ViscosityBody: public Body{
 public:
     typedef Eigen::VectorXd VectorXd;
     typedef Eigen::Map<VectorXd> MapVXd;
-    typedef Eigen::Ref<VectorXd> RefVXd;    
+    typedef Eigen::Ref<VectorXd> RefVXd;
 
     ViscosityBody(size_t N, double_t viscosity,
-                  double_t &f, RefVXd x, RefVXd g);
+                  double_t &f, RefVXd x, RefVXd g, RefVXd p);
     void compute();
     double_t getViscosityEnergy(){return _viscoEn;}
     VectorXd getPreviousX(){return _prevX;}
-    void setViscosity(double_t v);
-    void viscousStep();
+    void setViscosity(double_t v);    
 
 private:
     size_t _N;
@@ -26,7 +25,7 @@ private:
     double_t _viscoEn;
     MapVXd _x;
     MapVXd _g;
-    VectorXd _prevX;
+    MapVXd _prevX;
 };
 
 #endif // __VISCOSITYBODY_H__

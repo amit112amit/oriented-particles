@@ -1,19 +1,15 @@
 #include "BrownianBody.h"
 
 BrownianBody::BrownianBody(size_t N, double_t coeff, double_t &f,
-                           RefVXd x, RefVXd g):_N(N), _f(f),
-    _x(x.data(),N,1),_g(g.data(),N,1),_coeff(1.41421356237*coeff){
+                           RefVXd x, RefVXd g, RefVXd prevX):_N(N),
+    _f(f), _x(x.data(),N,1),_g(g.data(),N,1),_prevX(prevX.data(),N,1),
+    _coeff(1.41421356237*coeff){
     //Initialize the random number generator
     std::random_device rd;
     _e2 = std::mt19937(rd());
     _rng = std::normal_distribution<>(0,1);
     //Set initial kicks to zero
-    _xi = VectorXd::Zero(N);
-    _prevX = _x;
-}
-
-void BrownianBody::brownianStep(){
-    _prevX = _x;
+    _xi = VectorXd::Zero(N);    
 }
 
 void BrownianBody::generateParallelKicks(){

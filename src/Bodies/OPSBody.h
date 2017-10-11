@@ -105,8 +105,8 @@ public:
     void printVTKFile(const std::string name);
     void saveInitialPosition(){ _initialPositions = _positions;}
     void updateNeighbors();
-    void updatePolyDataAndKdTree();
     void updateDataForKabsch();
+    void updatePolyDataAndKdTree();
     void viscousStep();
 
 private:
@@ -124,8 +124,8 @@ private:
     Map3Xd _posGradient;
     Map3Xd _rotGradient;
     Map3Xd _rotationVectors;
-    Matrix3Xd _normals;
-    Matrix3Xd _prevPositions;
+    Matrix3Xd _prevX;
+    Matrix3Xd _normals;    
     Matrix3Xd _initialPositions;
     OPSParams &_params;
     std::vector< vtkSmartPointer<vtkIdList> > _neighbors;

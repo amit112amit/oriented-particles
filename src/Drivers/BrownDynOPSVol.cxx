@@ -7,6 +7,7 @@
 #include "Model.h"
 #include "OPSBody.h"
 #include "ViscosityBody.h"
+#include "VolumeConstraint.h"
 
 int main(int argc, char* argv[]){
 
@@ -90,35 +91,41 @@ int main(int argc, char* argv[]){
     Eigen::Matrix3Xd rotVecs(3,N);
     OPSBody::initialRotationVector(coords, rotVecs);
 
-    // Prepare memory for energy and force
-    double_t f;
+    // Prepare memory for energy, force
+    double_t f;    
     Eigen::VectorXd x(6*N), g(6*N), prevX(3*N);
     g.setZero(g.size());
-    x.setZero(x.size());    
+    x.setZero(x.size());
 
-    // Fill x with coords and rotVecs and copy coords in prevX
+    // Fill x with coords and rotVecs
     Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N);
     xpos = coords;
     xrot = rotVecs;
     prevX = x.head(3*N);
 
     // Create OPSBody
-    Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);
+    Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N),
+            prevXMap(prevX.data(),3,N);
     OPSParams params(D_e,re,s,b,initialSearchRad,gamma);
     OPSBody ops(N,f,xpos,xrot,posGrad,rotGrad,params);
 
     // Create Brownian and Viscosity bodies
     Eigen::Map<Eigen::VectorXd> thermalX(x.data(),3*N,1);
     Eigen::Map<Eigen::VectorXd> thermalG(g.data(),3*N,1);
-    double brownCoeff = 1.0, viscosity = 1.0;
+    double_t brownCoeff = 1.0, viscosity = 1.0;
     BrownianBody brown(3*N,brownCoeff,f,thermalX,thermalG,prevX);
     ViscosityBody visco(3*N,viscosity,f,thermalX,thermalG,prevX);
+
+    // Create the volume constraint body
+    VolumeConstraint volC(N,f,xpos,posGrad);
 
     // Create Model
     Model model(6*N,f,g);
     model.addBody(&ops);
     model.addBody(&brown);
     model.addBody(&visco);
+    model.addBody(&volC);
+
     // ****************************************************************//
 
     // ***************** Prepare Output Data file *********************//
@@ -140,13 +147,14 @@ int main(int argc, char* argv[]){
                  << "Gamma" << "\t"
                  << "Asphericity" << "\t"
                  << "Radius" << "\t"
-                 << "Volume" << "\t"
+                 << "Volume" << "\t"                 
                  << "MorseEnergy" << "\t"
                  << "NormalityEn" << "\t"
                  << "CircularityEn" << "\t"
                  << "TotalOPSEnergy" << "\t"
                  << "BrownianEnergy" << "\t"
-                 << "ViscosityEnergy" << "\t"                 
+                 << "ViscosityEnergy" << "\t"
+                 << "ConstraintEnergy" << "\t"
                  << "TotalFunctional" <<"\t"
                  << "MSD" << "\t"
                  << "Neighbors" << "\t"
@@ -210,7 +218,26 @@ int main(int argc, char* argv[]){
         viterMax = coolVec[z][4];
         printStep = (int)coolVec[z][5];
 
+        // Update OPS params
         s = (100 / (avgEdgeLen*percentStrain))*log(2.0);
+        params.updateParameter(OPSParams::gammaV, gamma);
+        params.updateParameter(OPSParams::aV, s);
+
+        // Solve the system without Brownian, Viscous and Volume constraints
+        brown.setCoefficient(0.0);
+        visco.setViscosity(0.0);
+        volC.updateAugmentedLagrangianCoeffs(0.0,0.0);
+        std::cout<<"Solving the system at zero temperature..."<<std::endl;
+        solver.solve();
+        std::cout<<"Solving finished."<<std::endl;
+
+        // Set up the volume constraint as the zero temperature volume
+        double_t startAvgRad = ops.getAverageRadius();
+        double_t volume = 4.1887902047863905*startAvgRad*startAvgRad*startAvgRad;
+        volC.setConstrainedVolume(volume);
+        std::cout<< "Constrained Volume = " << volume << std::endl;
+
+        // Set the viscosity and Brownian coefficient
         brownCoeff = beta*D_e/(alpha*avgEdgeLen);
         viscosity = brownCoeff/(alpha*avgEdgeLen);
         std::cout<< "Viscosity = " << viscosity << std::endl;
@@ -218,28 +245,60 @@ int main(int argc, char* argv[]){
         brown.setCoefficient(brownCoeff);
         visco.setViscosity(viscosity);
 
-        params.updateParameter(OPSParams::gammaV, gamma);
-        params.updateParameter(OPSParams::aV, s);
+        // Update prevX
+        prevX = x.head(3*N);
 
         //**************  INNER SOLUTION LOOP ******************//
         Eigen::Matrix3Xd averagePosition( 3, N ); /*!< Store avg particle positions */
         averagePosition = Eigen::Matrix3Xd::Zero(3,N);
 
-        for (int viter = 0; viter < viterMax; viter++) {            
+        for (int viter = 0; viter < viterMax; viter++) {
             std::cout << std::endl
                  << "VISCOUS ITERATION: " << viter + stepCount
                  << std::endl
-                 << std::endl;
-            std::cout<< "Search Radius = " << searchRadFactor*avgEdgeLen << std::endl;
-
-            // Store positions for the Kabsch
-            ops.updateDataForKabsch();
+                 << std::endl;            
 
             // Generate Brownian Kicks
             brown.generateParallelKicks();
 
-            // Solve the model
-            solver.solve();
+            // Store data for Kabsch
+            ops.updateDataForKabsch();
+
+            // *************** Augmented Lagrangian Loop ************** //
+            double_t volDiff = 1.0, xDiff=1.0, volTol = 0.1, xTol = 0.1;
+            size_t alIter = 0, alMaxIter = 10;
+
+            // Set the starting guess for Lambda and K for Augmented Lagrangian
+            double_t L_k, L_kp1, K_k, K_kp1;
+            L_k = 100.0;
+            K_k = 1000.0;
+            volC.updateAugmentedLagrangianCoeffs(L_k,K_k);
+            while( (volDiff > volTol) && (xDiff > xTol) && (alIter < alMaxIter)){
+                std::cout<< std::setprecision(6) << "Augmented Lagrangian"
+                         << " iteration: " << alIter << std::endl;
+
+                // Solve the unconstrained minimization
+                solver.solve();
+
+                //Uzawa update
+                L_k = L_k + K_k*(volDiff);
+                K_k = 10*K_k;
+
+                // Update termination check quantities
+                alIter++;
+                volDiff = std::abs(volC.getAverageVolume() - volume);
+                xDiff = (xpos - prevXMap).colwise().norm().sum()/N;
+
+                std::cout<< std::setprecision(16) << "volDiff = " << volDiff
+                         <<"\txDiff = " << xDiff  << "\talIter = "
+                        << alIter << std::endl << std::endl;
+
+                // Update prevX
+                prevX = x.head(3*N);
+            }
+            std::cout<< std::setprecision(6) << "Volume constraint applied."
+                     << std::endl;
+            // *********************************************************//
 
             // Apply Kabsch Algorithm
             ops.applyKabschAlgorithm();
@@ -272,22 +331,22 @@ int main(int argc, char* argv[]){
                           << gamma << "\t"
                           << ops.getAsphericity() << "\t"
                           << ops.getAverageRadius() << "\t"
-                          << ops.getVolume() << "\t"
+                          << ops.getVolume() << "\t"                          
                           << ops.getMorseEnergy() << "\t"
                           << ops.getNormalityEnergy() << "\t"
                           << ops.getCircularityEnergy() << "\t"
                           << ops.getTotalEnergy() << "\t"
                           << brown.getBrownianEnergy() << "\t"
                           << visco.getViscosityEnergy() << "\t"
+                          << volC.getEnergyContribution() << "\t"
                           << f << "\t"
                           << ops.getMeanSquaredDisplacement() << "\t"
                           << ops.getAverageNumberOfNeighbors() << "\t"
                           << avgEdgeLen
                           << std::endl;
 
-            // Store previous position for viscosity and brownian calculations
+            // Update prevX
             prevX = x.head(3*N);
-
         }
         //************************************************//
 
@@ -312,7 +371,7 @@ int main(int argc, char* argv[]){
         // Print the average shape
         delaunay3DSurf(avgPos, dataOutputFile);
 
-        // Calculate the asphericity of the average shape        
+        // Calculate the asphericity of the average shape
         Eigen::RowVectorXd R(N);
         R = averagePosition.colwise().norm();
         avgShapeAsph += ((R.array() - avgShapeRad).square()).sum();
@@ -340,3 +399,4 @@ int main(int argc, char* argv[]){
 
     return 1;
 }
+

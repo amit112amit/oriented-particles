@@ -5,6 +5,7 @@
 #include "Model.h"
 #include "OPSBody.h"
 #include "ViscosityBody.h"
+#include "VolumeConstraint.h"
 
 int main(int argc, char* argv[]){
 
@@ -13,9 +14,10 @@ int main(int argc, char* argv[]){
 
     // Prepare memory
     double_t f;
-    Eigen::VectorXd x(6*N), g(6*N);
+    Eigen::VectorXd x(6*N+1), g(6*N+1), prevX(3*N);
     x.setRandom(x.size());
     g.setZero(g.size());
+    prevX.setRandom(prevX.size());
 
     // Create OPSBody
     Eigen::Map<Eigen::Matrix3Xd> pos(x.data(),3,N),
@@ -27,28 +29,30 @@ int main(int argc, char* argv[]){
     // Create Brownian and Viscosity bodies
     Eigen::Map<Eigen::VectorXd> thermalX(x.data(),3*N,1);
     Eigen::Map<Eigen::VectorXd> thermalG(g.data(),3*N,1);
-    BrownianBody brown(3*N,1.0,f,thermalX,thermalG);
-    ViscosityBody visco(3*N,1.0,f,thermalX,thermalG);
+    BrownianBody brown(3*N,1.0,f,thermalX,thermalG,prevX);
+    ViscosityBody visco(3*N,1.0,f,thermalX,thermalG,prevX);
+
+    // Create Volume constraint body
+    VolumeConstraint volC(N,f,pos,posGrad);
 
     // Create Model
-    Model model(6*N,f,g);
+    Model model(6*N+1,f,g);
     model.addBody(&ops);
     model.addBody(&brown);
     model.addBody(&visco);
+    model.addBody(&volC);
 
     // Generate Brownian Kicks
     brown.generateParallelKicks();
 
-    // Update viscosity body reference
-    visco.viscousStep();
-
-    //Create new x data
+    // Create new x data
     x.setRandom(x.size());
 
-    // Zero out one of the three bodies
-    //p.updateParameter(OPSParams::D_eV,0);
+    // Turn off some bodies
+    //p.updateParameter(OPSParams::D_eV,0.0);
     //brown.setCoefficient(0.0);
     //visco.setViscosity(0.0);
+    //volC.updateAugmentedLagrangianCoeffs(0.0,0.0);
 
 // ******************  Consistency Check ********************//
 
@@ -68,6 +72,7 @@ int main(int argc, char* argv[]){
     std::cout <<"OPSBody energy = " << ops.getTotalEnergy() << std::endl;
     std::cout <<"BrownBody energy = " << brown.getBrownianEnergy() << std::endl;
     std::cout <<"ViscoBody energy = " << visco.getViscosityEnergy() << std::endl;
+    std::cout <<"VolConstr energy = " << volC.getEnergyContribution() << std::endl;
     gAna = g; /*!< Copies the derivative */
 
     // Calculate the error
@@ -89,14 +94,6 @@ int main(int argc, char* argv[]){
         }
         err(i) = (gAna - gNum).array().abs().maxCoeff();
         std::cout<< hvec(i) <<" , " << err(i) << std::endl;
-    }
-    /*
-    std::cout<< std::endl << "Printing the force arrays..." << std::endl;
-
-    // Write out the gAna and gNum
-    for(int i=0; i < x.size(); ++i){
-        std::cout<< gAna(i) <<" , " << gNum(i) << std::endl;
-    }
-    */
+    } 
     return 1;
 }

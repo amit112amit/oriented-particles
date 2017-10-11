@@ -17,8 +17,7 @@ public:
     typedef Eigen::Ref<VectorXd> RefVXd;    
 
     BrownianBody(size_t N, double_t coefficient,
-                  double_t &f, RefVXd x, RefVXd g);
-    void brownianStep();
+                  double_t &f, RefVXd x, RefVXd g, RefVXd prevX);
     void compute();
     void generateParallelKicks();
     double_t getBrownianEnergy(){return _brownEn;}
@@ -32,8 +31,8 @@ private:
     double_t _brownEn;
     MapVXd _x;
     MapVXd _g;
-    VectorXd _xi;
-    VectorXd _prevX;
+    MapVXd _prevX;
+    VectorXd _xi;    
     std::mt19937 _e2;
     std::normal_distribution<> _rng;
 };

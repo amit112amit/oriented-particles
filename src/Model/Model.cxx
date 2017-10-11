@@ -1,7 +1,9 @@
 #include "Model.h"
 
 Model::Model(size_t N, double_t &f, RefVXd g):_N(N),_f(f),
-    _g(g.data(),N,1){}
+    _g(g.data(),N,1){
+    std::cout<<"Model DOFs = "<< N << std::endl;
+}
 
 void Model::compute(){
     zeroOutData();

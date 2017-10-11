@@ -31,7 +31,7 @@ void OPSParams::updateParameter(OPSParams::Parameter p, double_t val){
 OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
                  RefM3Xd rG, OPSParams &p):_f(f),
     _positions(pos.data(),3,n), _rotationVectors(rot.data(),3,n),
-    _posGradient(pG.data(),3,n), _rotGradient(rG.data(),3,n), _params(p){
+    _posGradient(pG.data(),3,n), _rotGradient(rG.data(),3,n),_params(p){
 
     // Ensure that there is enough memory for n-particles
     assert(n <= pos.cols() && n <= rot.cols() && n <= pG.cols()
@@ -42,8 +42,7 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
     _updateRadius = true; /*!< getAverageRadius() will toggle this */
     _updateVolume = true; /*!< getVolume() will toggle this */
 
-    //Store the reference position for Kabsch calculations
-    _prevPositions = _positions;
+    _prevX = _positions;
 
     //Extract point coordinates for _polyData from x
     void *coords = (void*) _positions.data();
@@ -186,6 +185,10 @@ void OPSBody::updatePolyDataAndKdTree() {
     return;
 }
 
+//! Store the previous position for Kabsch
+void OPSBody::updateDataForKabsch(){
+    _prevX = _positions;
+}
 
 //! Store the neighbors information for each node
 void OPSBody::updateNeighbors(){
@@ -408,19 +411,13 @@ void OPSBody::initialRotationVector(RefM3Xd pos, RefM3Xd rotVec){
     }
 }
 
-//! Store current reference position to get rid of rigid body motion
-void OPSBody::updateDataForKabsch(){
-    // Store the previous coordinates
-    _prevPositions = _positions;
-}
-
 //! Minimize Rigid Body motions by applying Kabsch Algorithm
 void OPSBody::applyKabschAlgorithm(){
     computeNormals();
     Matrix3Xd pseudoNormal(3,_numPartilces);
     pseudoNormal = _positions + _normals;
     Eigen::Affine3d A;
-    A = find3DAffineTransform(_positions, _prevPositions);
+    A = find3DAffineTransform(_positions, _prevX);
 
     //Apply the transformation to each column in _positions
     for(size_t i=0; i < _numPartilces; ++i){

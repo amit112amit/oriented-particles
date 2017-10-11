@@ -61,24 +61,24 @@ int main(int argc, char* argv[]){
 
     // Prepare memory for energy and force
     double_t f;
-    Eigen::VectorXd x(3*N), g(3*N);
+    Eigen::VectorXd x(3*N), g(3*N), prevX(3*N);
     g.setZero(g.size());
     x.setZero(x.size());
+    prevX.setZero(prevX.size());
 
-    // Fill x with coords
+    // Fill x and prevX with coordinates
     Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N);
     for(size_t i = 0; i < N; ++i){
         Eigen::Vector3d cp = Eigen::Vector3d::Zero();
         mesh->GetPoint(i, &(cp(0)));
         xpos.col(i) = cp;
     }
+    prevX = x;
 
-    // Create Brownian and Viscosity bodies
-    Eigen::Map<Eigen::VectorXd> thermalX(x.data(),3*N,1);
-    Eigen::Map<Eigen::VectorXd> thermalG(g.data(),3*N,1);
+    // Create Brownian and Viscosity bodies    
     double brownCoeff = 1.0, viscosity = 1.0;
-    BrownianBody brown(3*N,brownCoeff,f,thermalX,thermalG);
-    ViscosityBody visco(3*N,viscosity,f,thermalX,thermalG);
+    BrownianBody brown(3*N,brownCoeff,f,x,g,prevX);
+    ViscosityBody visco(3*N,viscosity,f,x,g,prevX);
 
     // Create Model
     Model model(3*N,f,g);
@@ -167,8 +167,8 @@ int main(int argc, char* argv[]){
                           << f << "\t"
                           << std::endl;
 
-            // Update viscosity body reference
-            visco.viscousStep();
+            // Store the current state for next iteration
+            prevX = x;
         }
         //************************************************//
 

@@ -2,6 +2,7 @@
 #define __MODEL_H__
 
 #include <stdio.h>
+#include <iostream>
 #include <vector>
 #include <Eigen/Dense>
 #include "Body.h"
