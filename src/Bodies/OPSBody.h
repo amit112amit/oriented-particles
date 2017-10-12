@@ -106,7 +106,8 @@ public:
     static void initialRotationVector(RefM3Xd pos, RefM3Xd rotVec);
     void printVTKFile(const std::string name);
     void saveInitialPosition(){ _initialPositions = _positions;}
-    void setConstrainedVolume(double_t V){_volConstrained = V;}
+    void setAverageVolumeConstraintFlag(bool b){_avgVolConstraintOn = b;}
+    void setConstrainedVolume(double_t V){_volConstrained = V;}    
     void updateNeighbors();
     void updateDataForKabsch();
     void updatePolyDataAndKdTree();
@@ -115,6 +116,7 @@ public:
 private:
     bool _updateRadius;
     bool _updateVolume;
+    bool _avgVolConstraintOn;
     double_t &_f;
     double_t _radius;
     double_t _volume;

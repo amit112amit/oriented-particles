@@ -231,8 +231,10 @@ int main(int argc, char* argv[]){
         solver.solve();
         std::cout<<"Solving finished."<<std::endl;
 
-        // Set up the volume constraint as the zero temperature volume        
-        double_t volume = ops.getVolume();
+        // Set up the volume constraint as the zero temperature volume
+        double_t Ravg = xpos.colwise().norm().sum()/N;
+        double_t volume = 4*M_PI*Ravg*Ravg*Ravg/3;
+        //double_t volume = ops.getVolume();
         ops.setConstrainedVolume(volume);
         std::cout<< "Constrained Volume = " << volume << std::endl;
 
