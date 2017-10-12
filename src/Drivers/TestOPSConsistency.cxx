@@ -5,7 +5,7 @@
 #include "Model.h"
 #include "OPSBody.h"
 #include "ViscosityBody.h"
-#include "VolumeConstraint.h"
+#include "AugmentedLagrangian.h"
 
 int main(int argc, char* argv[]){
 
@@ -14,7 +14,7 @@ int main(int argc, char* argv[]){
 
     // Prepare memory
     double_t f;
-    Eigen::VectorXd x(6*N+1), g(6*N+1), prevX(3*N);
+    Eigen::VectorXd x(6*N), g(6*N), prevX(3*N);
     x.setRandom(x.size());
     g.setZero(g.size());
     prevX.setRandom(prevX.size());
@@ -32,15 +32,15 @@ int main(int argc, char* argv[]){
     BrownianBody brown(3*N,1.0,f,thermalX,thermalG,prevX);
     ViscosityBody visco(3*N,1.0,f,thermalX,thermalG,prevX);
 
-    // Create Volume constraint body
-    VolumeConstraint volC(N,f,pos,posGrad);
+    // Create an Augmented Lagrangian Volume constraint
+    AugmentedLagrangian AL(ops,f,3*N,thermalG);
 
     // Create Model
-    Model model(6*N+1,f,g);
+    Model model(6*N,f,g);
     model.addBody(&ops);
     model.addBody(&brown);
     model.addBody(&visco);
-    model.addBody(&volC);
+    model.addConstraint(&AL);
 
     // Generate Brownian Kicks
     brown.generateParallelKicks();
@@ -52,7 +52,7 @@ int main(int argc, char* argv[]){
     //p.updateParameter(OPSParams::D_eV,0.0);
     //brown.setCoefficient(0.0);
     //visco.setViscosity(0.0);
-    //volC.updateAugmentedLagrangianCoeffs(0.0,0.0);
+    //AL.setLambdaAndK(0,0);
 
 // ******************  Consistency Check ********************//
 
@@ -69,10 +69,7 @@ int main(int argc, char* argv[]){
     // Calculate analytical derivative
     Eigen::VectorXd gAna(g.size());
     model.compute();
-    std::cout <<"OPSBody energy = " << ops.getTotalEnergy() << std::endl;
-    std::cout <<"BrownBody energy = " << brown.getBrownianEnergy() << std::endl;
-    std::cout <<"ViscoBody energy = " << visco.getViscosityEnergy() << std::endl;
-    std::cout <<"VolConstr energy = " << volC.getEnergyContribution() << std::endl;
+
     gAna = g; /*!< Copies the derivative */
 
     // Calculate the error

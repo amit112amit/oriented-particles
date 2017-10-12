@@ -16,6 +16,7 @@
 #include <iostream>
 #include <Eigen/Dense>
 #include "Model.h"
+#include "AugmentedLagrangian.h"
 
 //! l-BFGS-b Solver Parameter Class
 class LBFGSBParams{
@@ -63,6 +64,7 @@ public:
     void setMachineEPSFactor(double_t f){ _factr=f; }
     void setProjectedGradientTolerance(double_t p){ _pgtol=p; }
     void solve();
+    void solveWithALConstraints(AugmentedLagrangian &AL, double_t conTol, size_t maxIter);
 
 private:
     void resize(size_t n);
@@ -70,7 +72,7 @@ private:
     double_t &_f;
     MapV _x;
     MapV _g;
-    Model &_model;
+    Model &_model;    
     Vector_t _l;
     Vector_t _u;
     Vector_t _wa;

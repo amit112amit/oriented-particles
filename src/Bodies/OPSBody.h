@@ -69,7 +69,7 @@ private:
  * \brief The OPSBody class
  * Computes energy and forces on a Oriented Particle System
  */
-class OPSBody : public Body{
+class OPSBody : public Body, public ConstrainedBody{
 public:
     typedef Eigen::Vector3d Vector3d;
     typedef Eigen::Map<Vector3d> MapV3d;
@@ -89,6 +89,7 @@ public:
              RefM3Xd rotGrad, OPSParams &p);
     void applyKabschAlgorithm();
     void compute();
+    void computeConstraintTerms(double_t &h, RefVXd dh);
     void computeNormals();    
     void diffNormalRotVec(const RefCV3d &vi, RefM3d diff);
     double_t getAsphericity();
@@ -96,6 +97,7 @@ public:
     double_t getAverageRadius();
     double_t getAverageNumberOfNeighbors();
     double_t getCircularityEnergy(){return _circEn;}
+    double_t getConstraintValue();
     double_t getMeanSquaredDisplacement();
     double_t getMorseEnergy(){return _morseEn;}
     double_t getNormalityEnergy(){return _normalEn;}
@@ -104,6 +106,7 @@ public:
     static void initialRotationVector(RefM3Xd pos, RefM3Xd rotVec);
     void printVTKFile(const std::string name);
     void saveInitialPosition(){ _initialPositions = _positions;}
+    void setConstrainedVolume(double_t V){_volConstrained = V;}
     void updateNeighbors();
     void updateDataForKabsch();
     void updatePolyDataAndKdTree();
@@ -115,6 +118,7 @@ private:
     double_t &_f;
     double_t _radius;
     double_t _volume;
+    double_t _volConstrained;
     double_t _morseEn;
     double_t _normalEn;
     double_t _circEn;

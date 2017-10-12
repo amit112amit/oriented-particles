@@ -38,8 +38,7 @@ LBFGSBWrapper::LBFGSBWrapper(LBFGSBParams &p, Model &m, double_t &f,
     _iprint = p.getPrintCode();
     _maxIterations = p.getMaxIterations();
     _factr = p.getMachineEPSFactor();
-    _pgtol = p.getProjectedGradientTolerance();
-
+    _pgtol = p.getProjectedGradientTolerance();    
     resize(_n);
     _projg = 0.0;
 }
@@ -213,3 +212,28 @@ void LBFGSBWrapper::solve() {
     _model.compute();
 }
 
+//! Solve Augmented Lagrangian Constraints
+void LBFGSBWrapper::solveWithALConstraints(AugmentedLagrangian &AL, double_t
+                                      conTol, size_t maxIter){
+    size_t iter;
+    double_t conDiff;
+
+    // Solve the unconstrained minimization problem
+    solve();
+
+    conDiff = std::abs(AL.getConstraintValue());
+    while( conDiff > conTol && iter < maxIter  ){
+        std::cout<< "Augmented Lagrangian Iteration : " << iter << std::endl;
+
+        // Solve the unconstrained minimization problem
+        solve();
+
+        // Uzawa-update
+        AL.uzawaUpdate();
+
+        // Check termination criteria
+        conDiff = std::abs(AL.getConstraintValue());
+        iter++;
+    }
+    std::cout<<"ConDiff = " << conDiff << std::endl;
+}

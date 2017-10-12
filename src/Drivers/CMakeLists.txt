@@ -1,7 +1,7 @@
 project(Drivers)
 
 #Set the include directory names which are under ../../src/
-set(INCLD Bodies Model Solvers Helpers)
+set(INCLD Bodies Model Solvers Helpers Constraints)
 
 #Add a new add_executable for each driver
 add_executable(opsConsistency TestOPSConsistency.cxx)

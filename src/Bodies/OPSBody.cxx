@@ -39,6 +39,7 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
     _numPartilces = n;
     _radius = 0.0;
     _volume = 0.0;
+    _volConstrained = 0.0;
     _updateRadius = true; /*!< getAverageRadius() will toggle this */
     _updateVolume = true; /*!< getVolume() will toggle this */
 
@@ -516,14 +517,13 @@ double_t OPSBody::getVolume(){
             ida = verts->GetId(0);
             idb = verts->GetId(1);
             idc = verts->GetId(2);
-            Vector3d a, b, c, crossTemp;
+            Vector3d a, b, c;
             a = _positions.col(ida);
             b = _positions.col(idb);
             c = _positions.col(idc);
 
             //Calculate volume
-            crossTemp = b.cross(c);
-            _volume += (a.dot(crossTemp))/6.0;
+            _volume += (a.dot(b.cross(c)))/6.0;
         }
         _updateVolume = false;
     }
@@ -543,10 +543,50 @@ double_t OPSBody::getAverageRadius(){
 
 //! Calculate average number of neighbors
 double_t OPSBody::getAverageNumberOfNeighbors(){
-            double num = 0.0;
-            for(int i=0; i < _numPartilces; i++){
-                num += _neighbors[i]->GetNumberOfIds();
-            }
-            num /= _numPartilces;
-            return num;
+    double num = 0.0;
+    for(int i=0; i < _numPartilces; i++){
+        num += _neighbors[i]->GetNumberOfIds();
+    }
+    num /= _numPartilces;
+    return num;
+}
+
+//! Calculate the volume constraint and its derivatives
+void OPSBody::computeConstraintTerms(double_t &h, RefVXd dh){
+    Eigen::Map<Eigen::Matrix3Xd> dhdx(dh.data(),3,_numPartilces);
+    vtkSmartPointer<vtkCellArray> cells = _polyData->GetPolys();
+    vtkSmartPointer<vtkIdList> verts =
+            vtkSmartPointer<vtkIdList>::New();
+    _volume = 0.0;
+    dh.setZero();
+    cells->InitTraversal();
+    while( cells->GetNextCell(verts) ){
+        int ida, idb, idc;
+        ida = verts->GetId(0);
+        idb = verts->GetId(1);
+        idc = verts->GetId(2);
+        Vector3d a, b, c;
+        a = _positions.col(ida);
+        b = _positions.col(idb);
+        c = _positions.col(idc);
+        //Calculate volume
+        _volume += a.dot(b.cross(c))/6.0;
+
+        //Calculate derivative wrt volume
+        Vector3d dVa, dVb, dVc;
+        dVa <<  b[1]*c[2]-b[2]*c[1], b[2]*c[0]-b[0]*c[2], b[0]*c[1]-b[1]*c[0];
+        dVb << a[2]*c[1]-a[1]*c[2], a[0]*c[2]-a[2]*c[0], a[1]*c[0]-a[0]*c[1];
+        dVc << a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0];
+
+        dhdx.col(ida) += 0.1666666666667*dVa;
+        dhdx.col(idb) += 0.1666666666667*dVb;
+        dhdx.col(idc) += 0.1666666666667*dVc;
+    }
+    _updateVolume = false;
+    h = _volume - _volConstrained;
+}
+
+//! Return current value of the volume constraint
+double_t OPSBody::getConstraintValue(){
+    return (_volume - _volConstrained);
 }

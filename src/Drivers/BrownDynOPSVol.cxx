@@ -7,7 +7,7 @@
 #include "Model.h"
 #include "OPSBody.h"
 #include "ViscosityBody.h"
-#include "VolumeConstraint.h"
+#include "AugmentedLagrangian.h"
 
 int main(int argc, char* argv[]){
 
@@ -116,15 +116,15 @@ int main(int argc, char* argv[]){
     BrownianBody brown(3*N,brownCoeff,f,thermalX,thermalG,prevX);
     ViscosityBody visco(3*N,viscosity,f,thermalX,thermalG,prevX);
 
-    // Create the volume constraint body
-    VolumeConstraint volC(N,f,xpos,posGrad);
+    // Create the volume Augmented Lagrangian constraint
+    AugmentedLagrangian volC(ops,f,3*N,thermalG);
 
     // Create Model
     Model model(6*N,f,g);
     model.addBody(&ops);
     model.addBody(&brown);
     model.addBody(&visco);
-    model.addBody(&volC);
+    model.addConstraint(&volC);
 
     // ****************************************************************//
 
@@ -226,15 +226,14 @@ int main(int argc, char* argv[]){
         // Solve the system without Brownian, Viscous and Volume constraints
         brown.setCoefficient(0.0);
         visco.setViscosity(0.0);
-        volC.updateAugmentedLagrangianCoeffs(0.0,0.0);
+        volC.setLambdaAndK(0.0,0.0);
         std::cout<<"Solving the system at zero temperature..."<<std::endl;
         solver.solve();
         std::cout<<"Solving finished."<<std::endl;
 
-        // Set up the volume constraint as the zero temperature volume
-        double_t startAvgRad = ops.getAverageRadius();
-        double_t volume = 4.1887902047863905*startAvgRad*startAvgRad*startAvgRad;
-        volC.setConstrainedVolume(volume);
+        // Set up the volume constraint as the zero temperature volume        
+        double_t volume = ops.getVolume();
+        ops.setConstrainedVolume(volume);
         std::cout<< "Constrained Volume = " << volume << std::endl;
 
         // Set the viscosity and Brownian coefficient
@@ -264,41 +263,12 @@ int main(int argc, char* argv[]){
             // Store data for Kabsch
             ops.updateDataForKabsch();
 
-            // *************** Augmented Lagrangian Loop ************** //
-            double_t volDiff = 1.0, xDiff=1.0, volTol = 1e-6, xTol = 1e-6;
-            size_t alIter = 0, alMaxIter = 100;
-
             // Set the starting guess for Lambda and K for Augmented Lagrangian
-            double_t L_k, L_kp1, K_k, K_kp1;
-            L_k = 100.0;
-            K_k = 1000.0;
-            volC.updateAugmentedLagrangianCoeffs(L_k,K_k);
-            while( (volDiff > volTol) && (xDiff > xTol) && (alIter < alMaxIter)){
-                std::cout<< std::setprecision(6) << "Augmented Lagrangian"
-                         << " iteration: " << alIter << std::endl;
+            volC.setLambdaAndK(1.0,1000);
+            volC.setKFactor(10.0);
 
-                // Solve the unconstrained minimization
-                solver.solve();
-
-                //Uzawa update
-                L_k = L_k + K_k*(volDiff);
-                K_k = 10*K_k;
-
-                // Update termination check quantities
-                alIter++;
-                volDiff = std::abs(volC.getAverageVolume() - volume);
-                xDiff = (xpos - prevXMap).colwise().norm().sum()/N;
-
-                std::cout<< std::setprecision(16) << "volDiff = " << volDiff
-                         <<"\txDiff = " << xDiff  << "\talIter = "
-                        << alIter << std::endl << std::endl;
-
-                // Update prevX
-                prevX = x.head(3*N);
-            }
-            std::cout<< std::setprecision(6) << "Volume constraint applied."
-                     << std::endl;
-            // *********************************************************//
+            // Solve with constraints
+            solver.solveWithALConstraints(volC,1e-6,100);
 
             // Apply Kabsch Algorithm
             ops.applyKabschAlgorithm();
@@ -337,8 +307,7 @@ int main(int argc, char* argv[]){
                           << ops.getCircularityEnergy() << "\t"
                           << ops.getTotalEnergy() << "\t"
                           << brown.getBrownianEnergy() << "\t"
-                          << visco.getViscosityEnergy() << "\t"
-                          << volC.getEnergyContribution() << "\t"
+                          << visco.getViscosityEnergy() << "\t"                          
                           << f << "\t"
                           << ops.getMeanSquaredDisplacement() << "\t"
                           << ops.getAverageNumberOfNeighbors() << "\t"
