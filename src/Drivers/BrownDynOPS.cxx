@@ -233,7 +233,7 @@ int main(int argc, char* argv[]){
             std::cout<< "Search Radius = " << searchRadFactor*avgEdgeLen << std::endl;
 
             // Store positions for the Kabsch
-            ops.updateDataForKabsch();
+            //ops.updateDataForKabsch();
 
             // Generate Brownian Kicks
             brown.generateParallelKicks();
@@ -242,7 +242,7 @@ int main(int argc, char* argv[]){
             solver.solve();
 
             // Apply Kabsch Algorithm
-            ops.applyKabschAlgorithm();
+            //ops.applyKabschAlgorithm();
 
             //Update kdTree, polyData and neighbors
             ops.updatePolyDataAndKdTree();

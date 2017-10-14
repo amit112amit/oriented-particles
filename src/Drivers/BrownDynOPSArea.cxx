@@ -233,7 +233,7 @@ int main(int argc, char* argv[]){
         double_t Ravg = xpos.colwise().norm().sum()/N;
         double_t constrainedArea = 4*M_PI*Ravg*Ravg;
         areaC.setConstrainedArea(constrainedArea);
-        std::cout<< "Constrained Volume = " << constrainedArea << std::endl;
+        std::cout<< "Constrained Area = " << constrainedArea << std::endl;
 
         // Set the viscosity and Brownian coefficient
         brownCoeff = beta*D_e/(alpha*avgEdgeLen);
@@ -264,7 +264,7 @@ int main(int argc, char* argv[]){
             brown.generateParallelKicks();
 
             // Store data for Kabsch
-            ops.updateDataForKabsch();
+            //ops.updateDataForKabsch();
 
             // *************** Augmented Lagrangian Loop ************** //
             double_t areaDiff = 1.0, areaTol = 1e-10;
@@ -290,7 +290,7 @@ int main(int argc, char* argv[]){
             // *********************************************************//
 
             // Apply Kabsch Algorithm
-            ops.applyKabschAlgorithm();
+            //ops.applyKabschAlgorithm();
 
             //Update kdTree, polyData and neighbors
             ops.updatePolyDataAndKdTree();
