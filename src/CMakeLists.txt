@@ -1,6 +1,6 @@
 project(src)
 
-set(SUBD Bodies Model Solvers Drivers Helpers Constraints)
+set(SUBD Bodies Model Solvers Drivers Helpers)
 
 foreach(CURRD ${SUBD})
     add_subdirectory(${CURRD})

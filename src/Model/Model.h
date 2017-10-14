@@ -6,7 +6,6 @@
 #include <vector>
 #include <Eigen/Dense>
 #include "Body.h"
-#include "Constraint.h"
 
 class Model{
 public:
@@ -14,7 +13,6 @@ public:
 
     Model(size_t N, double_t &f, RefVXd g);
     void addBody(Body *b);
-    void addConstraint(Constraint *c);
     void compute();
     void zeroOutData();
 private:
@@ -22,6 +20,5 @@ private:
     double &_f;
     Eigen::Map<Eigen::VectorXd> _g;
     std::vector<Body*> _everyBody;
-    std::vector<Constraint*> _constraints;
 };
 #endif // __MODEL_H__

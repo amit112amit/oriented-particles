@@ -69,7 +69,7 @@ private:
  * \brief The OPSBody class
  * Computes energy and forces on a Oriented Particle System
  */
-class OPSBody : public Body, public ConstrainedBody{
+class OPSBody : public Body{
 public:
     typedef Eigen::Vector3d Vector3d;
     typedef Eigen::Map<Vector3d> MapV3d;
@@ -88,8 +88,7 @@ public:
     OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd posGrad,
              RefM3Xd rotGrad, OPSParams &p);
     void applyKabschAlgorithm();
-    void compute();
-    void computeConstraintTerms(double_t &h, RefVXd dh);
+    void compute();    
     void computeNormals();    
     void diffNormalRotVec(const RefCV3d &vi, RefM3d diff);
     double_t getAsphericity();
@@ -97,7 +96,6 @@ public:
     double_t getAverageRadius();
     double_t getAverageNumberOfNeighbors();
     double_t getCircularityEnergy(){return _circEn;}
-    double_t getConstraintValue();
     double_t getMeanSquaredDisplacement();
     double_t getMorseEnergy(){return _morseEn;}
     double_t getNormalityEnergy(){return _normalEn;}
@@ -105,13 +103,10 @@ public:
     double_t getVolume();
     static void initialRotationVector(RefM3Xd pos, RefM3Xd rotVec);
     void printVTKFile(const std::string name);
-    void saveInitialPosition(){ _initialPositions = _positions;}
-    void setAverageVolumeConstraintFlag(bool b){_avgVolConstraintOn = b;}
-    void setConstrainedVolume(double_t V){_volConstrained = V;}    
+    void saveInitialPosition(){ _initialPositions = _positions;}           
     void updateNeighbors();
     void updateDataForKabsch();
-    void updatePolyDataAndKdTree();
-    void viscousStep();
+    void updatePolyDataAndKdTree();    
 
 private:
     bool _updateRadius;

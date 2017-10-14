@@ -38,11 +38,9 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
            && n <= rG.cols());
     _numPartilces = n;
     _radius = 0.0;
-    _volume = 0.0;
-    _volConstrained = 0.0;
+    _volume = 0.0;    
     _updateRadius = true; /*!< getAverageRadius() will toggle this */
-    _updateVolume = true; /*!< getVolume() will toggle this */
-    _avgVolConstraintOn = true; /*!< Use average volume constraint by default*/
+    _updateVolume = true; /*!< getVolume() will toggle this */    
 
     _prevX = _positions;
 
@@ -550,55 +548,4 @@ double_t OPSBody::getAverageNumberOfNeighbors(){
     }
     num /= _numPartilces;
     return num;
-}
-
-//! Calculate the volume constraint and its derivatives
-void OPSBody::computeConstraintTerms(double_t &h, RefVXd dh){
-    Eigen::Map<Eigen::Matrix3Xd> dhdx(dh.data(),3,_numPartilces);
-    if(!_avgVolConstraintOn){
-        _volume = 0.0;
-        vtkSmartPointer<vtkCellArray> cells = _polyData->GetPolys();
-        vtkSmartPointer<vtkIdList> verts =
-                vtkSmartPointer<vtkIdList>::New();
-        cells->InitTraversal();
-        while( cells->GetNextCell(verts) ){
-            int ida, idb, idc;
-            ida = verts->GetId(0);
-            idb = verts->GetId(1);
-            idc = verts->GetId(2);
-            Vector3d a, b, c;
-            a = _positions.col(ida);
-            b = _positions.col(idb);
-            c = _positions.col(idc);
-            //Calculate volume
-            _volume += a.dot(b.cross(c))/6.0;
-
-            //Calculate derivative wrt volume
-            Vector3d dVa, dVb, dVc;
-            dVa <<  b[1]*c[2]-b[2]*c[1], b[2]*c[0]-b[0]*c[2], b[0]*c[1]-b[1]*c[0];
-            dVb << a[2]*c[1]-a[1]*c[2], a[0]*c[2]-a[2]*c[0], a[1]*c[0]-a[0]*c[1];
-            dVc << a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0];
-
-            dhdx.col(ida) += 0.1666666666667*dVa;
-            dhdx.col(idb) += 0.1666666666667*dVb;
-            dhdx.col(idc) += 0.1666666666667*dVc;
-        }
-    }
-    else{
-        Eigen::VectorXd R(_numPartilces);
-        R = _positions.colwise().norm();
-        double_t Ravg = R.sum()/_numPartilces;
-        _volume = 4*M_PI*Ravg*Ravg*Ravg/3;
-        double_t factor = 4*M_PI*Ravg*Ravg/_numPartilces;
-        for(int i=0; i < _numPartilces; ++i){
-            dhdx.col(i) = factor*_positions.col(i)/R(i);
-        }
-    }
-    _updateVolume = false;
-    h = _volume - _volConstrained;
-}
-
-//! Return current value of the volume constraint
-double_t OPSBody::getConstraintValue(){
-    return (_volume - _volConstrained);
 }

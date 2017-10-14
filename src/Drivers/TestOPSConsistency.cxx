@@ -5,7 +5,8 @@
 #include "Model.h"
 #include "OPSBody.h"
 #include "ViscosityBody.h"
-#include "AugmentedLagrangian.h"
+#include "ALVolConstraint.h"
+#include "ALAreaConstraint.h"
 
 int main(int argc, char* argv[]){
 
@@ -32,15 +33,17 @@ int main(int argc, char* argv[]){
     BrownianBody brown(3*N,1.0,f,thermalX,thermalG,prevX);
     ViscosityBody visco(3*N,1.0,f,thermalX,thermalG,prevX);
 
-    // Create an Augmented Lagrangian Volume constraint
-    AugmentedLagrangian AL(ops,f,3*N,thermalG);
+    // Create an Augmented Lagrangian Volume and Area constraint
+    ALVolConstraint volC(N,f,pos,posGrad);
+    ALAreaConstraint areaC(N,f,pos,posGrad);
 
     // Create Model
     Model model(6*N,f,g);
     model.addBody(&ops);
     model.addBody(&brown);
     model.addBody(&visco);
-    model.addConstraint(&AL);
+    model.addBody(&volC);
+    model.addBody(&areaC);
 
     // Generate Brownian Kicks
     brown.generateParallelKicks();
@@ -52,7 +55,10 @@ int main(int argc, char* argv[]){
     //p.updateParameter(OPSParams::D_eV,0.0);
     //brown.setCoefficient(0.0);
     //visco.setViscosity(0.0);
-    //AL.setLambdaAndK(0,0);
+    //volC.setLagrangeCoeff(0,0);
+    //volC.setPenaltyCoeff(0,0);
+    //areaC.setLagrangeCoeff(0,0);
+    //areaC.setPenaltyCoeff(0,0);
 
 // ******************  Consistency Check ********************//
 

@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include <vtkPolyDataReader.h>
-#include "ALVolConstraint.h"
+#include "ALAreaConstraint.h"
 #include "BrownianBody.h"
 #include "LBFGSBWrapper.h"
 #include "Model.h"
@@ -116,14 +116,14 @@ int main(int argc, char* argv[]){
     ViscosityBody visco(3*N,viscosity,f,thermalX,thermalG,prevX);
 
     // Create the Augmented Lagrangian volume constraint body
-    ALVolConstraint volC(N, f, xpos, posGrad);
+    ALAreaConstraint areaC(N, f, xpos, posGrad);
 
     // Create Model
     Model model(6*N,f,g);
     model.addBody(&ops);
     model.addBody(&brown);
     model.addBody(&visco);
-    model.addBody(&volC);
+    model.addBody(&areaC);
     // ****************************************************************//
 
     // ***************** Prepare Output Data file *********************//
@@ -223,17 +223,17 @@ int main(int argc, char* argv[]){
         // Solve the system without Brownian, Viscous and Volume constraints
         brown.setCoefficient(0.0);
         visco.setViscosity(0.0);
-        volC.setLagrangeCoeff(0.0);
-        volC.setPenaltyCoeff(0.0);
+        areaC.setLagrangeCoeff(0.0);
+        areaC.setPenaltyCoeff(0.0);
         std::cout<<"Solving the system at zero temperature..."<<std::endl;
         solver.solve();
         std::cout<<"Solving finished."<<std::endl;
 
         // Set up the volume constraint as the zero temperature volume
         double_t Ravg = xpos.colwise().norm().sum()/N;
-        double_t constrainedVolume = 4*M_PI*Ravg*Ravg*Ravg/3;
-        volC.setConstrainedVolume(constrainedVolume);
-        std::cout<< "Constrained Volume = " << constrainedVolume << std::endl;
+        double_t constrainedArea = 4*M_PI*Ravg*Ravg;
+        areaC.setConstrainedArea(constrainedArea);
+        std::cout<< "Constrained Volume = " << constrainedArea << std::endl;
 
         // Set the viscosity and Brownian coefficient
         brownCoeff = beta*D_e/(alpha*avgEdgeLen);
@@ -244,8 +244,8 @@ int main(int argc, char* argv[]){
         visco.setViscosity(viscosity);
 
         // Set the starting guess for Lambda and K for Augmented Lagrangian
-        volC.setLagrangeCoeff(1.0);
-        volC.setPenaltyCoeff(1000.0);
+        areaC.setLagrangeCoeff(10.0);
+        areaC.setPenaltyCoeff(1000.0);
 
         // Update prevX
         prevX = x.head(3*N);
@@ -267,10 +267,10 @@ int main(int argc, char* argv[]){
             ops.updateDataForKabsch();
 
             // *************** Augmented Lagrangian Loop ************** //
-            double_t volDiff = 1.0, volTol = 1e-10;
+            double_t areaDiff = 1.0, areaTol = 1e-10;
             size_t alIter = 0, alMaxIter = 10;
 
-            while( (volDiff > volTol) && (alIter < alMaxIter)){
+            while( (areaDiff > areaTol) && (alIter < alMaxIter)){
                 std::cout<< "Augmented Lagrangian iteration: " << alIter
                          << std::endl;
 
@@ -278,14 +278,14 @@ int main(int argc, char* argv[]){
                 solver.solve();
 
                 //Uzawa update
-                volC.uzawaUpdate();
+                areaC.uzawaUpdate();
 
                 // Update termination check quantities
                 alIter++;
-                volDiff = std::abs(volC.getVolume() - constrainedVolume);
+                areaDiff = std::abs(areaC.getArea() - constrainedArea);
 
             }
-            std::cout<< "volDiff = " << volDiff << "\talIter = "<< alIter
+            std::cout<< "areaDiff = " << areaDiff << "\talIter = "<< alIter
                      << std::endl << std::endl;
             // *********************************************************//
 
@@ -387,4 +387,5 @@ int main(int argc, char* argv[]){
 
     return 1;
 }
+
 

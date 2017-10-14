@@ -10,15 +10,7 @@ void Model::compute(){
     for( std::vector<Body*>::iterator i=_everyBody.begin();
          i != _everyBody.end(); ++i){
         (*i)->compute();
-    }
-    for( std::vector<Constraint*>::iterator i=_constraints.begin();
-         i != _constraints.end(); ++i){
-        (*i)->computeConstraints();
-    }
-}
-
-void Model::addConstraint(Constraint *c){
-    _constraints.push_back(c);
+    }    
 }
 
 void Model::addBody(Body *b){

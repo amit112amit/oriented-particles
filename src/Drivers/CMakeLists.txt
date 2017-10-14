@@ -1,16 +1,17 @@
 project(Drivers)
 
 #Set the include directory names which are under ../../src/
-set(INCLD Bodies Model Solvers Helpers Constraints)
+set(INCLD Bodies Model Solvers Helpers)
 
 #Add a new add_executable for each driver
 add_executable(opsConsistency TestOPSConsistency.cxx)
 add_executable(heatOPS BrownDynOPS.cxx)
 add_executable(freeDiff FreeDiffusion.cxx)
 add_executable(volConst BrownDynOPSVol.cxx)
+add_executable(areaConst BrownDynOPSArea.cxx)
 
 #Add name of your executable target to the DRIVERS variable
-set(DRIVERS opsConsistency heatOPS freeDiff volConst)
+set(DRIVERS opsConsistency heatOPS freeDiff volConst areaConst)
 
 #For each driver link libraries and set the include paths
 foreach(DRIVER ${DRIVERS})    
