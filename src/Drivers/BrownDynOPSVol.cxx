@@ -243,10 +243,6 @@ int main(int argc, char* argv[]){
         brown.setCoefficient(brownCoeff);
         visco.setViscosity(viscosity);
 
-        // Set the starting guess for Lambda and K for Augmented Lagrangian
-        volC.setLagrangeCoeff(1.0);
-        volC.setPenaltyCoeff(1000.0);
-
         // Update prevX
         prevX = x.head(3*N);
 
@@ -265,6 +261,11 @@ int main(int argc, char* argv[]){
 
             // Store data for Kabsch
             ops.updateDataForKabsch();
+
+
+            // Set the starting guess for Lambda and K for Augmented Lagrangian
+            volC.setLagrangeCoeff(1.0);
+            volC.setPenaltyCoeff(1000.0);
 
             // *************** Augmented Lagrangian Loop ************** //
             double_t volDiff = 1.0, volTol = 1e-10;
