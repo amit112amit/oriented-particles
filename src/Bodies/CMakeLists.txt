@@ -1,7 +1,7 @@
 project(Bodies)
 
 # Append name of the source file to SRCS
-set(SRCS OPSBody.cxx BrownianBody.cxx ViscosityBody.cxx ALVolConstraint.cxx ALAreaConstraint.cxx)
+set(SRCS OPSBody.cxx BrownianBody.cxx ViscosityBody.cxx ALConstraint.cxx)
 
 add_library(Bodies ${SRCS})
 target_include_directories(Bodies PUBLIC ${VTK_INCLUDE_DIRS} ${EIGEN_INCLUDE_DIRS})

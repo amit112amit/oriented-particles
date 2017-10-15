@@ -92,6 +92,7 @@ public:
     void computeNormals();    
     void diffNormalRotVec(const RefCV3d &vi, RefM3d diff);
     double_t getAsphericity();
+    double_t getArea();
     double_t getAverageEdgeLength();
     double_t getAverageRadius();
     double_t getAverageNumberOfNeighbors();
@@ -99,6 +100,7 @@ public:
     double_t getMeanSquaredDisplacement();
     double_t getMorseEnergy(){return _morseEn;}
     double_t getNormalityEnergy(){return _normalEn;}
+    vtkSmartPointer<vtkPolyData> getPolyData(){return _polyData;}
     double_t getTotalEnergy();
     double_t getVolume();
     static void initialRotationVector(RefM3Xd pos, RefM3Xd rotVec);
@@ -109,10 +111,11 @@ public:
     void updatePolyDataAndKdTree();    
 
 private:
+    bool _updateArea;
     bool _updateRadius;
     bool _updateVolume;
-    bool _avgVolConstraintOn;
     double_t &_f;
+    double_t _area;
     double_t _radius;
     double_t _volume;
     double_t _volConstrained;

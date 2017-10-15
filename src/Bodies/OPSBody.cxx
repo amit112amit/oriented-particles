@@ -37,10 +37,12 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
     assert(n <= pos.cols() && n <= rot.cols() && n <= pG.cols()
            && n <= rG.cols());
     _numPartilces = n;
+    _area = 0.0;
     _radius = 0.0;
-    _volume = 0.0;    
+    _volume = 0.0;
     _updateRadius = true; /*!< getAverageRadius() will toggle this */
-    _updateVolume = true; /*!< getVolume() will toggle this */    
+    _updateVolume = true; /*!< getVolume() will toggle this */
+    _updateArea = true; /*!< getVolume() will toggle this */
 
     _prevX = _positions;
 
@@ -511,7 +513,6 @@ double_t OPSBody::getVolume(){
                 vtkSmartPointer<vtkIdList>::New();
         cells->InitTraversal();
         while( cells->GetNextCell(verts) ){
-            assert(verts->GetNumberOfIds() == 3);
             int ida, idb, idc;
             ida = verts->GetId(0);
             idb = verts->GetId(1);
@@ -529,12 +530,37 @@ double_t OPSBody::getVolume(){
     return _volume;
 }
 
+//! Calculate Area
+double_t OPSBody::getArea(){
+    if(_updateArea){
+        _area = 0.0;
+        vtkSmartPointer<vtkCellArray> cells = _polyData->GetPolys();
+        vtkSmartPointer<vtkIdList> verts =
+                vtkSmartPointer<vtkIdList>::New();
+        cells->InitTraversal();
+        while( cells->GetNextCell(verts) ){
+            int ida, idb, idc;
+            ida = verts->GetId(0);
+            idb = verts->GetId(1);
+            idc = verts->GetId(2);
+            Vector3d a, b, c;
+            a = _positions.col(ida);
+            b = _positions.col(idb);
+            c = _positions.col(idc);
+
+            //Calculate area
+            _area += (b-a).cross(c-a).norm()/2.0;
+        }
+        _updateArea = false;
+    }
+    return _area;
+}
+
 //! Get average radius
 double_t OPSBody::getAverageRadius(){
     if(_updateRadius){
         _radius = 0.0;
-        _radius = _positions.colwise().norm().sum();
-        _radius /= _numPartilces;
+        _radius = _positions.colwise().norm().sum()/_numPartilces;
         _updateRadius = false;
     }
     return _radius;

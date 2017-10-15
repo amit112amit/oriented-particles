@@ -5,20 +5,45 @@
 #include "Model.h"
 #include "OPSBody.h"
 #include "ViscosityBody.h"
-#include "ALVolConstraint.h"
-#include "ALAreaConstraint.h"
+#include "ALConstraint.h"
 
 int main(int argc, char* argv[]){
 
-    // Set number of OPS particles
-    int N = 5;
+    // ***************** Read Input VTK File *****************//
+    std::string inputFileName = argv[1];
 
-    // Prepare memory
+    vtkSmartPointer<vtkPolyDataReader> reader =
+            vtkSmartPointer<vtkPolyDataReader>::New();
+    vtkSmartPointer<vtkPolyData> mesh;
+
+    reader->SetFileName(inputFileName.c_str());
+    reader->Update();
+    mesh = reader->GetOutput();
+    // ********************************************************//
+    // Set number of OPS particles
+    size_t N = mesh->GetNumberOfPoints();
+
+    // Generate Rotation Vectors from input point coordinates
+    Eigen::Matrix3Xd coords(3,N);
+    for(size_t i = 0; i < N; ++i){
+        Eigen::Vector3d cp = Eigen::Vector3d::Zero();
+        mesh->GetPoint(i, &(cp(0)));
+        coords.col(i) = cp;
+    }
+    Eigen::Matrix3Xd rotVecs(3,N);
+    OPSBody::initialRotationVector(coords, rotVecs);
+
+    // Prepare memory for energy and force
     double_t f;
     Eigen::VectorXd x(6*N), g(6*N), prevX(3*N);
-    x.setRandom(x.size());
     g.setZero(g.size());
-    prevX.setRandom(prevX.size());
+    x.setZero(x.size());
+
+    // Fill x with coords and rotVecs and copy coords in prevX
+    Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N);
+    xpos = coords;
+    xrot = rotVecs;
+    prevX = x.head(3*N);
 
     // Create OPSBody
     Eigen::Map<Eigen::Matrix3Xd> pos(x.data(),3,N),
@@ -34,14 +59,19 @@ int main(int argc, char* argv[]){
     ViscosityBody visco(3*N,1.0,f,thermalX,thermalG,prevX);
 
     // Create an Augmented Lagrangian Volume and Area constraint
-    ALVolConstraint volC(N,f,pos,posGrad);
-    ALAreaConstraint areaC(N,f,pos,posGrad);
+    AvgVolConstraint avgVolC = AvgVolConstraint(N,f,pos,posGrad);
+    AvgAreaConstraint avgAreaC = AvgAreaConstraint(N,f,pos,posGrad);
+    vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
+    ExactVolConstraint volC = ExactVolConstraint(N,f,pos,posGrad,poly);
+    ExactAreaConstraint areaC = ExactAreaConstraint(N,f,pos,posGrad,poly);
 
     // Create Model
     Model model(6*N,f,g);
     model.addBody(&ops);
     model.addBody(&brown);
     model.addBody(&visco);
+    model.addBody(&avgVolC);
+    model.addBody(&avgAreaC);
     model.addBody(&volC);
     model.addBody(&areaC);
 
@@ -52,13 +82,17 @@ int main(int argc, char* argv[]){
     x.setRandom(x.size());
 
     // Turn off some bodies
-    //p.updateParameter(OPSParams::D_eV,0.0);
-    //brown.setCoefficient(0.0);
-    //visco.setViscosity(0.0);
-    //volC.setLagrangeCoeff(0,0);
-    //volC.setPenaltyCoeff(0,0);
-    //areaC.setLagrangeCoeff(0,0);
-    //areaC.setPenaltyCoeff(0,0);
+//    p.updateParameter(OPSParams::D_eV,0.0);
+//    brown.setCoefficient(0.0);
+//    visco.setViscosity(0.0);
+//    avgVolC.setLagrangeCoeff(0);
+//    avgVolC.setPenaltyCoeff(0);
+//    avgAreaC.setLagrangeCoeff(0);
+//    avgAreaC.setPenaltyCoeff(0);
+//    volC.setLagrangeCoeff(0);
+//    volC.setPenaltyCoeff(0);
+//    areaC.setLagrangeCoeff(0);
+//    areaC.setPenaltyCoeff(0);
 
 // ******************  Consistency Check ********************//
 

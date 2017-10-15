@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include <vtkPolyDataReader.h>
-#include "ALVolConstraint.h"
+#include "ALConstraint.h"
 #include "BrownianBody.h"
 #include "LBFGSBWrapper.h"
 #include "Model.h"
@@ -36,6 +36,8 @@ int main(int argc, char* argv[]){
     double_t percentStrain = 15;
     double_t initialSearchRad = 1.0, finalSearchRad = 1.2,
             searchRadFactor = 1.3;
+    std::string constraintType("NULL");
+    enum Constraint{ AvgArea, AvgVol, ExactArea, ExactVol };
     //int lat_res=100, long_res=101;
     size_t viterMax = 1000;
     size_t nameSuffix = 0;
@@ -49,9 +51,30 @@ int main(int argc, char* argv[]){
             >> temp >> b
             >> temp >> initialSearchRad
             >> temp >> finalSearchRad
-            >> temp >> searchRadFactor;
+            >> temp >> searchRadFactor
+            >> temp >> constraintType;
+
     miscInpFile.close();
     s = (100 / (re*percentStrain))*log(2.0);
+
+    //Validate constraint type
+    Constraint type;
+    if(constraintType.compare("AverageArea") == 0){
+        type = AvgArea;
+    }
+    else if(constraintType.compare("AverageVolume") == 0){
+        type = AvgArea;
+    }
+    else if(constraintType.compare("ExactArea") == 0){
+        type = ExactArea;
+    }
+    else if(constraintType.compare("ExactVolume") == 0){
+        type = ExactVol;
+    }
+    else{
+        std::cout<< "Invalid constraint type specified." << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
     std::ifstream coolFile("cooling.dat");
     assert(coolFile);
@@ -116,14 +139,28 @@ int main(int argc, char* argv[]){
     ViscosityBody visco(3*N,viscosity,f,thermalX,thermalG,prevX);
 
     // Create the Augmented Lagrangian volume constraint body
-    ALVolConstraint volC(N, f, xpos, posGrad);
+    ALConstraint* constraint;
+    if(type == AvgArea){
+        constraint = new AvgAreaConstraint(N, f, xpos, posGrad);
+    }
+    else if(type == AvgVol){
+        constraint = new AvgVolConstraint(N, f, xpos, posGrad);
+    }
+    else if(type == ExactArea){
+        vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
+        constraint = new ExactAreaConstraint(N, f, xpos, posGrad, poly);
+    }
+    else if(type == ExactVol){
+        vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
+        constraint = new ExactVolConstraint(N, f, xpos, posGrad, poly);
+    }    
 
     // Create Model
     Model model(6*N,f,g);
     model.addBody(&ops);
     model.addBody(&brown);
     model.addBody(&visco);
-    model.addBody(&volC);
+    model.addBody(constraint);
     // ****************************************************************//
 
     // ***************** Prepare Output Data file *********************//
@@ -223,17 +260,35 @@ int main(int argc, char* argv[]){
         // Solve the system without Brownian, Viscous and Volume constraints
         brown.setCoefficient(0.0);
         visco.setViscosity(0.0);
-        volC.setLagrangeCoeff(0.0);
-        volC.setPenaltyCoeff(0.0);
+        constraint->setLagrangeCoeff(0.0);
+        constraint->setPenaltyCoeff(0.0);
         std::cout<<"Solving the system at zero temperature..."<<std::endl;
         solver.solve();
+        ops.updatePolyDataAndKdTree();
+        ops.updateNeighbors();
         std::cout<<"Solving finished."<<std::endl;
 
-        // Set up the volume constraint as the zero temperature volume
-        double_t Ravg = xpos.colwise().norm().sum()/N;
-        double_t constrainedVolume = 4*M_PI*Ravg*Ravg*Ravg/3;
-        volC.setConstrainedVolume(constrainedVolume);
-        std::cout<< "Constrained Volume = " << constrainedVolume << std::endl;
+        // Set up the constraint value as the zero temperature value
+        double_t constrainedVal;
+        if(type == AvgArea){
+            double_t Ravg = ops.getAverageRadius();
+             constrainedVal = 4*M_PI*Ravg*Ravg;
+            std::cout<< "Constrained Area = " << constrainedVal << std::endl;
+        }
+        else if(type == AvgVol){
+            double_t Ravg = ops.getAverageRadius();
+            constrainedVal = 4*M_PI*Ravg*Ravg*Ravg/3;
+            std::cout<< "Constrained Volume = " << constrainedVal << std::endl;
+        }
+        else if(type == ExactArea){
+            constrainedVal = ops.getArea();
+            std::cout<< "Constrained Area = " << constrainedVal << std::endl;
+        }
+        else if(type == ExactVol){
+            constrainedVal = ops.getVolume();
+            std::cout<< "Constrained Volume = " << constrainedVal << std::endl;
+        }
+        constraint->setConstraint(constrainedVal);
 
         // Set the viscosity and Brownian coefficient
         brownCoeff = beta*D_e/(alpha*avgEdgeLen);
@@ -262,16 +317,15 @@ int main(int argc, char* argv[]){
             // Store data for Kabsch
             ops.updateDataForKabsch();
 
-
             // Set the starting guess for Lambda and K for Augmented Lagrangian
-            volC.setLagrangeCoeff(1.0);
-            volC.setPenaltyCoeff(1000.0);
+            constraint->setLagrangeCoeff(10.0);
+            constraint->setPenaltyCoeff(1000.0);
 
             // *************** Augmented Lagrangian Loop ************** //
-            double_t volDiff = 1.0, volTol = 1e-10;
+            double_t areaDiff = 1.0, areaTol = 1e-10;
             size_t alIter = 0, alMaxIter = 10;
 
-            while( (volDiff > volTol) && (alIter < alMaxIter)){
+            while( (areaDiff > areaTol) && (alIter < alMaxIter)){
                 std::cout<< "Augmented Lagrangian iteration: " << alIter
                          << std::endl;
 
@@ -279,14 +333,14 @@ int main(int argc, char* argv[]){
                 solver.solve();
 
                 //Uzawa update
-                volC.uzawaUpdate();
+                constraint->uzawaUpdate();
 
                 // Update termination check quantities
                 alIter++;
-                volDiff = std::abs(volC.getVolume() - constrainedVolume);
+                areaDiff = std::abs(constraint->getConstraintValue());
 
             }
-            std::cout<< "volDiff = " << volDiff << "\talIter = "<< alIter
+            std::cout<< "areaDiff = " << areaDiff << "\talIter = "<< alIter
                      << std::endl << std::endl;
             // *********************************************************//
 
@@ -385,7 +439,8 @@ int main(int argc, char* argv[]){
     float diff((float)t2 - (float)t1);
     std::cout << "Solution loop execution time: " << diff / CLOCKS_PER_SEC
               << " seconds" << std::endl;
-
+    delete constraint;
     return 1;
 }
+
 
