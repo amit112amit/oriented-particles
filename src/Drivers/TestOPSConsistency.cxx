@@ -58,22 +58,18 @@ int main(int argc, char* argv[]){
     BrownianBody brown(3*N,1.0,f,thermalX,thermalG,prevX);
     ViscosityBody visco(3*N,1.0,f,thermalX,thermalG,prevX);
 
-    // Create an Augmented Lagrangian Volume and Area constraint
-    AvgVolConstraint avgVolC = AvgVolConstraint(N,f,pos,posGrad);
-    AvgAreaConstraint avgAreaC = AvgAreaConstraint(N,f,pos,posGrad);
-    vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
-    ExactVolConstraint volC = ExactVolConstraint(N,f,pos,posGrad,poly);
-    ExactAreaConstraint areaC = ExactAreaConstraint(N,f,pos,posGrad,poly);
+    // Create an Augmented Lagrangian Volume and Area constraint    
+    vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();    
+    ExactAreaVolConstraint constraint
+            = ExactAreaVolConstraint(N,f,pos,posGrad,poly);
+    constraint.setConstraint(1.0,1.0);
 
     // Create Model
     Model model(6*N,f,g);
     model.addBody(&ops);
     model.addBody(&brown);
     model.addBody(&visco);
-    model.addBody(&avgVolC);
-    model.addBody(&avgAreaC);
-    model.addBody(&volC);
-    model.addBody(&areaC);
+    model.addBody(&constraint);
 
     // Generate Brownian Kicks
     brown.generateParallelKicks();

@@ -8,6 +8,7 @@ ALConstraint::ALConstraint(size_t N, double_t &f, RefM3Xd x,
     _constrainedValue = 0.0;
     _Lambda_i = 1.0;
     _K_i = 1.0;
+    _tolerance = 1e-10;
 }
 
 //! Uzawa update common to all Augmented Lagrangian constraint subclasses
@@ -107,16 +108,17 @@ void ExactAreaConstraint::compute(){
 
 //! Calculates exact volume constraint and derivatives
 void ExactVolConstraint::compute(){
+
     vtkSmartPointer<vtkCellArray> cells = _poly->GetPolys();
     vtkSmartPointer<vtkIdList> verts =
-            vtkSmartPointer<vtkIdList>::New();
+            vtkSmartPointer<vtkIdList>::New();    
     double_t volDiff, factor;
     Eigen::Matrix3Xd grad(3,_N);
+
     grad.setZero(3,_N);
     _value = 0.0;
     cells->InitTraversal();
-    while( cells->GetNextCell(verts) ){
-        double_t S;
+    while( cells->GetNextCell(verts) ){        
         int ida, idb, idc;
         Eigen::Vector3d a, b, c, dVa, dVb, dVc;
 
@@ -153,4 +155,76 @@ void ExactVolConstraint::compute(){
     factor = (_K_i*volDiff - _Lambda_i);
     // Add the derivatives
     _xGrad += factor*grad;
+}
+
+//! Compute exact area and volume constraint together
+void ExactAreaVolConstraint::compute(){
+
+    vtkSmartPointer<vtkCellArray> cells = _poly->GetPolys();
+    vtkSmartPointer<vtkIdList> verts =
+            vtkSmartPointer<vtkIdList>::New();
+    double_t areaDiff, areaFactor, volDiff, volFactor;
+    Eigen::Matrix3Xd areaGrad(3,_N), volGrad(3,_N);
+
+    areaGrad.setZero(3,_N);
+    volGrad.setZero(3,_N);
+    _area = 0.0;
+    _volume = 0.0;
+
+    cells->InitTraversal();
+    while( cells->GetNextCell(verts) ){
+        double_t S;
+        int ida, idb, idc;
+        Eigen::Vector3d a, b, c, p, q, dAdp, dAdq, dVa, dVb, dVc;
+
+        ida = verts->GetId(0);
+        idb = verts->GetId(1);
+        idc = verts->GetId(2);
+        a = _xPos.col(ida);
+        b = _xPos.col(idb);
+        c = _xPos.col(idc);
+        p = b - a;
+        q = c - a;
+        S = p.cross(q).norm();
+
+        //Calculate area
+        _area += S/2.0;
+
+        //Calculate volume
+        _volume += ( a.dot( b.cross(c) ) )/6.0;
+
+        //Calculate derivatives of area
+        dAdp = ( q.dot(q)*p - p.dot(q)*q )/(2*S);
+        dAdq = ( p.dot(p)*q - p.dot(q)*p )/(2*S);
+
+        areaGrad.col(ida) += -1.0*(dAdp + dAdq);
+        areaGrad.col(idb) += dAdp;
+        areaGrad.col(idc) += dAdq;
+
+        //Calculate derivative wrt volume
+        dVa << b[1]*c[2]-b[2]*c[1],
+                b[2]*c[0]-b[0]*c[2],
+                b[0]*c[1]-b[1]*c[0];
+        dVb << a[2]*c[1]-a[1]*c[2],
+                a[0]*c[2]-a[2]*c[0],
+                a[1]*c[0]-a[0]*c[1];
+        dVc << a[1]*b[2]-a[2]*b[1],
+                a[2]*b[0]-a[0]*b[2],
+                a[0]*b[1]-a[1]*b[0];
+
+        volGrad.col(ida) += dVa/6.0;
+        volGrad.col(idb) += dVb/6.0;
+        volGrad.col(idc) += dVc/6.0;
+    }
+    areaDiff = _area - _areaConstrained;
+    volDiff = _volume - _volConstrained;
+
+    // Add the energy
+    _f += 0.5*_K_i*(areaDiff*areaDiff + volDiff*volDiff)
+            - _Lambda_i*(areaDiff + volDiff);
+
+    areaFactor= (_K_i*areaDiff - _Lambda_i);
+    volFactor = (_K_i*volDiff - _Lambda_i);
+    // Add the derivatives
+    _xGrad += areaFactor*areaGrad + volFactor*volGrad;
 }

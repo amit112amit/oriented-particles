@@ -37,7 +37,7 @@ int main(int argc, char* argv[]){
     double_t initialSearchRad = 1.0, finalSearchRad = 1.2,
             searchRadFactor = 1.3;
     std::string constraintType("NULL");
-    enum Constraint{ AvgArea, AvgVol, ExactArea, ExactVol };
+    enum Constraint{ AvgArea, AvgVol, ExactArea, ExactVol, ExactAreaAndVolume};
     //int lat_res=100, long_res=101;
     size_t viterMax = 1000;
     size_t nameSuffix = 0;
@@ -70,6 +70,9 @@ int main(int argc, char* argv[]){
     }
     else if(constraintType.compare("ExactVolume") == 0){
         type = ExactVol;
+    }
+    else if(constraintType.compare("ExactAreaAndVolume") == 0){
+        type = ExactAreaAndVolume;
     }
     else{
         std::cout<< "Invalid constraint type specified." << std::endl;
@@ -153,7 +156,12 @@ int main(int argc, char* argv[]){
     else if(type == ExactVol){
         vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
         constraint = new ExactVolConstraint(N, f, xpos, posGrad, poly);
-    }    
+    }
+    else if(type == ExactAreaAndVolume){
+        vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
+        constraint = new ExactAreaVolConstraint(N, f, xpos, posGrad, poly);
+        constraint->setTolerance(1e-8);
+    }
 
     // Create Model
     Model model(6*N,f,g);
@@ -213,7 +221,7 @@ int main(int argc, char* argv[]){
     // ******************************************************************//
 
     // ************************* Create Solver ************************  //
-    size_t m = 5, iprint = 1000, maxIter = 10000;
+    size_t m = 5, iprint = 1000, maxIter = 1e7;
     double_t factr = 10.0, pgtol = 1e-8;
     LBFGSBParams solverParams(m,iprint,maxIter,factr,pgtol);
     LBFGSBWrapper solver(solverParams, model, f, x, g);
@@ -269,26 +277,34 @@ int main(int argc, char* argv[]){
         std::cout<<"Solving finished."<<std::endl;
 
         // Set up the constraint value as the zero temperature value
-        double_t constrainedVal;
         if(type == AvgArea){
             double_t Ravg = ops.getAverageRadius();
-             constrainedVal = 4*M_PI*Ravg*Ravg;
+            double_t constrainedVal = 4*M_PI*Ravg*Ravg;
+            constraint->setConstraint(constrainedVal);
             std::cout<< "Constrained Area = " << constrainedVal << std::endl;
         }
         else if(type == AvgVol){
             double_t Ravg = ops.getAverageRadius();
-            constrainedVal = 4*M_PI*Ravg*Ravg*Ravg/3;
+            double_t constrainedVal = 4*M_PI*Ravg*Ravg*Ravg/3;
+            constraint->setConstraint(constrainedVal);
             std::cout<< "Constrained Volume = " << constrainedVal << std::endl;
         }
         else if(type == ExactArea){
-            constrainedVal = ops.getArea();
+            double_t constrainedVal = ops.getArea();
+            constraint->setConstraint(constrainedVal);
             std::cout<< "Constrained Area = " << constrainedVal << std::endl;
         }
         else if(type == ExactVol){
-            constrainedVal = ops.getVolume();
+            double_t constrainedVal = ops.getVolume();
+            constraint->setConstraint(constrainedVal);
             std::cout<< "Constrained Volume = " << constrainedVal << std::endl;
         }
-        constraint->setConstraint(constrainedVal);
+        else if(type == ExactAreaAndVolume){
+            double_t area = ops.getArea();
+            double_t volume = ops.getVolume();
+            dynamic_cast<ExactAreaVolConstraint*>(constraint)->setConstraint(
+                        area,volume);
+        }
 
         // Set the viscosity and Brownian coefficient
         brownCoeff = beta*D_e/(alpha*avgEdgeLen);
@@ -322,10 +338,10 @@ int main(int argc, char* argv[]){
             constraint->setPenaltyCoeff(1000.0);
 
             // *************** Augmented Lagrangian Loop ************** //
-            double_t areaDiff = 1.0, areaTol = 1e-10;
+            bool constraintMet = false;
             size_t alIter = 0, alMaxIter = 10;
 
-            while( (areaDiff > areaTol) && (alIter < alMaxIter)){
+            while( !constraintMet && (alIter < alMaxIter)){
                 std::cout<< "Augmented Lagrangian iteration: " << alIter
                          << std::endl;
 
@@ -337,10 +353,10 @@ int main(int argc, char* argv[]){
 
                 // Update termination check quantities
                 alIter++;
-                areaDiff = std::abs(constraint->getConstraintValue());
-
+                constraintMet = constraint->constraintSatisfied();
             }
-            std::cout<< "areaDiff = " << areaDiff << "\talIter = "<< alIter
+            constraint->printCompletion();
+            std::cout<< "Constraint satisfied in "<< alIter << " iterations."
                      << std::endl << std::endl;
             // *********************************************************//
 
