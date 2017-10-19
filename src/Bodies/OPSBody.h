@@ -16,7 +16,7 @@
 #include <vtkSmartPointer.h>
 #include <vtkDoubleArray.h>
 #include <vtkPolyData.h>
-#include <vtkKdTree.h>
+#include <vtkOctreePointLocator.h>
 #include <vtkPointData.h>
 #include <vtkPolyDataWriter.h>
 #include <vtkIdFilter.h>
@@ -79,7 +79,7 @@ public:
     typedef Eigen::Ref<Matrix3d> RefM3d;
     typedef Eigen::Matrix3Xd Matrix3Xd;
     typedef Eigen::Ref<Matrix3Xd> RefM3Xd;
-    typedef Eigen::Map<Matrix3Xd> Map3Xd;
+    typedef Eigen::Map<Matrix3Xd> MapM3Xd;
     typedef Eigen::Matrix<double_t, 3, 4> Matrix3x4d;
     typedef Eigen::Matrix<double_t, 4, 3> Matrix4x3d;
     typedef Eigen::Quaterniond Quaterniond;
@@ -88,14 +88,14 @@ public:
     OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd posGrad,
              RefM3Xd rotGrad, OPSParams &p);
     void applyKabschAlgorithm();
-    void compute();    
-    void computeNormals();    
-    void diffNormalRotVec(const RefCV3d &vi, RefM3d diff);
+    virtual void compute();
+    void computeNormals();
+    void diffNormalRotVec();
     double_t getAsphericity();
     double_t getArea();
     double_t getAverageEdgeLength();
-    double_t getAverageRadius();
-    double_t getAverageNumberOfNeighbors();
+    double_t getAverageNumberOfNeighbors(){return _avgNumNeighbors;}
+    double_t getAverageRadius();    
     double_t getCircularityEnergy(){return _circEn;}
     double_t getMeanSquaredDisplacement();
     double_t getMorseEnergy(){return _morseEn;}
@@ -106,11 +106,11 @@ public:
     static void initialRotationVector(RefM3Xd pos, RefM3Xd rotVec);
     void printVTKFile(const std::string name);
     void saveInitialPosition(){ _initialPositions = _positions;}           
-    void updateNeighbors();
+    virtual void updateNeighbors();
     void updateDataForKabsch();
-    void updatePolyDataAndKdTree();    
+    void updatePolyData();
 
-private:
+protected:
     bool _updateArea;
     bool _updateRadius;
     bool _updateVolume;
@@ -123,19 +123,21 @@ private:
     double_t _normalEn;
     double_t _circEn;
     double_t _msd;
+    double_t _avgNumNeighbors;
     int _numPartilces;
-    Map3Xd _positions;
-    Map3Xd _posGradient;
-    Map3Xd _rotGradient;
-    Map3Xd _rotationVectors;
+    MapM3Xd _positions;
+    MapM3Xd _posGradient;
+    MapM3Xd _rotGradient;
+    MapM3Xd _rotationVectors;
     Matrix3Xd _prevX;
     Matrix3Xd _normals;    
     Matrix3Xd _initialPositions;
     OPSParams &_params;
+    std::vector< Matrix3d > _diffNormalRV; /*!< Derivatives of normals with rotation vectors*/
     std::vector< vtkSmartPointer<vtkIdList> > _neighbors;
     std::vector< vtkIdType > _initialNearestNeighbor;
     vtkSmartPointer< vtkPolyData > _polyData;
-    vtkSmartPointer< vtkKdTree > _kdTree;
+    vtkSmartPointer< vtkOctreePointLocator > _octree;
     void updateRotationVectors();
 };
 //***************************************************************************//

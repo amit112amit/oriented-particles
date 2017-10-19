@@ -94,7 +94,7 @@ int main(int argc, char* argv[]){
     double_t f;
     Eigen::VectorXd x(6*N), g(6*N), prevX(3*N);
     g.setZero(g.size());
-    x.setZero(x.size());    
+    x.setZero(x.size());
 
     // Fill x with coords and rotVecs and copy coords in prevX
     Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N);
@@ -146,11 +146,9 @@ int main(int argc, char* argv[]){
                  << "CircularityEn" << "\t"
                  << "TotalOPSEnergy" << "\t"
                  << "BrownianEnergy" << "\t"
-                 << "ViscosityEnergy" << "\t"                 
+                 << "ViscosityEnergy" << "\t"
                  << "TotalFunctional" <<"\t"
                  << "MSD" << "\t"
-                 << "Neighbors" << "\t"
-                 << "AvgEdgeLen" << "\t"
                  << std::endl;
 
     ofstream outerLoopFile;
@@ -194,7 +192,7 @@ int main(int argc, char* argv[]){
     // Update the OPSBody member variables as per new positions
     params.updateParameter(OPSParams::searchRadiusV,
                            searchRadFactor*avgEdgeLen);
-    ops.updatePolyDataAndKdTree();
+    ops.updatePolyData();
     ops.updateNeighbors();
     ops.saveInitialPosition(); /*!< For Mean Squared Displacement */
     // ******************************************************************//
@@ -225,7 +223,7 @@ int main(int argc, char* argv[]){
         Eigen::Matrix3Xd averagePosition( 3, N ); /*!< Store avg particle positions */
         averagePosition = Eigen::Matrix3Xd::Zero(3,N);
 
-        for (int viter = 0; viter < viterMax; viter++) {            
+        for (int viter = 0; viter < viterMax; viter++) {
             std::cout << std::endl
                  << "VISCOUS ITERATION: " << viter + stepCount
                  << std::endl
@@ -245,7 +243,7 @@ int main(int argc, char* argv[]){
             //ops.applyKabschAlgorithm();
 
             //Update kdTree, polyData and neighbors
-            ops.updatePolyDataAndKdTree();
+            ops.updatePolyData();
             ops.updateNeighbors();
 
             // Add current solution to average position data
@@ -281,8 +279,6 @@ int main(int argc, char* argv[]){
                           << visco.getViscosityEnergy() << "\t"
                           << f << "\t"
                           << ops.getMeanSquaredDisplacement() << "\t"
-                          << ops.getAverageNumberOfNeighbors() << "\t"
-                          << avgEdgeLen
                           << std::endl;
 
             // Store previous position for viscosity and brownian calculations
@@ -312,7 +308,7 @@ int main(int argc, char* argv[]){
         // Print the average shape
         delaunay3DSurf(avgPos, dataOutputFile);
 
-        // Calculate the asphericity of the average shape        
+        // Calculate the asphericity of the average shape
         Eigen::RowVectorXd R(N);
         R = averagePosition.colwise().norm();
         avgShapeAsph += ((R.array() - avgShapeRad).square()).sum();

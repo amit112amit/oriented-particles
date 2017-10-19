@@ -40,11 +40,12 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
     _area = 0.0;
     _radius = 0.0;
     _volume = 0.0;
+    _avgNumNeighbors = 0.0;
     _updateRadius = true; /*!< getAverageRadius() will toggle this */
     _updateVolume = true; /*!< getVolume() will toggle this */
     _updateArea = true; /*!< getVolume() will toggle this */
-
     _prevX = _positions;
+    _diffNormalRV = std::vector< Matrix3d >(_numPartilces,Matrix3d::Zero());
 
     //Extract point coordinates for _polyData from x
     void *coords = (void*) _positions.data();
@@ -73,8 +74,9 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
     _polyData->GetPointData()->SetNormals(pointNormals);
 
     //Construct the kd-tree
-    _kdTree = vtkSmartPointer<vtkKdTree>::New();
-    updatePolyDataAndKdTree();
+    _octree = vtkSmartPointer<vtkOctreePointLocator>::New();
+    _octree->SetDataSet(_polyData);
+    updatePolyData();
 
     //Initialize the _neighbors vector
     for(int i=0; i < _numPartilces; i++){
@@ -87,7 +89,7 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
         Vector3d currPos = _positions.col(i);
         vtkSmartPointer<vtkIdList> neighbors =
                 vtkSmartPointer<vtkIdList>::New();
-        _kdTree->FindClosestNPoints(2, &(currPos[0]), neighbors);
+        _octree->FindClosestNPoints(2, &(currPos[0]), neighbors);
         neighbors->DeleteId(i);
         _initialNearestNeighbor.push_back( neighbors->GetId(0) );
     }
@@ -111,7 +113,7 @@ void OPSBody::computeNormals(){
 }
 
 //! Updates _polyData with latest deformed node positions and normals
-void OPSBody::updatePolyDataAndKdTree() {
+void OPSBody::updatePolyData() {
     vtkSmartPointer<vtkPoints> pts =
             vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkPolyData> unitSphere =
@@ -177,9 +179,7 @@ void OPSBody::updatePolyDataAndKdTree() {
             finalCells->InsertCellPoint(id);
         }
     }
-    _polyData->SetPolys(finalCells);
-    //Finally update the _kdTree
-    _kdTree->BuildLocatorFromPoints( _polyData );
+    _polyData->SetPolys(finalCells);    
 
     //Turn on flags to update radius and volume
     _updateRadius = true;
@@ -194,13 +194,23 @@ void OPSBody::updateDataForKabsch(){
 
 //! Store the neighbors information for each node
 void OPSBody::updateNeighbors(){
+    //Finally update the _octree
+    _octree->BuildLocator();
     double_t searchR = _params.getSearchRadius();
     for(int i=0; i < _numPartilces; i++){
         Vector3d pos = _positions.col(i);
         _neighbors[i]->Reset();
-        _kdTree->FindPointsWithinRadius( searchR, &(pos[0]),
+        _octree->FindPointsWithinRadius( searchR, &(pos[0]),
                 _neighbors[i] );
         _neighbors[i]->DeleteId(i);
+    }
+    // To avoid double counting we should remove the repeated
+    // neighbors
+    for(int i=0; i < _numPartilces; ++i){
+        for(int j=0; j < _neighbors[i]->GetNumberOfIds(); ++j){
+            vtkIdType currId = _neighbors[i]->GetId(j);
+            _neighbors[currId]->DeleteId(i);
+        }
     }
 }
 
@@ -254,7 +264,7 @@ void OPSBody::compute(){
     _circEn = 0.0;
 
     computeNormals();
-
+    diffNormalRotVec();
     for(int i=0; i < _numPartilces; i++){
         Vector3d vi, xi, p;
         Matrix3d M;
@@ -262,7 +272,7 @@ void OPSBody::compute(){
         xi = _positions.col(i);
         vi = _rotationVectors.col(i);
         p = _normals.col(i);
-        diffNormalRotVec(vi,M);
+        M = _diffNormalRV[i];
 
         for(int j=0; j < _neighbors[i]->GetNumberOfIds(); j++){
             double_t r, n_dot_rij, exp1, exp2;
@@ -279,7 +289,7 @@ void OPSBody::compute(){
             xj = _positions.col(currId);
             vj = _rotationVectors.col(currId);
             q = _normals.col(currId);
-            diffNormalRotVec(vj,N);
+            N = _diffNormalRV[currId];
             rij = xj - xi;
             m = p - q;
             n = p + q;
@@ -338,42 +348,47 @@ void OPSBody::compute(){
 }
 
 //! Compute derivative of the normal wrt Rotation Vector
-void OPSBody::diffNormalRotVec(const RefCV3d &vi, RefM3d diff){
-    double_t v0 = vi[0], v1 = vi[1], v2 = vi[2], v = vi.norm();
-    double_t s = sin(0.5*v), s_v = s/v, s_v3 = s/(v*v*v);
-    double_t c_v2 = 0.5*cos(0.5*v)/(v*v), f = c_v2 - s_v3;
+void OPSBody::diffNormalRotVec(){
+    for(size_t i=0; i < _numPartilces; ++i){
+        // Read the rotation vector
+        Vector3d vi = _rotationVectors.col(i);
 
-    Quaterniond q( AngleAxisd(v, vi.normalized()) );
-    double_t q0 = q.w(), q1 = q.x(), q2 = q.y(), q3 = q.z();
-    Matrix3x4d dpdq;
+        double_t v0 = vi[0], v1 = vi[1], v2 = vi[2], v = vi.norm();
+        double_t s = sin(0.5*v), s_v = s/v, s_v3 = s/(v*v*v);
+        double_t c_v2 = 0.5*cos(0.5*v)/(v*v), f = c_v2 - s_v3;
 
-    dpdq << q2, q3, q0, q1,
-            -q1, -q0, q3, q2,
-            q0, -q1, -q2, q3;
-    dpdq = 2 * dpdq;
+        Quaterniond q( AngleAxisd(v, vi.normalized()) );
+        double_t q0 = q.w(), q1 = q.x(), q2 = q.y(), q3 = q.z();
+        Matrix3x4d dpdq;
 
-    Matrix4x3d dqdv;
-    Matrix3d V2;
-    Vector3d Sc, V2xSc;
+        dpdq << q2, q3, q0, q1,
+                -q1, -q0, q3, q2,
+                q0, -q1, -q2, q3;
+        dpdq = 2 * dpdq;
 
-    double_t v02 = v0*v0, v12 = v1*v1, v22 = v2*v2;
-    double_t v0v1 = v0*v1, v0v2 = v0*v2, v1v2 = v1*v2;
+        Matrix4x3d dqdv;
+        Matrix3d V2;
+        Vector3d Sc, V2xSc;
 
-    dqdv.topRows(1) = -0.5*s_v*(vi.transpose());
+        double_t v02 = v0*v0, v12 = v1*v1, v22 = v2*v2;
+        double_t v0v1 = v0*v1, v0v2 = v0*v2, v1v2 = v1*v2;
 
-    V2 << 1, v02, v02,
-            1, v12, v12,
-            1, v22, v22;
-    Sc << s_v,
-            -s_v3,
-            c_v2;
-    V2xSc = V2*Sc;
+        dqdv.topRows(1) = -0.5*s_v*(vi.transpose());
 
-    dqdv.bottomRows(3) << V2xSc(0), v0v1*f, v0v2*f,
-            v0v1*f, V2xSc(1), v1v2*f,
-            v0v2*f, v1v2*f, V2xSc(2);
+        V2 << 1, v02, v02,
+                1, v12, v12,
+                1, v22, v22;
+        Sc << s_v,
+                -s_v3,
+                c_v2;
+        V2xSc = V2*Sc;
 
-    diff = (dpdq*dqdv).transpose();
+        dqdv.bottomRows(3) << V2xSc(0), v0v1*f, v0v2*f,
+                v0v1*f, V2xSc(1), v1v2*f,
+                v0v2*f, v1v2*f, V2xSc(2);
+
+        _diffNormalRV[i] = (dpdq*dqdv).transpose();
+    }
 }
 
 //! Get Total OPS Energy
@@ -429,7 +444,7 @@ void OPSBody::applyKabschAlgorithm(){
         _normals.col(i) = (tempN - tempPos).normalized();
     }
     updateRotationVectors();
-    updatePolyDataAndKdTree();
+    updatePolyData();
 }
 
 //! Update Rotation Vectors as per the current normals after Kabsch update
@@ -564,14 +579,4 @@ double_t OPSBody::getAverageRadius(){
         _updateRadius = false;
     }
     return _radius;
-}
-
-//! Calculate average number of neighbors
-double_t OPSBody::getAverageNumberOfNeighbors(){
-    double num = 0.0;
-    for(int i=0; i < _numPartilces; i++){
-        num += _neighbors[i]->GetNumberOfIds();
-    }
-    num /= _numPartilces;
-    return num;
 }

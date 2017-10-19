@@ -75,7 +75,7 @@ int main(int argc, char* argv[]){
     }
     prevX = x;
 
-    // Create Brownian and Viscosity bodies    
+    // Create Brownian and Viscosity bodies
     double brownCoeff = 1.0, viscosity = 1.0;
     BrownianBody brown(3*N,brownCoeff,f,x,g,prevX);
     ViscosityBody visco(3*N,viscosity,f,x,g,prevX);

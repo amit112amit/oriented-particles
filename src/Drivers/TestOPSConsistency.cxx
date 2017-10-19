@@ -3,7 +3,7 @@
 #include "BrownianBody.h"
 #include "LBFGSBWrapper.h"
 #include "Model.h"
-#include "OPSBody.h"
+#include "OPSBodyCutOff.h"
 #include "ViscosityBody.h"
 #include "ALConstraint.h"
 
@@ -50,7 +50,7 @@ int main(int argc, char* argv[]){
             rot(&x(3*N),3,N), posGrad(g.data(),3,N),
             rotGrad(&g(3*N),3,N);
     OPSParams p;
-    OPSBody ops(N,f,pos,rot,posGrad,rotGrad,p);
+    OPSBodyCutOff ops(N,f,pos,rot,posGrad,rotGrad,p,1.5,2.0);
 
     // Create Brownian and Viscosity bodies
     Eigen::Map<Eigen::VectorXd> thermalX(x.data(),3*N,1);
@@ -58,11 +58,11 @@ int main(int argc, char* argv[]){
     BrownianBody brown(3*N,1.0,f,thermalX,thermalG,prevX);
     ViscosityBody visco(3*N,1.0,f,thermalX,thermalG,prevX);
 
-    // Create an Augmented Lagrangian Volume and Area constraint    
-    vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();    
-    ExactAreaVolConstraint constraint
-            = ExactAreaVolConstraint(N,f,pos,posGrad,poly);
-    constraint.setConstraint(1.0,1.0);
+    // Create an Augmented Lagrangian Volume and Area constraint
+    vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
+    ExactAreaConstraint constraint
+            = ExactAreaConstraint(N,f,pos,posGrad,poly);
+    constraint.setConstraint(1.0);
 
     // Create Model
     Model model(6*N,f,g);
@@ -78,17 +78,11 @@ int main(int argc, char* argv[]){
     x.setRandom(x.size());
 
     // Turn off some bodies
-//    p.updateParameter(OPSParams::D_eV,0.0);
-//    brown.setCoefficient(0.0);
-//    visco.setViscosity(0.0);
-//    avgVolC.setLagrangeCoeff(0);
-//    avgVolC.setPenaltyCoeff(0);
-//    avgAreaC.setLagrangeCoeff(0);
-//    avgAreaC.setPenaltyCoeff(0);
-//    volC.setLagrangeCoeff(0);
-//    volC.setPenaltyCoeff(0);
-//    areaC.setLagrangeCoeff(0);
-//    areaC.setPenaltyCoeff(0);
+    //p.updateParameter(OPSParams::D_eV,0.0);
+    brown.setCoefficient(0.0);
+    visco.setViscosity(0.0);
+    constraint.setLagrangeCoeff(0.0);
+    constraint.setPenaltyCoeff(0.0);
 
 // ******************  Consistency Check ********************//
 
@@ -127,6 +121,6 @@ int main(int argc, char* argv[]){
         }
         err(i) = (gAna - gNum).array().abs().maxCoeff();
         std::cout<< hvec(i) <<" , " << err(i) << std::endl;
-    } 
+    }
     return 1;
 }

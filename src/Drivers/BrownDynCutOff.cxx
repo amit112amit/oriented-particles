@@ -6,7 +6,7 @@
 #include "BrownianBody.h"
 #include "LBFGSBWrapper.h"
 #include "Model.h"
-#include "OPSBody.h"
+#include "OPSBodyCutOff.h"
 #include "ViscosityBody.h"
 
 int main(int argc, char* argv[]){
@@ -34,13 +34,15 @@ int main(int argc, char* argv[]){
     double_t D_e=1.0, re=1.0, s=7.0, b=1.0;
     double_t alpha=1.0, beta=1.0, gamma=1.0;
     double_t percentStrain = 15;
-    double_t initialSearchRad = 1.0, finalSearchRad = 1.2,
-            searchRadFactor = 1.3;
+    double_t initialSearchRad = 1.0, searchRadFactor = 1.5,
+            finalSearchRad = 1.2;
+    double_t bufferRadius = 2.0; // Margin above the cut-off
     std::string constraintType("NULL");
     enum Constraint{ AvgArea, AvgVol, ExactArea, ExactVol, ExactAreaAndVolume};
     //int lat_res=100, long_res=101;
     size_t viterMax = 1000;
     size_t nameSuffix = 0;
+    size_t N_m = 2; // Neighbor update interval
 
     std::ifstream miscInpFile("miscInp.dat");
     assert(miscInpFile);
@@ -52,7 +54,8 @@ int main(int argc, char* argv[]){
             >> temp >> initialSearchRad
             >> temp >> finalSearchRad
             >> temp >> searchRadFactor
-            >> temp >> constraintType;
+            >> temp >> constraintType
+            >> temp >> N_m; /*!< Cannot use very large values here. */
 
     miscInpFile.close();
     s = (100 / (re*percentStrain))*log(2.0);
@@ -115,7 +118,7 @@ int main(int argc, char* argv[]){
         coords.col(i) = cp;
     }
     Eigen::Matrix3Xd rotVecs(3,N);
-    OPSBody::initialRotationVector(coords, rotVecs);
+    OPSBodyCutOff::initialRotationVector(coords, rotVecs);
 
     // Prepare memory for energy, force
     double_t f;
@@ -130,10 +133,11 @@ int main(int argc, char* argv[]){
     xrot = rotVecs;
     prevX = x.head(3*N);
 
-    // Create OPSBody
+    // Create OPSBodyCutOff
     Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);
     OPSParams params(D_e,re,s,b,initialSearchRad,gamma);
-    OPSBody ops(N,f,xpos,xrot,posGrad,rotGrad,params);
+    OPSBodyCutOff ops(N,f,xpos,xrot,posGrad,rotGrad,params,1.5,
+                      2.5);
 
     // Create Brownian and Viscosity bodies
     Eigen::Map<Eigen::VectorXd> thermalX(x.data(),3*N,1);
@@ -238,21 +242,21 @@ int main(int argc, char* argv[]){
         xpos.col(i) = xpos.col(i)/avgEdgeLen;
     }
     params.updateParameter(OPSParams::searchRadiusV, finalSearchRad);
-    avgEdgeLen = ops.getAverageEdgeLength();
+    avgEdgeLen = ops.getAverageEdgeLength();    
+    double_t cutOff = searchRadFactor*avgEdgeLen;
+    ops.setCutOff(cutOff);
+    params.updateParameter(OPSParams::searchRadiusV, cutOff);
     std::cout << "After renormalizing, Avg Edge Length = "
               << avgEdgeLen << std::endl;
 
-    // Update the OPSBody member variables as per new positions
-    params.updateParameter(OPSParams::searchRadiusV,
-                           searchRadFactor*avgEdgeLen);
     ops.updatePolyData();
-    ops.updateNeighbors();
     ops.saveInitialPosition(); /*!< For Mean Squared Displacement */
     // ******************************************************************//
 
     // ************************ OUTER SOLUTION LOOP **********************//
     int printStep, stepCount = 0, step=0;
     int paraviewStep = -1;
+    int neighborUpdateCount = 0;
     for(int z=0; z < coolVec.size(); z++){
         alpha = coolVec[z][0];
         beta = coolVec[z][1];
@@ -263,8 +267,19 @@ int main(int argc, char* argv[]){
 
         // Update OPS params
         s = (100 / (avgEdgeLen*percentStrain))*log(2.0);
+        bufferRadius = cutOff + 10*alpha*N_m;
+        double_t rad = ops.getAverageRadius();
+        if( bufferRadius > rad){
+            std::cout << "N_m = " << N_m << " leads to large buffer radius "
+                      << " which will degrade performance. Please reset N_m"
+                      << std::endl;
+            exit(EXIT_FAILURE);
+        }
         params.updateParameter(OPSParams::gammaV, gamma);
         params.updateParameter(OPSParams::aV, s);
+        ops.updateRAndD();
+        ops.setBufferRadius(bufferRadius);
+        ops.updateRAndD();
 
         // Solve the system without Brownian, Viscous and Volume constraints
         brown.setCoefficient(0.0);
@@ -369,9 +384,13 @@ int main(int argc, char* argv[]){
             // Apply Kabsch Algorithm
             ops.applyKabschAlgorithm();
 
-            //Update kdTree, polyData and neighbors
+            //Update polyData
             ops.updatePolyData();
-            ops.updateNeighbors();
+
+            // Check if we need to update neighbors
+            if ((viter % N_m == 0) || 2*maxDisplacement > (bufferRadius - cutOff) )
+                neighborUpdateCount++;
+                ops.updateNeighbors();
 
             // Add current solution to average position data
             averagePosition += xpos;
@@ -414,6 +433,9 @@ int main(int argc, char* argv[]){
             prevX = x.head(3*N);
         }
         //************************************************//
+
+        std::cout << "Number of neighbor updates = " << neighborUpdateCount
+                  << std::endl;
 
         // Calculate the average particle positions and avg radius
         double avgShapeRad = 0.0, avgShapeAsph = 0.0;
@@ -464,5 +486,3 @@ int main(int argc, char* argv[]){
     delete constraint;
     return 1;
 }
-
-

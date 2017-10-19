@@ -9,7 +9,7 @@ BrownianBody::BrownianBody(size_t N, double_t coeff, double_t &f,
     _e2 = std::mt19937(rd());
     _rng = std::normal_distribution<>(0,1);
     //Set initial kicks to zero
-    _xi = VectorXd::Zero(N);    
+    _xi = VectorXd::Zero(N);
 }
 
 void BrownianBody::generateParallelKicks(){

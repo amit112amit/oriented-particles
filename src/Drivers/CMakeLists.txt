@@ -8,9 +8,10 @@ add_executable(opsConsistency TestOPSConsistency.cxx)
 add_executable(heatOPS BrownDynOPS.cxx)
 add_executable(freeDiff FreeDiffusion.cxx)
 add_executable(constrained BrownDynOPSConstraints.cxx)
+add_executable(cutOff BrownDynCutOff.cxx)
 
 #Add name of your executable target to the DRIVERS variable
-set(DRIVERS opsConsistency heatOPS freeDiff constrained)
+set(DRIVERS opsConsistency heatOPS freeDiff constrained cutOff)
 
 #For each driver link libraries and set the include paths
 foreach(DRIVER ${DRIVERS})    

@@ -61,7 +61,7 @@ void AvgVolConstraint::compute(){
 }
 
 //! Calculates exact area constraint and derivatives
-void ExactAreaConstraint::compute(){    
+void ExactAreaConstraint::compute(){
     vtkSmartPointer<vtkCellArray> cells = _poly->GetPolys();
     vtkSmartPointer<vtkIdList> verts =
             vtkSmartPointer<vtkIdList>::New();
@@ -111,14 +111,14 @@ void ExactVolConstraint::compute(){
 
     vtkSmartPointer<vtkCellArray> cells = _poly->GetPolys();
     vtkSmartPointer<vtkIdList> verts =
-            vtkSmartPointer<vtkIdList>::New();    
+            vtkSmartPointer<vtkIdList>::New();
     double_t volDiff, factor;
     Eigen::Matrix3Xd grad(3,_N);
 
     grad.setZero(3,_N);
     _value = 0.0;
     cells->InitTraversal();
-    while( cells->GetNextCell(verts) ){        
+    while( cells->GetNextCell(verts) ){
         int ida, idb, idc;
         Eigen::Vector3d a, b, c, dVa, dVb, dVc;
 

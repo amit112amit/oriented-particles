@@ -10,7 +10,7 @@ void Model::compute(){
     for( std::vector<Body*>::iterator i=_everyBody.begin();
          i != _everyBody.end(); ++i){
         (*i)->compute();
-    }    
+    }
 }
 
 void Model::addBody(Body *b){

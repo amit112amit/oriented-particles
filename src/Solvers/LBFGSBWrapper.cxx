@@ -38,7 +38,7 @@ LBFGSBWrapper::LBFGSBWrapper(LBFGSBParams &p, Model &m, double_t &f,
     _iprint = p.getPrintCode();
     _maxIterations = p.getMaxIterations();
     _factr = p.getMachineEPSFactor();
-    _pgtol = p.getProjectedGradientTolerance();    
+    _pgtol = p.getProjectedGradientTolerance();
     resize(_n);
     _projg = 0.0;
 }
@@ -93,7 +93,7 @@ void LBFGSBWrapper::setBounds(const RefCI nbd, const RefCV l, const RefCV u) {
 }
 
 
-void LBFGSBWrapper::solve() {    
+void LBFGSBWrapper::solve() {
     // set up misc. arrays and data
     char task[60], csave[60];
     for(int i=0; i<60; i++) task[i] = csave[i] = '\0';
