@@ -60,7 +60,7 @@ void OPSMesh::compute(){
     _edges->InitTraversal();
     while(_edges->GetNextCell(pts)){
 
-        double_t r, n_dot_rij, exp1, exp2,
+        double_t r, n_dot_rij, exp_1, exp_2,
                 morseEn, Ker, Phi_n, Phi_c;
         Matrix3d M, N;
         Vector3d vi, p, vj, q, m, n, rij, dMdr, dKdr, dPhi_nVi,
@@ -88,10 +88,10 @@ void OPSMesh::compute(){
         n_dot_rij = n.dot(rij);
 
         // Evaluate morse derivatives
-        exp1 = exp( -2*_a*(r - _re) );
-        exp2 = exp( -_a*(r - _re) );
-        morseEn = _De*( exp1 - 2*exp2 );
-        dMdr = (2*_De*_a/r)*( exp2 - exp1 )*rij;
+        exp_1 = exp( -_a*(r - _re) );
+        exp_2 = exp_1*exp_1;
+        morseEn = _De*( exp_2 - 2*exp_1 );
+        dMdr = (2*_De*_a/r)*( exp_1 - exp_2 )*rij;
 
         // Evaluate kernel derivatives
         Ker = (_De/_gamma)*exp( -r*r/2 );

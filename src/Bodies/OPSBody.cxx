@@ -255,7 +255,7 @@ void OPSBody::compute(){
         M = _diffNormalRV[i];
 
         for(int j=0; j < _neighbors[i]->GetNumberOfIds(); j++){
-            double_t r, n_dot_rij, exp1, exp2;
+            double_t r, n_dot_rij, exp_2, exp_1;
             double_t morseEn, Ker, Phi_n, Phi_c;
             Vector3d vj, xj, q, m, n, rij;
             Vector3d dMorseXi, dMorseXj, dKerXi, dKerXj;
@@ -276,17 +276,17 @@ void OPSBody::compute(){
             r = rij.norm();
             n_dot_rij = n.dot(rij);
 
-            exp1 = exp( -2*_a*(r - _re) );
-            exp2 = exp( -_a*(r - _re) );
+            exp_1 = exp( -_a*(r - _re) );
+            exp_2 = exp_1*exp_1;
 
-            morseEn = _De*( exp1 - 2*exp2 );
+            morseEn = _De*( exp_2 - 2*exp_1 );
             Ker = (_De/_gamma)*exp( -r*r/(2*_b*_b) );
             Phi_n = m.squaredNorm();
             Phi_c = n_dot_rij/r;
             Phi_c *= Phi_c;
 
             // Evaluate morse derivatives
-            dMorseXi = (2*_De*_a/r)*( exp1 - exp2 )*rij;
+            dMorseXi = (2*_De*_a/r)*( exp_2 - exp_1 )*rij;
             dMorseXj = -dMorseXi;
 
             // Evaluate kernel derivatives
