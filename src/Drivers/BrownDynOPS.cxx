@@ -2,15 +2,16 @@
 #include <string>
 #include <vector>
 #include <vtkPolyDataReader.h>
+#include "ALConstraint.h"
 #include "BrownianBody.h"
 #include "LBFGSBWrapper.h"
 #include "Model.h"
-#include "OPSBody.h"
+//#include "OPSBody.h"
+#include "OPSMesh.h"
 #include "ViscosityBody.h"
 
 int main(int argc, char* argv[]){
-
-    clock_t t1, t2;
+    clock_t t1, t2, t3;
     t1 = clock();
 
     if (argc != 2) {
@@ -30,11 +31,13 @@ int main(int argc, char* argv[]){
     // ********************************************************//
 
     // ******************* Read Simulation Parameters *********//
-    double_t D_e=1.0, re=1.0, s=7.0, b=1.0;
+    double_t De=1.0, re=1.0, s=7.0, b=1.0;
     double_t alpha=1.0, beta=1.0, gamma=1.0;
     double_t percentStrain = 15;
     double_t initialSearchRad = 1.0, finalSearchRad = 1.2,
             searchRadFactor = 1.3;
+    std::string constraintType("NULL");
+    enum Constraint{ AvgArea, AvgVol, ExactArea, ExactVol, ExactAreaAndVolume};
     //int lat_res=100, long_res=101;
     size_t viterMax = 1000;
     size_t nameSuffix = 0;
@@ -43,14 +46,38 @@ int main(int argc, char* argv[]){
     assert(miscInpFile);
     std::string temp;
     miscInpFile
-            >> temp >> D_e
+            >> temp >> De
             >> temp >> re
             >> temp >> b
             >> temp >> initialSearchRad
             >> temp >> finalSearchRad
-            >> temp >> searchRadFactor;
+            >> temp >> searchRadFactor
+            >> temp >> constraintType;
+
     miscInpFile.close();
     s = (100 / (re*percentStrain))*log(2.0);
+
+    //Validate constraint type
+    Constraint type;
+    if(constraintType.compare("AverageArea") == 0){
+        type = AvgArea;
+    }
+    else if(constraintType.compare("AverageVolume") == 0){
+        type = AvgArea;
+    }
+    else if(constraintType.compare("ExactArea") == 0){
+        type = ExactArea;
+    }
+    else if(constraintType.compare("ExactVolume") == 0){
+        type = ExactVol;
+    }
+    else if(constraintType.compare("ExactAreaAndVolume") == 0){
+        type = ExactAreaAndVolume;
+    }
+    else{
+        std::cout<< "Invalid constraint type specified." << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
     std::ifstream coolFile("cooling.dat");
     assert(coolFile);
@@ -90,35 +117,63 @@ int main(int argc, char* argv[]){
     Eigen::Matrix3Xd rotVecs(3,N);
     OPSBody::initialRotationVector(coords, rotVecs);
 
-    // Prepare memory for energy and force
+    // Prepare memory for energy, force
     double_t f;
     Eigen::VectorXd x(6*N), g(6*N), prevX(3*N);
     g.setZero(g.size());
     x.setZero(x.size());
 
-    // Fill x with coords and rotVecs and copy coords in prevX
-    Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N);
+    // Fill x with coords and rotVecs
+    Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N),
+            prevPos(prevX.data(),3,N);
     xpos = coords;
     xrot = rotVecs;
     prevX = x.head(3*N);
 
     // Create OPSBody
-    Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);
-    OPSParams params(D_e,re,s,b,initialSearchRad,gamma);
-    OPSBody ops(N,f,xpos,xrot,posGrad,rotGrad,params);
+    Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);    
+    OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad);
+    ops.setMorseDistance(re);
+    ops.setMorseEnergy(De);
+    s = 100*log(2.0)/(re*percentStrain);
+    ops.setMorseWellWidth(s);
+    ops.setSearchRadius(initialSearchRad);
 
     // Create Brownian and Viscosity bodies
     Eigen::Map<Eigen::VectorXd> thermalX(x.data(),3*N,1);
     Eigen::Map<Eigen::VectorXd> thermalG(g.data(),3*N,1);
-    double brownCoeff = 1.0, viscosity = 1.0;
+    double_t brownCoeff = 1.0, viscosity = 1.0;
     BrownianBody brown(3*N,brownCoeff,f,thermalX,thermalG,prevX);
     ViscosityBody visco(3*N,viscosity,f,thermalX,thermalG,prevX);
+
+    // Create the Augmented Lagrangian volume constraint body
+    ALConstraint* constraint;
+    if(type == AvgArea){
+        constraint = new AvgAreaConstraint(N, f, xpos, posGrad);
+    }
+    else if(type == AvgVol){
+        constraint = new AvgVolConstraint(N, f, xpos, posGrad);
+    }
+    else if(type == ExactArea){
+        vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
+        constraint = new ExactAreaConstraint(N, f, xpos, posGrad, poly);
+    }
+    else if(type == ExactVol){
+        vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
+        constraint = new ExactVolConstraint(N, f, xpos, posGrad, poly);
+    }
+    else if(type == ExactAreaAndVolume){
+        vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
+        constraint = new ExactAreaVolConstraint(N, f, xpos, posGrad, poly);
+        constraint->setTolerance(1e-8);
+    }
 
     // Create Model
     Model model(6*N,f,g);
     model.addBody(&ops);
     model.addBody(&brown);
     model.addBody(&visco);
+    model.addBody(constraint);
     // ****************************************************************//
 
     // ***************** Prepare Output Data file *********************//
@@ -141,6 +196,7 @@ int main(int argc, char* argv[]){
                  << "Asphericity" << "\t"
                  << "Radius" << "\t"
                  << "Volume" << "\t"
+                 << "Area" << "\t"
                  << "MorseEnergy" << "\t"
                  << "NormalityEn" << "\t"
                  << "CircularityEn" << "\t"
@@ -149,6 +205,8 @@ int main(int argc, char* argv[]){
                  << "ViscosityEnergy" << "\t"
                  << "TotalFunctional" <<"\t"
                  << "MSD" << "\t"
+                 << "AvgDisplacement" << "\t"
+                 << "MaxDisplacement" << "\t"
                  << std::endl;
 
     ofstream outerLoopFile;
@@ -169,7 +227,7 @@ int main(int argc, char* argv[]){
     // ******************************************************************//
 
     // ************************* Create Solver ************************  //
-    size_t m = 5, iprint = 1000, maxIter = 10000;
+    size_t m = 5, iprint = 1000, maxIter = 1e7;
     double_t factr = 10.0, pgtol = 1e-8;
     LBFGSBParams solverParams(m,iprint,maxIter,factr,pgtol);
     LBFGSBWrapper solver(solverParams, model, f, x, g);
@@ -184,19 +242,19 @@ int main(int argc, char* argv[]){
     for(size_t i=0; i < N; ++i){
         xpos.col(i) = xpos.col(i)/avgEdgeLen;
     }
-    params.updateParameter(OPSParams::searchRadiusV, finalSearchRad);
+    ops.setSearchRadius(finalSearchRad);
     avgEdgeLen = ops.getAverageEdgeLength();
     std::cout << "After renormalizing, Avg Edge Length = "
               << avgEdgeLen << std::endl;
 
     // Update the OPSBody member variables as per new positions
-    params.updateParameter(OPSParams::searchRadiusV,
-                           searchRadFactor*avgEdgeLen);
+    ops.setSearchRadius(searchRadFactor*avgEdgeLen);
     ops.updatePolyData();
     ops.updateNeighbors();
     ops.saveInitialPosition(); /*!< For Mean Squared Displacement */
     // ******************************************************************//
 
+    t3 = clock();
     // ************************ OUTER SOLUTION LOOP **********************//
     int printStep, stepCount = 0, step=0;
     int paraviewStep = -1;
@@ -208,16 +266,62 @@ int main(int argc, char* argv[]){
         viterMax = coolVec[z][4];
         printStep = (int)coolVec[z][5];
 
+        // Update OPS params
         s = (100 / (avgEdgeLen*percentStrain))*log(2.0);
-        brownCoeff = beta*D_e/(alpha*avgEdgeLen);
+        ops.setFVK(gamma);
+        ops.setMorseWellWidth(s);
+
+        // Solve the system without Brownian, Viscous and Volume constraints
+        brown.setCoefficient(0.0);
+        visco.setViscosity(0.0);
+        constraint->setLagrangeCoeff(0.0);
+        constraint->setPenaltyCoeff(0.0);
+        std::cout<<"Solving the system at zero temperature..."<<std::endl;
+        solver.solve();
+        ops.updatePolyData();
+        ops.updateNeighbors();        
+        std::cout<<"Solving finished."<<std::endl;
+
+        // Set up the constraint value as the zero temperature value
+        if(type == AvgArea){
+            double_t Ravg = ops.getAverageRadius();
+            double_t constrainedVal = 4*M_PI*Ravg*Ravg;
+            constraint->setConstraint(constrainedVal);
+            std::cout<< "Constrained Area = " << constrainedVal << std::endl;
+        }
+        else if(type == AvgVol){
+            double_t Ravg = ops.getAverageRadius();
+            double_t constrainedVal = 4*M_PI*Ravg*Ravg*Ravg/3;
+            constraint->setConstraint(constrainedVal);
+            std::cout<< "Constrained Volume = " << constrainedVal << std::endl;
+        }
+        else if(type == ExactArea){
+            double_t constrainedVal = ops.getArea();
+            constraint->setConstraint(constrainedVal);
+            std::cout<< "Constrained Area = " << constrainedVal << std::endl;
+        }
+        else if(type == ExactVol){
+            double_t constrainedVal = ops.getVolume();
+            constraint->setConstraint(constrainedVal);
+            std::cout<< "Constrained Volume = " << constrainedVal << std::endl;
+        }
+        else if(type == ExactAreaAndVolume){
+            double_t area = ops.getArea();
+            double_t volume = ops.getVolume();
+            dynamic_cast<ExactAreaVolConstraint*>(constraint)->setConstraint(
+                        area,volume);
+        }
+
+        // Set the viscosity and Brownian coefficient
+        brownCoeff = beta*De/(alpha*avgEdgeLen);
         viscosity = brownCoeff/(alpha*avgEdgeLen);
         std::cout<< "Viscosity = " << viscosity << std::endl;
         std::cout<< "Brownian Coefficient = " << brownCoeff << std::endl;
         brown.setCoefficient(brownCoeff);
         visco.setViscosity(viscosity);
 
-        params.updateParameter(OPSParams::gammaV, gamma);
-        params.updateParameter(OPSParams::aV, s);
+        // Update prevX
+        prevX = x.head(3*N);
 
         //**************  INNER SOLUTION LOOP ******************//
         Eigen::Matrix3Xd averagePosition( 3, N ); /*!< Store avg particle positions */
@@ -225,22 +329,50 @@ int main(int argc, char* argv[]){
 
         for (int viter = 0; viter < viterMax; viter++) {
             std::cout << std::endl
-                 << "VISCOUS ITERATION: " << viter + stepCount
-                 << std::endl
-                 << std::endl;
-            std::cout<< "Search Radius = " << searchRadFactor*avgEdgeLen << std::endl;
-
-            // Store positions for the Kabsch
-            //ops.updateDataForKabsch();
+                      << "VISCOUS ITERATION: " << viter + stepCount
+                      << std::endl
+                      << std::endl;
 
             // Generate Brownian Kicks
             brown.generateParallelKicks();
 
-            // Solve the model
-            solver.solve();
+            // Store data for Kabsch
+            ops.updateDataForKabsch();
+
+            // Set the starting guess for Lambda and K for Augmented Lagrangian
+            constraint->setLagrangeCoeff(10.0);
+            constraint->setPenaltyCoeff(1000.0);
+
+            // *************** Augmented Lagrangian Loop ************** //
+            bool constraintMet = false;
+            size_t alIter = 0, alMaxIter = 10;
+
+            while( !constraintMet && (alIter < alMaxIter)){
+                std::cout<< "Augmented Lagrangian iteration: " << alIter
+                         << std::endl;
+
+                // Solve the unconstrained minimization
+                solver.solve();
+
+                //Uzawa update
+                constraint->uzawaUpdate();
+
+                // Update termination check quantities
+                alIter++;
+                constraintMet = constraint->constraintSatisfied();
+            }
+            constraint->printCompletion();
+            std::cout<< "Constraint satisfied in "<< alIter << " iterations."
+                     << std::endl << std::endl;
+            // *********************************************************//
+
+            // Calculate statistics about average displacement and largest displacement
+            double_t avgDisplacement, maxDisplacement;
+            avgDisplacement = (xpos - prevPos).colwise().norm().sum()/N;
+            maxDisplacement = (xpos - prevPos).colwise().norm().maxCoeff();
 
             // Apply Kabsch Algorithm
-            //ops.applyKabschAlgorithm();
+            ops.applyKabschAlgorithm();
 
             //Update kdTree, polyData and neighbors
             ops.updatePolyData();
@@ -271,6 +403,7 @@ int main(int argc, char* argv[]){
                           << ops.getAsphericity() << "\t"
                           << ops.getAverageRadius() << "\t"
                           << ops.getVolume() << "\t"
+                          << ops.getArea() << "\t"
                           << ops.getMorseEnergy() << "\t"
                           << ops.getNormalityEnergy() << "\t"
                           << ops.getCircularityEnergy() << "\t"
@@ -279,11 +412,12 @@ int main(int argc, char* argv[]){
                           << visco.getViscosityEnergy() << "\t"
                           << f << "\t"
                           << ops.getMeanSquaredDisplacement() << "\t"
+                          << avgDisplacement <<"\t"
+                          << maxDisplacement
                           << std::endl;
 
-            // Store previous position for viscosity and brownian calculations
+            // Update prevX
             prevX = x.head(3*N);
-
         }
         //************************************************//
 
@@ -326,6 +460,8 @@ int main(int argc, char* argv[]){
 
     }
     // *****************************************************************************//
+    t3 = clock() - t3;
+    std::cout<<"Time for loop only = " << ((float)t3)/CLOCKS_PER_SEC << std::endl;
 
     innerLoopFile.close();
     outerLoopFile.close();
@@ -333,6 +469,8 @@ int main(int argc, char* argv[]){
     float diff((float)t2 - (float)t1);
     std::cout << "Solution loop execution time: " << diff / CLOCKS_PER_SEC
               << " seconds" << std::endl;
-
+    delete constraint;
     return 1;
 }
+
+

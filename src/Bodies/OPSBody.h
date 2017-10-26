@@ -25,46 +25,7 @@
 #include "Body.h"
 #include "HelperFunctions.h"
 
-// **************************** OPSParams *********************************//
-/*!
- * \brief The OPSParams struct
- *
- * Encapsulates the various parameters needed by a BrownOPS class
- */
-class OPSParams{
-public:
-    enum Parameter{D_eV, r_eV, aV, bV, searchRadiusV, gammaV};
-
-    //! Initialize with default values
-    OPSParams():D_e(1.0), r_e(1.0), a(6.9314718056),//Fracture strain = 10%
-        b(1.0), gamma(1.0),
-        searchRadius(1.4){}
-
-    //! Initialize from double_ts
-    OPSParams( double_t E, double_t r, double_t av, double_t bv, double_t sr,
-               double_t s): D_e(E), r_e(r), a(av), b(bv), searchRadius(sr),
-        gamma(s){}
-
-    //! Accessor methods
-    double getMorseEquilibriumEnergy(){return D_e;}
-    double getMorseEquilibriumDistance(){return r_e;}
-    double getMorseWellWidth(){return a;}
-    double getKernelStdDev(){return b;}
-    double getSearchRadius(){return searchRadius;}
-    double getFVK(){return gamma;}
-
-    //! Update a parameter value
-    void updateParameter(Parameter p, double_t val);
-
-private:
-    double_t D_e, r_e, a; /*!< Morse potential parameters */
-    double_t b;           /*!< Standard deviation of the Kernel Gaussian */
-    double_t searchRadius;
-    double_t gamma; /*!< Energy scale ratio */
-};
-// **************************************************************************//
-
-// ************************* BrownOPS Class *********************************//
+// ************************* OPSBody Class *********************************//
 /*!
  * \brief The OPSBody class
  * Computes energy and forces on a Oriented Particle System
@@ -86,7 +47,7 @@ public:
     typedef Eigen::AngleAxisd AngleAxisd;
 
     OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd posGrad,
-             RefM3Xd rotGrad, OPSParams &p);
+            RefM3Xd rotGrad);
     void applyKabschAlgorithm();
     virtual void compute();
     void computeNormals();
@@ -95,7 +56,7 @@ public:
     double_t getArea();
     double_t getAverageEdgeLength();
     double_t getAverageNumberOfNeighbors(){return _avgNumNeighbors;}
-    double_t getAverageRadius();    
+    double_t getAverageRadius();
     double_t getCircularityEnergy(){return _circEn;}
     double_t getMeanSquaredDisplacement();
     double_t getMorseEnergy(){return _morseEn;}
@@ -105,34 +66,25 @@ public:
     double_t getVolume();
     static void initialRotationVector(RefM3Xd pos, RefM3Xd rotVec);
     void printVTKFile(const std::string name);
-    void saveInitialPosition(){ _initialPositions = _positions;}           
+    void saveInitialPosition(){ _initialPositions = _positions;}
+    void setMorseEnergy(double_t d){_De = d;}
+    void setMorseDistance(double_t r){_re = r;}
+    void setMorseWellWidth(double_t a){_a = a;}
+    void setOPSKernelParameter(double_t b){_b = b;}
+    void setSearchRadius(double_t s){_searchRadius = s;}
+    void setFVK(double_t g){_gamma = g;}
     virtual void updateNeighbors();
     void updateDataForKabsch();
     void updatePolyData();
 
 protected:
-    bool _updateArea;
-    bool _updateRadius;
-    bool _updateVolume;
-    double_t &_f;
-    double_t _area;
-    double_t _radius;
-    double_t _volume;
-    double_t _volConstrained;
-    double_t _morseEn;
-    double_t _normalEn;
-    double_t _circEn;
-    double_t _msd;
-    double_t _avgNumNeighbors;
-    int _numPartilces;
-    MapM3Xd _positions;
-    MapM3Xd _posGradient;
-    MapM3Xd _rotGradient;
-    MapM3Xd _rotationVectors;
-    Matrix3Xd _prevX;
-    Matrix3Xd _normals;    
-    Matrix3Xd _initialPositions;
-    OPSParams &_params;
+    bool _updateArea, _updateRadius, _updateVolume;
+    double_t &_f, _area, _radius, _volume, _volConstrained, _morseEn,
+    _normalEn, _circEn,_msd, _avgNumNeighbors, _De, _re, _a, _b, _gamma,
+    _searchRadius;
+    int _N;
+    MapM3Xd _positions, _posGradient, _rotGradient, _rotationVectors;
+    Matrix3Xd _prevX, _normals, _initialPositions;
     std::vector< Matrix3d > _diffNormalRV; /*!< Derivatives of normals with rotation vectors*/
     std::vector< vtkSmartPointer<vtkIdList> > _neighbors;
     std::vector< vtkIdType > _initialNearestNeighbor;

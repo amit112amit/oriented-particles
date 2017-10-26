@@ -3,7 +3,8 @@
 #include "BrownianBody.h"
 #include "LBFGSBWrapper.h"
 #include "Model.h"
-#include "OPSBodyCutOff.h"
+//#include "OPSBody.h"
+#include "OPSMesh.h"
 #include "ViscosityBody.h"
 #include "ALConstraint.h"
 
@@ -48,9 +49,9 @@ int main(int argc, char* argv[]){
     // Create OPSBody
     Eigen::Map<Eigen::Matrix3Xd> pos(x.data(),3,N),
             rot(&x(3*N),3,N), posGrad(g.data(),3,N),
-            rotGrad(&g(3*N),3,N);
-    OPSParams p;
-    OPSBodyCutOff ops(N,f,pos,rot,posGrad,rotGrad,p,1.5,2.0);
+            rotGrad(&g(3*N),3,N);    
+    OPSMesh ops(N,f,pos,rot,posGrad,rotGrad);
+    ops.updateNeighbors();
 
     // Create Brownian and Viscosity bodies
     Eigen::Map<Eigen::VectorXd> thermalX(x.data(),3*N,1);
