@@ -149,6 +149,8 @@ int main(int argc, char* argv[]){
     // ************************ SOLUTION LOOP **********************//
     int step=0;
     for(int z=0; z < coolVec.size(); z++){
+        std::cout<<"Iteration number = "<< z << std::endl;
+
         gamma = coolVec[z];
 
         // Update OPS params

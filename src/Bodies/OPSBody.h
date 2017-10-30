@@ -66,6 +66,7 @@ public:
     double_t getVolume();
     static void initialRotationVector(RefM3Xd pos, RefM3Xd rotVec);
     void printVTKFile(const std::string name);
+    void resetToInitialPositions();
     void saveInitialPosition(){ _initialPositions = _positions;}
     void setMorseEnergy(double_t d){_De = d;}
     void setMorseDistance(double_t r){_re = r;}

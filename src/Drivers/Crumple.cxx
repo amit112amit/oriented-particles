@@ -6,6 +6,7 @@
 #include "BrownianBody.h"
 #include "LBFGSBWrapper.h"
 #include "Model.h"
+//#include "OPSBody.h"
 #include "OPSMesh.h"
 #include "ViscosityBody.h"
 
@@ -31,13 +32,14 @@ int main(int argc, char* argv[]){
 
     // ******************* Read Simulation Parameters *********//
     double_t De=1.0, re=1.0, s=7.0;
-    double_t alpha=1.0, beta=1.0, gamma=1.0;
-    double_t percentStrain = 15;
+    double_t alpha=1.0, gamma=1.0;
+    double_t percentStrain = 15, alpha_start=0.001, alpha_increment=0.001;
+    double_t crumpledAsphericity = 0.01;
 
     std::string constraintType("NULL");
     enum Constraint{ AvgArea, AvgVol, ExactArea, ExactVol, ExactAreaAndVolume};
     //int lat_res=100, long_res=101;
-    size_t viterMax = 1000;
+    size_t viterMax = 500;
     size_t nameSuffix = 0;
 
     std::ifstream miscInpFile("miscInp.dat");
@@ -46,7 +48,9 @@ int main(int argc, char* argv[]){
     miscInpFile
             >> temp >> De
             >> temp >> re
-            >> temp >> constraintType;
+            >> temp >> constraintType
+            >> temp >> alpha_start
+            >> temp >> alpha_increment;
 
     miscInpFile.close();
     s = (100 / (re*percentStrain))*log(2.0);
@@ -73,26 +77,22 @@ int main(int argc, char* argv[]){
         exit(EXIT_FAILURE);
     }
 
-    // Input file should contain the following columns
-    // Alpha Beta Gamma PercentStrain AreaConstraint NumIterations PrintStep
+    // Input file should contain 3 columns
+    // Gamma AreaConstrained PrintStep
     std::ifstream coolFile("cooling.dat");
     assert(coolFile);
     std::vector<std::vector<double_t> > coolVec;
-    double_t currAlpha, currBeta, currGamma, currPercentStrain,
-            currViterMax, currPrintStep, currArea;
+    double_t currGamma, currPercentStrain, currArea, currPrintStep;
 
     std::string headerline;
     std::getline(coolFile, headerline);
 
-    while (coolFile >> currAlpha >> currBeta >> currGamma >> currPercentStrain
-           >> currArea >> currViterMax >> currPrintStep) {
+    while (coolFile >> currGamma >> currPercentStrain >> currArea
+           >> currPrintStep) {
         std::vector<double> currLine;
-        currLine.push_back(currAlpha);
-        currLine.push_back(currBeta);
         currLine.push_back(currGamma);
         currLine.push_back(currPercentStrain);
         currLine.push_back(currArea);
-        currLine.push_back(currViterMax);
         currLine.push_back(currPrintStep);
         coolVec.push_back(currLine);
     }
@@ -121,19 +121,18 @@ int main(int argc, char* argv[]){
     x.setZero(x.size());
 
     // Fill x with coords and rotVecs
-    Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N),
-            prevPos(prevX.data(),3,N);
+    Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N);
     xpos = coords;
     xrot = rotVecs;
     prevX = x.head(3*N);
 
     // Create OPSBody
-    Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);    
+    Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);
     OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad);
     ops.setMorseDistance(re);
     ops.setMorseEnergy(De);
     s = 100*log(2.0)/(re*percentStrain);
-    ops.setMorseWellWidth(s);    
+    ops.setMorseWellWidth(s);
 
     // Create Brownian and Viscosity bodies
     Eigen::Map<Eigen::VectorXd> thermalX(x.data(),3*N,1);
@@ -186,8 +185,7 @@ int main(int argc, char* argv[]){
     innerLoopFile.open(dataOutputFile.c_str());
     innerLoopFile << "#Step" << "\t"
                   <<"ParaviewStep" << "\t"
-                 << "Alpha" << "\t"
-                 << "Beta" << "\t"
+                 << "Alpha" <<"\t"
                  << "Gamma" << "\t"
                  << "Asphericity" << "\t"
                  << "Radius" << "\t"
@@ -200,9 +198,7 @@ int main(int argc, char* argv[]){
                  << "BrownianEnergy" << "\t"
                  << "ViscosityEnergy" << "\t"
                  << "TotalFunctional" <<"\t"
-                 << "MSD" << "\t"
-                 << "AvgDisplacement" << "\t"
-                 << "MaxDisplacement" << "\t"
+                 << "MSD"
                  << std::endl;
 
     ofstream outerLoopFile;
@@ -212,12 +208,10 @@ int main(int argc, char* argv[]){
     sstm.clear();
     outerLoopFile.open(dataOutputFile.c_str());
     outerLoopFile << "#BigStep" <<"\t"
-                  << "PercentStrain" <<"\t"
-                  << "Alpha" << "\t"
-                  << "Beta" << "\t"
                   << "Gamma" << "\t"
                   << "PercentStrain" << "\t"
-                  << "Radius"  <<"\t"
+                  << "CrumplingAlpha" <<"\t"
+                  << "CrumplingRadius"  <<"\t"
                   << "Asphericity"
                   << std::endl;
     // ******************************************************************//
@@ -239,10 +233,10 @@ int main(int argc, char* argv[]){
         xpos.col(i) = xpos.col(i)/avgEdgeLen;
     }
 
-    // Update the OPSBody member variables as per new positions    
+    // Update the OPSBody member variables as per new positions
     ops.updatePolyData();
     ops.updateNeighbors();
-    ops.saveInitialPosition(); /*!< For Mean Squared Displacement */
+    ops.saveInitialPosition(); /*!< For Mean Squared Displacement or reset*/
     avgEdgeLen = ops.getAverageEdgeLength();
     std::cout << "After renormalizing, Avg Edge Length = "
               << avgEdgeLen << std::endl;
@@ -250,171 +244,143 @@ int main(int argc, char* argv[]){
 
     t3 = clock();
     // ************************ OUTER SOLUTION LOOP **********************//
-    int printStep, stepCount = 0, step=0;
+    int printStep, step=0;
     int paraviewStep = -1;
     for(int z=0; z < coolVec.size(); z++){
-        alpha = coolVec[z][0];
-        beta = coolVec[z][1];
-        gamma = coolVec[z][2];
-        percentStrain = coolVec[z][3];
-        double_t constrainedVal = coolVec[z][4];
-        viterMax = coolVec[z][5];
-        printStep = (int)coolVec[z][6];
+        gamma = coolVec[z][0];
+        percentStrain = coolVec[z][1];
+        double_t constrainedVal = coolVec[z][2];
+        printStep = (int)coolVec[z][3];
 
         // Update OPS params
         s = (100 / (avgEdgeLen*percentStrain))*log(2.0);
         ops.setFVK(gamma);
         ops.setMorseWellWidth(s);
 
-        // Set up the constraint value as the zero temperature value
+        // Set up the area constraint value
         constraint->setConstraint(constrainedVal);
-
-        // Set the viscosity and Brownian coefficient        
-        brownCoeff = beta*De/(alpha*avgEdgeLen);
-        viscosity = brownCoeff/(alpha*avgEdgeLen);
-        std::cout<< "Viscosity = " << viscosity << std::endl;
-        std::cout<< "Brownian Coefficient = " << brownCoeff << std::endl;
-        brown.setCoefficient(brownCoeff);
-        visco.setViscosity(viscosity);
 
         // Update prevX
         prevX = x.head(3*N);
 
-        //**************  INNER SOLUTION LOOP ******************//
-        Eigen::Matrix3Xd averagePosition( 3, N ); /*!< Store avg particle positions */
-        averagePosition = Eigen::Matrix3Xd::Zero(3,N);
+        // ************************* CRUMPLING LOOP ***************************//
+        bool crumpled = false;
+        alpha = alpha_start - alpha_increment;
+        double_t asphericity = 0.0;
 
-        for (int viter = 0; viter < viterMax; viter++) {
-            std::cout << std::endl
-                      << "VISCOUS ITERATION: " << viter + stepCount
-                      << std::endl
-                      << std::endl;
+        while(!crumpled){
 
-            // Generate Brownian Kicks
-            brown.generateParallelKicks();
+            // Increment alpha
+            alpha += alpha_increment;
 
-            // Store data for Kabsch
-            ops.updateDataForKabsch();
+            // Set the viscosity and Brownian coefficient
+            brownCoeff = De/(alpha*avgEdgeLen);
+            viscosity = brownCoeff/(alpha*avgEdgeLen);
+            std::cout<< "Viscosity = " << viscosity << std::endl;
+            std::cout<< "Brownian Coefficient = " << brownCoeff << std::endl;
+            brown.setCoefficient(brownCoeff);
+            visco.setViscosity(viscosity);
 
-            // Set the starting guess for Lambda and K for Augmented Lagrangian
-            constraint->setLagrangeCoeff(10.0);
-            constraint->setPenaltyCoeff(1000.0);
+            //**************  INNER LOOP ******************//
+            for (int viter = 0; viter < viterMax; viter++) {
 
-            // *************** Augmented Lagrangian Loop ************** //
-            bool constraintMet = false;
-            size_t alIter = 0, alMaxIter = 10;
+                // Generate Brownian Kicks
+                brown.generateParallelKicks();
 
-            while( !constraintMet && (alIter < alMaxIter)){
-                std::cout<< "Augmented Lagrangian iteration: " << alIter
-                         << std::endl;
+                // Store data for Kabsch
+                ops.updateDataForKabsch();
 
-                // Solve the unconstrained minimization
-                solver.solve();
+                // Set the starting guess for Lambda and K for constraints
+                constraint->setLagrangeCoeff(10.0);
+                constraint->setPenaltyCoeff(1000.0);
 
-                //Uzawa update
-                constraint->uzawaUpdate();
+                // *************** Augmented Lagrangian Loop ************** //
+                bool constraintMet = false;
+                size_t alIter = 0, alMaxIter = 10;
 
-                // Update termination check quantities
-                alIter++;
-                constraintMet = constraint->constraintSatisfied();
+                while( !constraintMet && (alIter < alMaxIter)){
+                    std::cout<< "Augmented Lagrangian iteration: " << alIter
+                             << std::endl;
+
+                    // Solve the unconstrained minimization
+                    solver.solve();
+
+                    //Uzawa update
+                    constraint->uzawaUpdate();
+
+                    // Update termination check quantities
+                    alIter++;
+                    constraintMet = constraint->constraintSatisfied();
+                }
+                constraint->printCompletion();
+                std::cout<< "Constraint satisfied in "<< alIter << " iterations."
+                         << std::endl << std::endl;
+                // *********************************************************//
+
+                // Apply Kabsch Algorithm
+                ops.applyKabschAlgorithm();
+
+                //Update kdTree, polyData and neighbors
+                ops.updatePolyData();
+                ops.updateNeighbors();
+
+                //********** Print relaxed configuration ************//
+                //We will print only after every currPrintStep iterations
+                if (viter % printStep == 0) {
+                    paraviewStep++;
+                    sstm << fname << "-relaxed-" << nameSuffix++ <<".vtk";
+                    std::string rName = sstm.str();
+                    ops.printVTKFile(rName);
+                    sstm.str("");
+                    sstm.clear();
+                }
+
+                int paraviewStepPrint;
+                paraviewStepPrint = (viter % printStep == 0) ? paraviewStep : -1;
+                asphericity = ops.getAsphericity();
+
+                innerLoopFile << step++ << "\t"
+                              << paraviewStepPrint <<"\t"
+                              << alpha <<"\t"
+                              << gamma << "\t"
+                              << asphericity << "\t"
+                              << ops.getAverageRadius() << "\t"
+                              << ops.getVolume() << "\t"
+                              << ops.getArea() << "\t"
+                              << ops.getMorseEnergy() << "\t"
+                              << ops.getNormalityEnergy() << "\t"
+                              << ops.getCircularityEnergy() << "\t"
+                              << ops.getTotalEnergy() << "\t"
+                              << brown.getBrownianEnergy() << "\t"
+                              << visco.getViscosityEnergy() << "\t"
+                              << f << "\t"
+                              << ops.getMeanSquaredDisplacement()
+                              << std::endl;
+
+                if( asphericity >= crumpledAsphericity ){
+                    crumpled = true;
+                    break;
+                }
+
+                // Update prevX
+                prevX = x.head(3*N);
             }
-            constraint->printCompletion();
-            std::cout<< "Constraint satisfied in "<< alIter << " iterations."
-                     << std::endl << std::endl;
-            // *********************************************************//
-
-            // Calculate statistics about average displacement and largest displacement
-            double_t avgDisplacement, maxDisplacement;
-            avgDisplacement = (xpos - prevPos).colwise().norm().sum()/N;
-            maxDisplacement = (xpos - prevPos).colwise().norm().maxCoeff();
-
-            // Apply Kabsch Algorithm
-            ops.applyKabschAlgorithm();
-
-            //Update kdTree, polyData and neighbors
-            ops.updatePolyData();
-            ops.updateNeighbors();
-
-            // Add current solution to average position data
-            averagePosition += xpos;
-
-            //********** Print relaxed configuration ************//
-            //We will print only after every currPrintStep iterations
-            if (viter % printStep == 0) {
-                paraviewStep++;
-                sstm << fname << "-relaxed-" << nameSuffix++ <<".vtk";
-                std::string rName = sstm.str();
-                ops.printVTKFile(rName);
-                sstm.str("");
-                sstm.clear();
-            }
-
-            int paraviewStepPrint;
-            paraviewStepPrint = (viter % printStep == 0) ? paraviewStep : -1;
-
-            innerLoopFile << step++ << "\t"
-                          << paraviewStepPrint <<"\t"
-                          << alpha <<"\t"
-                          << beta << "\t"
-                          << gamma << "\t"
-                          << ops.getAsphericity() << "\t"
-                          << ops.getAverageRadius() << "\t"
-                          << ops.getVolume() << "\t"
-                          << ops.getArea() << "\t"
-                          << ops.getMorseEnergy() << "\t"
-                          << ops.getNormalityEnergy() << "\t"
-                          << ops.getCircularityEnergy() << "\t"
-                          << ops.getTotalEnergy() << "\t"
-                          << brown.getBrownianEnergy() << "\t"
-                          << visco.getViscosityEnergy() << "\t"
-                          << f << "\t"
-                          << ops.getMeanSquaredDisplacement() << "\t"
-                          << avgDisplacement <<"\t"
-                          << maxDisplacement
-                          << std::endl;
-
-            // Update prevX
-            prevX = x.head(3*N);
+            // ********************************************************//
         }
-        //************************************************//
+        //******************************************************************//
 
-        // Calculate the average particle positions and avg radius
-        double avgShapeRad = 0.0, avgShapeAsph = 0.0;
-        vtkSmartPointer<vtkPoints> avgPos =
-                vtkSmartPointer<vtkPoints>::New();
-        vtkSmartPointer<vtkDoubleArray> avgPosData =
-                vtkSmartPointer<vtkDoubleArray>::New();
-        averagePosition = averagePosition / viterMax;
-        avgShapeRad = averagePosition.colwise().norm().sum()/N;
-        void *avgPosPtr = (void*)averagePosition.data();
-        avgPosData->SetVoidArray(avgPosPtr,3*N,1);
-        avgPosData->SetNumberOfComponents(3);
-        avgPos->SetData(avgPosData);
-
-        sstm << fname << "-AvgShape-"<< z << ".vtk";
-        dataOutputFile = sstm.str();
-        sstm.str("");
-        sstm.clear();
-
-        // Print the average shape
-        delaunay3DSurf(avgPos, dataOutputFile);
-
-        // Calculate the asphericity of the average shape
-        Eigen::RowVectorXd R(N);
-        R = averagePosition.colwise().norm();
-        avgShapeAsph += ((R.array() - avgShapeRad).square()).sum();
-        avgShapeAsph /= (N*avgShapeRad*avgShapeRad);
-
+        // Write the crumpling alpha values and statistics to output file
         outerLoopFile << z <<"\t"
-                      << percentStrain << "\t"
-                      << alpha << "\t"
-                      << beta << "\t"
                       << gamma << "\t"
                       << percentStrain << "\t"
-                      << avgShapeRad  << "\t"
-                      << avgShapeAsph
+                      << alpha << "\t"
+                      << ops.getAverageRadius() <<"\t"
+                      << asphericity <<"\t"
+                      << ops.getVolume()
                       << std::endl;
 
+        // Reset OPSMesh for next gamma value
+        ops.resetToInitialPositions();
     }
     // *****************************************************************************//
     t3 = clock() - t3;

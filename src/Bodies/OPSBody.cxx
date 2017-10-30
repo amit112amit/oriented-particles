@@ -561,3 +561,14 @@ double_t OPSBody::getAverageRadius(){
     }
     return _radius;
 }
+
+//! Reset the coordinates of the particles to initial values
+//! reset the rotation vectors, polydata and neighbors accordingly
+void OPSBody::resetToInitialPositions(){
+    _positions = _initialPositions;
+    initialRotationVector(_positions, _rotationVectors);
+    _posGradient = Matrix3Xd::Zero(3,_N);
+    _rotGradient = Matrix3Xd::Zero(3,_N);
+    updatePolyData();
+    updateNeighbors();
+}

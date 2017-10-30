@@ -7,9 +7,10 @@ set(INCLD Bodies Model Solvers Helpers)
 add_executable(opsConsistency TestOPSConsistency.cxx)
 add_executable(heatOPS BrownDynOPS.cxx)
 add_executable(asphericity Asphericity.cxx)
+add_executable(crumple Crumple.cxx)
 
 #Add name of your executable target to the DRIVERS variable
-set(DRIVERS opsConsistency asphericity heatOPS)
+set(DRIVERS opsConsistency asphericity heatOPS crumple)
 
 #For each driver link libraries and set the include paths
 foreach(DRIVER ${DRIVERS})    
