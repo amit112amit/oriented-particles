@@ -202,7 +202,7 @@ int main(int argc, char* argv[]){
                  << std::endl;
 
     ofstream outerLoopFile;
-    sstm << fname << "-AverageOutput.dat";
+    sstm << fname << "-CrumplingOutput.dat";
     dataOutputFile = sstm.str();
     sstm.str("");
     sstm.clear();
