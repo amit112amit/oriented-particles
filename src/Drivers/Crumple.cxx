@@ -212,7 +212,8 @@ int main(int argc, char* argv[]){
                   << "PercentStrain" << "\t"
                   << "CrumplingAlpha" <<"\t"
                   << "CrumplingRadius"  <<"\t"
-                  << "Asphericity"
+                  << "Asphericity" << "\t"
+                  << "Volume"
                   << std::endl;
     // ******************************************************************//
 
