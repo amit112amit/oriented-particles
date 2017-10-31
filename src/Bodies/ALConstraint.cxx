@@ -3,13 +3,7 @@
 //! Constructor for Augmented Lagrangian constraint
 ALConstraint::ALConstraint(size_t N, double_t &f, RefM3Xd x,
                            RefM3Xd g):_N(N),_f(f),_xPos(x.data(),3,N),
-    _xGrad(g.data(),3,N){
-    _value = 0.0;
-    _constrainedValue = 0.0;
-    _Lambda_i = 1.0;
-    _K_i = 1.0;
-    _tolerance = 1e-10;
-}
+    _xGrad(g.data(),3,N){}
 
 //! Uzawa update common to all Augmented Lagrangian constraint subclasses
 void ALConstraint::uzawaUpdate(){
@@ -33,7 +27,7 @@ void AvgAreaConstraint::compute(){
 
     factor = 25.1327412287*Ravg*(_K_i*areaDiff - _Lambda_i)/_N;
     // Add the derivatives
-    for(int i=0; i < _N; ++i){
+    for(auto i=0; i < _N; ++i){
         _xGrad.col(i) += factor*_xPos.col(i)/R(i);
     }
 }

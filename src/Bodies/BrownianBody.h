@@ -26,9 +26,9 @@ public:
 
 private:
     size_t _N;
-    double_t _coeff;
+    double_t _coeff = 1.0;
     double_t &_f;
-    double_t _brownEn;
+    double_t _brownEn = 0.0;
     MapVXd _x;
     MapVXd _g;
     MapVXd _prevX;

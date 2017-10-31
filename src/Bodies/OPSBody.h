@@ -79,10 +79,10 @@ public:
     void updatePolyData();
 
 protected:
-    bool _updateArea, _updateRadius, _updateVolume;
-    double_t &_f, _area, _radius, _volume, _volConstrained, _morseEn,
-    _normalEn, _circEn,_msd, _avgNumNeighbors, _De, _re, _a, _b, _gamma,
-    _searchRadius;
+    bool _updateArea = true, _updateRadius = true, _updateVolume = true;
+    double_t &_f, _area = 0, _radius = 0, _volume = 0, _morseEn, _normalEn,
+    _circEn, _msd = 0, _avgNumNeighbors = 0, _De = 1.0, _re = 1.0,
+    _a = 4.62098120373, _b = 1.0, _gamma = 0.1, _searchRadius = 1.4;
     int _N;
     MapM3Xd _positions, _posGradient, _rotGradient, _rotationVectors;
     Matrix3Xd _prevX, _normals, _initialPositions;

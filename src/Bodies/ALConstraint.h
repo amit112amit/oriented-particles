@@ -29,12 +29,12 @@ public:
     void uzawaUpdate();
 
 protected:    
-    double_t _constrainedValue;
+    double_t _constrainedValue = 0.0;
     double_t &_f;
-    double_t _K_i;
-    double_t _Lambda_i;
-    double_t _tolerance;
-    double_t _value;
+    double_t _K_i = 1000.0;
+    double_t _Lambda_i = 1.0;
+    double_t _tolerance = 1e-10;
+    double_t _value = 0.0;
     MapM3Xd _xPos;
     MapM3Xd _xGrad;
     size_t _N;

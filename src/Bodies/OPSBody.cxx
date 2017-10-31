@@ -8,29 +8,10 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
 
     // Ensure that there is enough memory for n-particles
     assert(n <= pos.cols() && n <= rot.cols() && n <= pG.cols()
-           && n <= rG.cols());
+                  && n <= rG.cols());
 
     // Set number of particles
     _N = n;
-
-    // Set default values for the parameters
-    _De = 1.0;
-    _re = 1.0;
-    _a = 4.62098120373; /*!< log(2.0)/(0.15) */
-    _b = 1.0;
-    _searchRadius = 1.2;
-    _gamma = 1.0;
-
-    // Initialize measured quantities to 0
-    _area = 0.0;
-    _radius = 0.0;
-    _volume = 0.0;
-    _avgNumNeighbors = 0.0;
-
-    // Initialize update flags
-    _updateRadius = true; /*!< getAverageRadius() will toggle this */
-    _updateVolume = true; /*!< getVolume() will toggle this */
-    _updateArea = true; /*!< getVolume() will toggle this */
 
     // Initialize internal arrays
     _prevX = _positions;
@@ -68,13 +49,13 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
     updatePolyData();
 
     //Initialize the _neighbors vector
-    for(int i=0; i < _N; i++){
+    for(auto i=0; i < _N; i++){
         _neighbors.push_back( vtkSmartPointer<vtkIdList>::New() );
     }
     updateNeighbors();
 
     //Set the initial nearest neighbor vector
-    for (int i = 0; i < _N; i++) {
+    for (auto i = 0; i < _N; i++) {
         Vector3d currPos = _positions.col(i);
         vtkSmartPointer<vtkIdList> neighbors =
                 vtkSmartPointer<vtkIdList>::New();
@@ -88,7 +69,7 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
 void OPSBody::computeNormals(){
     // Assume z-axis of Global Coord Sys is to be rotated
     Quaterniond zaxis(0.0,0.0,0.0,1.0);
-    for(size_t i=0; i < _N; ++i){
+    for(auto i=0; i < _N; ++i){
         MapV3d normal( &_normals(0,i), 3, 1 );
         MapV3d rotVec( &_rotationVectors(0,i), 3, 1 );
         Vector3d curr = (Quaterniond(AngleAxisd(rotVec.norm(),
@@ -120,7 +101,7 @@ void OPSBody::updatePolyData() {
     vtkSmartPointer<vtkIdList> pointIds =
             vtkSmartPointer<vtkIdList>::New();
 
-    for(int i=0; i < _N; i++){
+    for(auto i=0; i < _N; i++){
         Vector3d x = _positions.col(i).normalized();
         //We are rounding off to 2 decimals as a hack to aid vtkDelaunay3D
         //Otherwise sometimes we don't get a convex hull
@@ -162,7 +143,7 @@ void OPSBody::updatePolyData() {
     while(interim->GetNextCell(pointIds)){
         int numIds = pointIds->GetNumberOfIds();
         finalCells->InsertNextCell(numIds);
-        for(int j=0; j < numIds; j++ ){
+        for(auto j=0; j < numIds; j++ ){
             int id = (int)origIds->GetTuple1( pointIds->GetId(j) );
             finalCells->InsertCellPoint(id);
         }
@@ -184,20 +165,23 @@ void OPSBody::updateDataForKabsch(){
 //! Store the neighbors information for each node
 void OPSBody::updateNeighbors(){
     //Finally update the _octree
-    _octree->BuildLocator();    
-    for(int i=0; i < _N; i++){
+    _octree->BuildLocator();
+
+    // Using C++11 for-each
+    auto i = 0;
+    for(auto currIdList : _neighbors ){
+        currIdList->Reset();
         Vector3d pos = _positions.col(i);
-        _neighbors[i]->Reset();
-        _octree->FindPointsWithinRadius( _searchRadius, &(pos[0]),
-                _neighbors[i] );
-        _neighbors[i]->DeleteId(i);
+        _octree->FindPointsWithinRadius(_searchRadius,&(pos[0]),currIdList);
+        currIdList->DeleteId(i++);
     }
     // To avoid double counting we should remove the repeated
     // neighbors
-    for(int i=0; i < _N; ++i){
-        for(int j=0; j < _neighbors[i]->GetNumberOfIds(); ++j){
-            vtkIdType currId = _neighbors[i]->GetId(j);
-            _neighbors[currId]->DeleteId(i);
+    i = 0;
+    for(auto ci : _neighbors){
+        for(auto j=0; j < ci->GetNumberOfIds(); ++j){
+            vtkIdType currId = ci->GetId(j);
+            _neighbors[currId]->DeleteId(i++);
         }
     }
 }
@@ -221,10 +205,10 @@ void OPSBody::printVTKFile(const std::string name){
 //! Calculate average edge length as if the particles were on a mesh
 double_t OPSBody::getAverageEdgeLength(){
     double_t avg = 0;
-    int numEdges = 0;
-    for(int i=0; i < _N; i++){
+    auto numEdges = 0;
+    for(auto i=0; i < _N; i++){
         Vector3d center = _positions.col(i);
-        for(int j=0; j < _neighbors[i]->GetNumberOfIds(); j++){
+        for(auto j=0; j < _neighbors[i]->GetNumberOfIds(); j++){
             vtkIdType currId = _neighbors[i]->GetId(j);
             Vector3d neighbor = _positions.col(currId);
             avg += (center - neighbor).norm();
@@ -245,7 +229,7 @@ void OPSBody::compute(){
 
     computeNormals();
     diffNormalRotVec();
-    for(int i=0; i < _N; i++){
+    for(auto i=0; i < _N; i++){
         Vector3d vi, xi, p;
         Matrix3d M;
 
@@ -254,7 +238,7 @@ void OPSBody::compute(){
         p = _normals.col(i);
         M = _diffNormalRV[i];
 
-        for(int j=0; j < _neighbors[i]->GetNumberOfIds(); j++){
+        for(auto j=0; j < _neighbors[i]->GetNumberOfIds(); j++){
             double_t r, n_dot_rij, exp_2, exp_1;
             double_t morseEn, Ker, Phi_n, Phi_c;
             Vector3d vj, xj, q, m, n, rij;
@@ -330,7 +314,7 @@ void OPSBody::compute(){
 
 //! Compute derivative of the normal wrt Rotation Vector
 void OPSBody::diffNormalRotVec(){
-    for(size_t i=0; i < _N; ++i){
+    for(auto i=0; i < _N; ++i){
         // Read the rotation vector
         Vector3d vi = _rotationVectors.col(i);
 
@@ -381,7 +365,7 @@ double_t OPSBody::getTotalEnergy(){
 void OPSBody::initialRotationVector(RefM3Xd pos, RefM3Xd rotVec){
     //Find unit normal along each point and calculate rotation vector
     // that would map the global z-axis to this unit normal
-    for(size_t i=0; i < pos.cols(); ++i){
+    for(auto i=0; i < pos.cols(); ++i){
         Vector3d x = pos.col(i);
         x.normalize();
         Vector3d axis, cross_prod;
@@ -418,7 +402,7 @@ void OPSBody::applyKabschAlgorithm(){
     A = find3DAffineTransform(_positions, _prevX);
 
     //Apply the transformation to each column in _positions
-    for(size_t i=0; i < _N; ++i){
+    for(auto i=0; i < _N; ++i){
         Vector3d tempPos = A.linear()*_positions.col(i) + A.translation();
         Vector3d tempN = A.linear()*pseudoNormal.col(i) + A.translation();
         _positions.col(i) = tempPos;
@@ -430,7 +414,7 @@ void OPSBody::applyKabschAlgorithm(){
 
 //! Update Rotation Vectors as per the current normals after Kabsch update
 void OPSBody::updateRotationVectors(){
-    for(size_t i=0; i < _N; ++i){
+    for(auto i=0; i < _N; ++i){
         Vector3d x = _normals.col(i);
         Vector3d axis, cross_prod;
         double_t angle, cross_prod_norm, p3;
@@ -462,7 +446,7 @@ double_t OPSBody::getMeanSquaredDisplacement(){
     _msd = 0;
     int nn = -1;
     // We will subtract off the radial displacement.
-    for (int i = 0; i < _N; i++) {
+    for (auto i = 0; i < _N; i++) {
         Vector3d xi, xj, diff, xi_diff, xj_diff;
         Vector3d xi0, xj0, xi1, xj1, ni0, nj0;
 
@@ -491,8 +475,8 @@ double_t OPSBody::getMeanSquaredDisplacement(){
 
 //! Calculate asphericity
 double OPSBody::getAsphericity(){
-    double asphericity = 0.0;
-    double R0 = getAverageRadius();
+    double_t asphericity = 0.0;
+    double_t R0 = getAverageRadius();
     Eigen::RowVectorXd R(_N);
     R = _positions.colwise().norm();
     asphericity += ((R.array() - R0).square()).sum();

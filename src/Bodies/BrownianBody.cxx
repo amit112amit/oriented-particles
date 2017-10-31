@@ -13,7 +13,7 @@ BrownianBody::BrownianBody(size_t N, double_t coeff, double_t &f,
 }
 
 void BrownianBody::generateParallelKicks(){
-    for(int i=0; i < _N; i++){
+    for(auto i=0; i < _N; i++){
         _xi(i) = _rng(_e2);
     }
 }

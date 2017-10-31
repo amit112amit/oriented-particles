@@ -6,7 +6,6 @@
 #include "BrownianBody.h"
 #include "LBFGSBWrapper.h"
 #include "Model.h"
-//#include "OPSBody.h"
 #include "OPSMesh.h"
 #include "ViscosityBody.h"
 
@@ -106,7 +105,7 @@ int main(int argc, char* argv[]){
 
     // Generate Rotation Vectors from input point coordinates
     Eigen::Matrix3Xd coords(3,N);
-    for(size_t i = 0; i < N; ++i){
+    for(auto i = 0; i < N; ++i){
         Eigen::Vector3d cp = Eigen::Vector3d::Zero();
         mesh->GetPoint(i, &(cp(0)));
         coords.col(i) = cp;
@@ -230,7 +229,7 @@ int main(int argc, char* argv[]){
     std::cout << "Initial Avg Edge Length = " << avgEdgeLen << std::endl;
 
     // Renormalize positions such that avgEdgeLen = 1.0
-    for(size_t i=0; i < N; ++i){
+    for(auto i=0; i < N; ++i){
         xpos.col(i) = xpos.col(i)/avgEdgeLen;
     }
 
@@ -245,13 +244,13 @@ int main(int argc, char* argv[]){
 
     t3 = clock();
     // ************************ OUTER SOLUTION LOOP **********************//
-    int printStep, step=0;
+    int printStep, step=0, z = 0;
     int paraviewStep = -1;
-    for(int z=0; z < coolVec.size(); z++){
-        gamma = coolVec[z][0];
-        percentStrain = coolVec[z][1];
-        double_t constrainedVal = coolVec[z][2];
-        printStep = (int)coolVec[z][3];
+    for(auto line : coolVec){
+        gamma = line[0];
+        percentStrain = line[1];
+        double_t constrainedVal = line[2];
+        printStep = (int)line[3];
 
         // Update OPS params
         s = (100 / (avgEdgeLen*percentStrain))*log(2.0);
@@ -283,7 +282,7 @@ int main(int argc, char* argv[]){
             visco.setViscosity(viscosity);
 
             //**************  INNER LOOP ******************//
-            for (int viter = 0; viter < viterMax; viter++) {
+            for (auto viter = 0; viter < viterMax; viter++) {
 
                 // Generate Brownian Kicks
                 brown.generateParallelKicks();
@@ -371,7 +370,7 @@ int main(int argc, char* argv[]){
         //******************************************************************//
 
         // Write the crumpling alpha values and statistics to output file
-        outerLoopFile << z <<"\t"
+        outerLoopFile << z++ <<"\t"
                       << gamma << "\t"
                       << percentStrain << "\t"
                       << alpha << "\t"

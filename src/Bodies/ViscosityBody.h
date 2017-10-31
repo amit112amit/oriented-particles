@@ -20,9 +20,9 @@ public:
 
 private:
     size_t _N;
-    double_t _viscosity;
+    double_t _viscosity = 1.0;
     double_t &_f;
-    double_t _viscoEn;
+    double_t _viscoEn = 0.0;
     MapVXd _x;
     MapVXd _g;
     MapVXd _prevX;

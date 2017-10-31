@@ -7,9 +7,8 @@ Model::Model(size_t N, double_t &f, RefVXd g):_N(N),_f(f),
 
 void Model::compute(){
     zeroOutData();
-    for( std::vector<Body*>::iterator i=_everyBody.begin();
-         i != _everyBody.end(); ++i){
-        (*i)->compute();
+    for( auto body : _everyBody){
+        body->compute();
     }
 }
 

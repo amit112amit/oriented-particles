@@ -66,7 +66,7 @@ int main(int argc, char* argv[]){
 
     // Generate Rotation Vectors from input point coordinates
     Eigen::Matrix3Xd coords(3,N);
-    for(size_t i = 0; i < N; ++i){
+    for(auto i = 0; i < N; ++i){
         Eigen::Vector3d cp = Eigen::Vector3d::Zero();
         mesh->GetPoint(i, &(cp(0)));
         coords.col(i) = cp;
@@ -137,7 +137,7 @@ int main(int argc, char* argv[]){
     std::cout << "Initial Avg Edge Length = " << avgEdgeLen << std::endl;
 
     // Renormalize positions such that avgEdgeLen = 1.0
-    for(size_t i=0; i < N; ++i){
+    for(auto i=0; i < N; ++i){
         xpos.col(i) = xpos.col(i)/avgEdgeLen;
     }
     ops.setSearchRadius(finalSearchRad);
@@ -148,10 +148,8 @@ int main(int argc, char* argv[]){
     t3 = clock();
     // ************************ SOLUTION LOOP **********************//
     int step=0;
-    for(int z=0; z < coolVec.size(); z++){
-        std::cout<<"Iteration number = "<< z << std::endl;
-
-        gamma = coolVec[z];
+    for(auto gamma : coolVec){
+        std::cout<<"Iteration number = "<< step << std::endl;
 
         // Update OPS params
         ops.setFVK(gamma);
