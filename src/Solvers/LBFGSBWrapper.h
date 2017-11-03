@@ -17,6 +17,16 @@
 #include <Eigen/Dense>
 #include "Model.h"
 
+#ifdef _NO_PRINTING_
+#define PRINT(X) do {} while(0)
+#define PRINT_CHAR_ARR(X,N) do {} while(0)
+#define UNSET(X) do {} while(0)
+#else
+#define PRINT(X) do { std::cout << X; } while(0)
+#define PRINT_CHAR_ARR(X,N) do { std::cout.write(X,N) << std::endl; } while(0)
+#define UNSET(X) do { std::cout.unsetf(X); } while(0)
+#endif
+
 //! l-BFGS-b Solver Parameter Class
 class LBFGSBParams{
 public:
@@ -56,17 +66,17 @@ public:
 
     LBFGSBWrapper(LBFGSBParams &p, Model &s, double_t &f, RefV x, RefV g);
     void setBounds(const RefCI nbd, const RefCV l, const RefCV u);
-    //void setNumberOfDOFs(size_t n){_n=n;resize(_n);}
     void setNumHessianCorrections(size_t m){ _m=m; }
     void setPrintCode(size_t p){ _iprint=p; }
     void setMaxIterations(size_t i){ _maxIterations=i; }
     void setMachineEPSFactor(double_t f){ _factr=f; }
     void setProjectedGradientTolerance(double_t p){ _pgtol=p; }
     void solve();
+    void turnOffLogging(){ _loggingOn = false;}
 
 private:
     void resize(size_t n);
-
+    bool _loggingOn = true;
     double_t &_f;
     MapV _x;
     MapV _g;

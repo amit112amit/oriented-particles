@@ -17,6 +17,9 @@ int main(int argc, char* argv[]){
         cout << "usage: " << argv[0] << " <filename>\n";
         return -1;
     }
+
+    bool loggingOn = false;
+
     // ***************** Read Input VTK File *****************//
     std::string inputFileName = argv[1];
 
@@ -227,13 +230,15 @@ int main(int argc, char* argv[]){
     double_t factr = 10.0, pgtol = 1e-8;
     LBFGSBParams solverParams(m,iprint,maxIter,factr,pgtol);
     LBFGSBWrapper solver(solverParams, model, f, x, g);
+    solver.turnOffLogging();
     // *****************************************************************//
 
     // ********************* Prepare data for simulation ****************//
     // Calculate Average Edge Length
     double_t avgEdgeLen = ops.getAverageEdgeLength();
-    std::cout << "Initial Avg Edge Length = " << avgEdgeLen << std::endl;
-
+    if(loggingOn){
+        std::cout << "Initial Avg Edge Length = " << avgEdgeLen << std::endl;
+    }
     // Renormalize positions such that avgEdgeLen = 1.0
     for(auto i=0; i < N; ++i){
         xpos.col(i) = xpos.col(i)/avgEdgeLen;
@@ -244,7 +249,8 @@ int main(int argc, char* argv[]){
     ops.updateNeighbors();
     ops.saveInitialPosition(); /*!< For Mean Squared Displacement */
     avgEdgeLen = ops.getAverageEdgeLength();
-    std::cout << "After renormalizing, Avg Edge Length = "
+    if(loggingOn)
+        std::cout << "After renormalizing, Avg Edge Length = "
               << avgEdgeLen << std::endl;
     // ******************************************************************//
 
@@ -272,8 +278,10 @@ int main(int argc, char* argv[]){
         // Set the viscosity and Brownian coefficient        
         brownCoeff = beta*De/(alpha*avgEdgeLen);
         viscosity = brownCoeff/(alpha*avgEdgeLen);
-        std::cout<< "Viscosity = " << viscosity << std::endl;
-        std::cout<< "Brownian Coefficient = " << brownCoeff << std::endl;
+        if(loggingOn){
+            std::cout<< "Viscosity = " << viscosity << std::endl;
+            std::cout<< "Brownian Coefficient = " << brownCoeff << std::endl;
+        }
         brown.setCoefficient(brownCoeff);
         visco.setViscosity(viscosity);
 
@@ -285,10 +293,11 @@ int main(int argc, char* argv[]){
         averagePosition = Eigen::Matrix3Xd::Zero(3,N);
 
         for (int viter = 0; viter < viterMax; viter++) {
-            std::cout << std::endl
-                      << "VISCOUS ITERATION: " << viter + stepCount
-                      << std::endl
-                      << std::endl;
+            if(loggingOn)
+                std::cout << std::endl
+                          << "VISCOUS ITERATION: " << viter + stepCount
+                          << std::endl
+                          << std::endl;
 
             // Generate Brownian Kicks
             brown.generateParallelKicks();
@@ -305,8 +314,9 @@ int main(int argc, char* argv[]){
             size_t alIter = 0, alMaxIter = 10;
 
             while( !constraintMet && (alIter < alMaxIter)){
-                std::cout<< "Augmented Lagrangian iteration: " << alIter
-                         << std::endl;
+                if(loggingOn)
+                    std::cout<< "Augmented Lagrangian iteration: " << alIter
+                             << std::endl;
 
                 // Solve the unconstrained minimization
                 solver.solve();
@@ -318,9 +328,11 @@ int main(int argc, char* argv[]){
                 alIter++;
                 constraintMet = constraint->constraintSatisfied();
             }
-            constraint->printCompletion();
-            std::cout<< "Constraint satisfied in "<< alIter << " iterations."
+            if(loggingOn){
+                constraint->printCompletion();
+                std::cout<< "Constraint satisfied in "<< alIter << " iterations."
                      << std::endl << std::endl;
+            }
             // *********************************************************//
 
             // Calculate statistics about average displacement and largest displacement
@@ -417,8 +429,6 @@ int main(int argc, char* argv[]){
 
     }
     // *****************************************************************************//
-    t3 = clock() - t3;
-    std::cout<<"Time for loop only = " << ((float)t3)/CLOCKS_PER_SEC << std::endl;
 
     innerLoopFile.close();
     outerLoopFile.close();

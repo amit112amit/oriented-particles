@@ -20,7 +20,6 @@ extern "C" void setulb_(int * n, int *m,
                         int * isave,
                         double_t * dsave );
 
-using std::cout;
 using std::endl;
 using std::setw;
 using std::right;
@@ -30,7 +29,7 @@ using std::scientific;
 
 //! Constructor
 LBFGSBWrapper::LBFGSBWrapper(LBFGSBParams &p, Model &m, double_t &f,
-     RefV x, RefV g): _model(m), _f(f), _x(x.data(), x.size(),1),
+                             RefV x, RefV g): _model(m), _f(f), _x(x.data(), x.size(),1),
     _g(g.data(),g.size(),1){
     assert( _x.size() == _g.size());
     _n = _x.size();
@@ -61,7 +60,7 @@ void LBFGSBParams::updateProperty(Params p, double_t val){
         _maxIterations = std::round(val);
         break;
     default:
-        cout<< "Undefined property for LBFGSBParams ignored!" << std::endl;
+        std::cout<< "Undefined property for LBFGSBParams ignored!" << std::endl;
         break;
     }
 }
@@ -82,8 +81,8 @@ void LBFGSBWrapper::resize(size_t n){
 
 void LBFGSBWrapper::setBounds(const RefCI nbd, const RefCV l, const RefCV u) {
     if(nbd.size() != _n || l.size() != _n || u.size() != _n ) {
-        cout<<"LBFGSBWrapper::setBounds(): input arrays are incorrectly sized."
-            << endl;
+        std::cout<<"LBFGSBWrapper::setBounds(): input arrays are incorrectly sized."
+                << std::endl;
         return;
     }
     _nbd = nbd;
@@ -106,21 +105,19 @@ void LBFGSBWrapper::solve() {
 
     int isave[44];
     for(int i=0; i<44; i++) isave[i]=0;
+    PRINT("================================================================================"
+              << std::endl << std::endl
+              << "Starting BFGS iterations."
+              << std::endl << std::endl);
 
-    cout << "================================================================================"
-         << endl << endl
-         << "Starting BFGS iterations."
-         << endl << endl;
-
-    cout << setw(14) << scientific << right << "|proj g|"
-         << setw(14) << scientific << right << "|g|"
-         << setw(14) << scientific  << right << "f"
-         << setw(14) << right << "iterations"
-         << setw(14) << right << "evaluations"
-         << endl
-         << "--------------------------------------------------------------------------------"
-         << endl;
-
+    PRINT(setw(14) << scientific << right << "|proj g|"
+              << setw(14) << scientific << right << "|g|"
+              << setw(14) << scientific  << right << "f"
+              << setw(14) << right << "iterations"
+              << setw(14) << right << "evaluations"
+              << std::endl
+              << "--------------------------------------------------------------------------------"
+              << std::endl);
     // We start the iteration by initializing task.
 
     sprintf(task,"START");
@@ -156,54 +153,46 @@ void LBFGSBWrapper::solve() {
             // The minimization routine has returned with a new iterate,
             // and we have opted to continue the iteration.
             if ( _iprint>0 && isave[29]%_iprint == 0 ){
-                // 	  char name[100];sprintf(name,"%d",isave[29]);
-                cout << setw(14) << scientific << right << dsave[12]
-                     << setw(14) << scientific << right << (_g.cwiseAbs()).maxCoeff()
-                     << setw(14) << scientific  << right << _f
-                     << setw(14) << right << isave[29]
-                     << setw(14) << right << isave[33]
-                     << endl;
+                PRINT(setw(14) << scientific << right << dsave[12]
+                          << setw(14) << scientific << right << (_g.cwiseAbs()).maxCoeff()
+                          << setw(14) << scientific  << right << _f
+                          << setw(14) << right << isave[29]
+                          << setw(14) << right << isave[33]
+                          << std::endl);
             }
-
             continue;
         }
 
         else if( strncmp(task,"CONV",4)==0 ) {
             _model.compute();
-            //cout << task << endl;
-            std::cout.write(task,49) << std::endl;
-            //_model->print("lbfgsbconv");
+            PRINT_CHAR_ARR(task,49);
             break;
         }
 
         else if( strncmp(task,"ABNORM",6)==0 ) {
             _model.compute();
-            std::cout.write(task,49) << std::endl;
-            //cout << task << endl;
-            //_model->print("abnormal");
+            PRINT_CHAR_ARR(task,49);
             break;
         }
 
         // If task is neither FG nor NEW_X we terminate execution.
         else {
-            //cout << task << endl;
-            std::cout.write(task,49) << std::endl;
+            PRINT_CHAR_ARR(task,49);
             break;
         }
 
         // ---------- the end of the loop -------------
     }
-    cout << setw(14) << scientific << right << dsave[12]
-         << setw(14) << scientific << right << (_g.cwiseAbs()).maxCoeff()
-         << setw(14) << scientific << right << _f
-         << setw(14) << right << isave[29]
-         << setw(14) << right << isave[33]
-         << endl << endl
-         << "================================================================================"
-         << endl << endl;
+    PRINT(setw(14) << scientific << right << dsave[12]
+              << setw(14) << scientific << right << (_g.cwiseAbs()).maxCoeff()
+              << setw(14) << scientific << right << _f
+              << setw(14) << right << isave[29]
+              << setw(14) << right << isave[33]
+              << std::endl << std::endl
+              << "================================================================================"
+              << std::endl << std::endl);
 
-    cout.unsetf(std::ios_base::scientific);
-
+    UNSET(std::ios_base::scientific);
 
     // ---------- the end of solve() -------------
     _projg = dsave[12];
