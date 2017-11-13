@@ -29,7 +29,6 @@ int main(int argc, char* argv[]){
 
     // ******************* Read Simulation Parameters *********//
     double_t De=1.0, re=1.0, s=7.0, b=1.0;
-    double_t gamma=1.0;
     double_t percentStrain = 15;
     double_t initialSearchRad = 1.0, finalSearchRad = 1.2;
     //int lat_res=100, long_res=101;

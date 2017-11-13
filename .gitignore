@@ -1,3 +1,5 @@
 # Ignore .directory created by Dolphin
 .directory
 CMakeLists.txt.user
+*~
+*swp

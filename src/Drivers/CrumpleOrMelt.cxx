@@ -35,11 +35,12 @@ int main(int argc, char* argv[]){
     double_t alpha=1.0, gamma=1.0;
     double_t percentStrain = 15, alpha_start=0.001, alpha_increment=0.001;
     double_t crumpledAsphericity = 0.01;
+    double_t meltingMSD = 0.06;
 
     std::string constraintType("NULL");
     enum Constraint{ AvgArea, AvgVol, ExactArea, ExactVol, ExactAreaAndVolume};
     //int lat_res=100, long_res=101;
-    size_t viterMax = 500;
+    size_t viterMax = 1e5;
     size_t nameSuffix = 0;
 
     std::ifstream miscInpFile("miscInp.dat");
@@ -213,7 +214,8 @@ int main(int argc, char* argv[]){
                   << "CrumplingAlpha" <<"\t"
                   << "CrumplingRadius"  <<"\t"
                   << "Asphericity" << "\t"
-                  << "Volume"
+                  << "Volume" << "\t"
+		  << "Status"
                   << std::endl;
     // ******************************************************************//
 
@@ -267,12 +269,15 @@ int main(int argc, char* argv[]){
         // Update prevX
         prevX = x.head(3*N);
 
-        // ************************* CRUMPLING LOOP ***************************//
+	//******************** CRUMPLING/MELTING LOOP ********************//
         bool crumpled = false;
+	bool molten = false;
         alpha = alpha_start - alpha_increment;
         double_t asphericity = 0.0;
+	double_t msd = 0.0;
+	int status = 0;
 
-        while(!crumpled){
+        while(!crumpled && !molten){
 
             // Increment alpha
             alpha += alpha_increment;
@@ -347,6 +352,7 @@ int main(int argc, char* argv[]){
                 int paraviewStepPrint;
                 paraviewStepPrint = (viter % printStep == 0) ? paraviewStep : -1;
                 asphericity = ops.getAsphericity();
+		msd = ops.getMeanSquaredDisplacement();
 
                 innerLoopFile << step++ << "\t"
                               << paraviewStepPrint <<"\t"
@@ -363,13 +369,11 @@ int main(int argc, char* argv[]){
                               << brown.getBrownianEnergy() << "\t"
                               << visco.getViscosityEnergy() << "\t"
                               << f << "\t"
-                              << ops.getMeanSquaredDisplacement()
+                              << msd
                               << std::endl;
 
-                if( asphericity >= crumpledAsphericity ){
-                    crumpled = true;
-                    break;
-                }
+                crumpled = (asphericity >= crumpledAsphericity)? true : false;
+		molten = (msd >= meltingMSD)? true : false;
 
                 // Update prevX
                 prevX = x.head(3*N);
@@ -379,13 +383,21 @@ int main(int argc, char* argv[]){
         //******************************************************************//
 
         // Write the crumpling alpha values and statistics to output file
+	if ( crumpled && !molten )
+		status = 1;
+	else if ( molten && !crumpled )
+		status = 2;
+	else if ( molten && crumpled )
+		status = 3;
+	
         outerLoopFile << z++ <<"\t"
                       << gamma << "\t"
                       << percentStrain << "\t"
                       << alpha << "\t"
                       << ops.getAverageRadius() <<"\t"
                       << asphericity <<"\t"
-                      << ops.getVolume()
+                      << ops.getVolume() << "\t"
+		      << status
                       << std::endl;
 
         // Reset OPSMesh for next gamma value
