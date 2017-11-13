@@ -374,6 +374,8 @@ int main(int argc, char* argv[]){
 
                 crumpled = (asphericity >= crumpledAsphericity)? true : false;
 		molten = (msd >= meltingMSD)? true : false;
+		if( crumpled || molten)
+			break;
 
                 // Update prevX
                 prevX = x.head(3*N);
@@ -383,12 +385,10 @@ int main(int argc, char* argv[]){
         //******************************************************************//
 
         // Write the crumpling alpha values and statistics to output file
-	if ( crumpled && !molten )
+	if ( crumpled )
 		status = 1;
-	else if ( molten && !crumpled )
+	else if ( molten )
 		status = 2;
-	else if ( molten && crumpled )
-		status = 3;
 	
         outerLoopFile << z++ <<"\t"
                       << gamma << "\t"
