@@ -33,7 +33,7 @@ int main(int argc, char* argv[]){
     // ******************* Read Simulation Parameters *********//
     double_t De=1.0, re=1.0, s=7.0;
     double_t alpha=1.0, gamma=1.0;
-    double_t percentStrain = 15, alpha_start=0.001, alpha_increment=0.001;
+    double_t percentStrain = 15, alpha_start=0.0001, alpha_increment=0.0001;
     double_t crumpledAsphericity = 0.01;
     double_t meltingMSD = 0.06;
 
@@ -49,9 +49,7 @@ int main(int argc, char* argv[]){
     miscInpFile
             >> temp >> De
             >> temp >> re
-            >> temp >> constraintType
-            >> temp >> alpha_start
-            >> temp >> alpha_increment;
+            >> temp >> constraintType;
 
     miscInpFile.close();
     s = (100 / (re*percentStrain))*log(2.0);
@@ -83,17 +81,20 @@ int main(int argc, char* argv[]){
     std::ifstream coolFile("cooling.dat");
     assert(coolFile);
     std::vector<std::vector<double_t> > coolVec;
-    double_t currGamma, currPercentStrain, currArea, currPrintStep;
+    double_t currGamma, currPercentStrain, currArea, currPrintStep, 
+	     currAlphaStart, currAlphaIncr;
 
     std::string headerline;
     std::getline(coolFile, headerline);
 
     while (coolFile >> currGamma >> currPercentStrain >> currArea
-           >> currPrintStep) {
+           >> currAlphaStart >> currAlphaIncr >> currPrintStep ) {
         std::vector<double> currLine;
         currLine.push_back(currGamma);
         currLine.push_back(currPercentStrain);
         currLine.push_back(currArea);
+        currLine.push_back(currAlphaStart);
+        currLine.push_back(currAlphaIncr);
         currLine.push_back(currPrintStep);
         coolVec.push_back(currLine);
     }
@@ -257,7 +258,9 @@ int main(int argc, char* argv[]){
         gamma = line[0];
         percentStrain = line[1];
         double_t constrainedVal = line[2];
-        printStep = (int)line[3];
+        alpha_start = line[3];
+        alpha_increment = line[4];
+        printStep = (int)line[5];
 
         // Update OPS params
         s = (100 / (avgEdgeLen*percentStrain))*log(2.0);
@@ -398,8 +401,8 @@ int main(int argc, char* argv[]){
                       << ops.getAverageRadius() <<"\t"
                       << asphericity <<"\t"
                       << ops.getVolume() << "\t"
-		      << status << "\t"
-		      << msd
+		      << msd << "\t"
+		      << status
                       << std::endl;
 
         // Reset OPSMesh for next gamma value
