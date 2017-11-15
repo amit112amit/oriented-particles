@@ -40,7 +40,7 @@ int main(int argc, char* argv[]){
     std::string constraintType("NULL");
     enum Constraint{ AvgArea, AvgVol, ExactArea, ExactVol, ExactAreaAndVolume};
     //int lat_res=100, long_res=101;
-    size_t viterMax = 2e6;
+    size_t viterMax = 2e5;
     size_t nameSuffix = 0;
 
     std::ifstream miscInpFile("miscInp.dat");
@@ -387,7 +387,7 @@ int main(int argc, char* argv[]){
             // ********************************************************//
         }
         //******************************************************************//
-
+	
         // Write the crumpling alpha values and statistics to output file
 	if ( crumpled )
 		status = 1;
