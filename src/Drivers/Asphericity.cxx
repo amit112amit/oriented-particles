@@ -18,8 +18,7 @@ int main(int argc, char* argv[]){
     // ***************** Read Input VTK File *****************//
     std::string inputFileName = argv[1];
 
-    vtkSmartPointer<vtkPolyDataReader> reader =
-            vtkSmartPointer<vtkPolyDataReader>::New();
+    auto reader = vtkSmartPointer<vtkPolyDataReader>::New();
     vtkSmartPointer<vtkPolyData> mesh;
 
     reader->SetFileName(inputFileName.c_str());

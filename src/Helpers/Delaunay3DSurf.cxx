@@ -1,29 +1,19 @@
 #include "HelperFunctions.h"
 
 void delaunay3DSurf(vtkSmartPointer<vtkPoints> pts, std::string fileName ) {
-    vtkSmartPointer<vtkPoints> pts2 =
-            vtkSmartPointer<vtkPoints>::New();
-    vtkSmartPointer<vtkPolyData> unitSphere =
-            vtkSmartPointer<vtkPolyData>::New();
+    auto pts2 = vtkSmartPointer<vtkPoints>::New();
+    auto unitSphere = vtkSmartPointer<vtkPolyData>::New();
+    auto dssf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+    auto idf = vtkSmartPointer<vtkIdFilter>::New();
+    auto d3D = vtkSmartPointer<vtkDelaunay3D>::New();
+    auto finalCells = vtkSmartPointer<vtkCellArray>::New();
+    auto pointIds = vtkSmartPointer<vtkIdList>::New();
+    auto poly = vtkSmartPointer<vtkPolyData>::New();
+    auto w = vtkSmartPointer<vtkPolyDataWriter>::New();
+    auto kdTree = vtkSmartPointer<vtkKdTree>::New();
     vtkSmartPointer<vtkPolyData> final;
-    vtkSmartPointer<vtkDataSetSurfaceFilter> dssf =
-            vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-    vtkSmartPointer<vtkIdFilter> idf =
-            vtkSmartPointer<vtkIdFilter>::New();
-    vtkSmartPointer<vtkDelaunay3D> d3D =
-            vtkSmartPointer<vtkDelaunay3D>::New();
-    vtkSmartPointer<vtkCellArray> finalCells =
-            vtkSmartPointer<vtkCellArray>::New();
     vtkSmartPointer<vtkCellArray> interim;
     vtkSmartPointer<vtkIdTypeArray> origIds;
-    vtkSmartPointer<vtkIdList> pointIds =
-            vtkSmartPointer<vtkIdList>::New();
-    vtkSmartPointer<vtkPolyData> poly =
-            vtkSmartPointer<vtkPolyData>::New();
-    vtkSmartPointer<vtkPolyDataWriter> w =
-            vtkSmartPointer<vtkPolyDataWriter>::New();
-    vtkSmartPointer<vtkKdTree> kdTree =
-            vtkSmartPointer<vtkKdTree>::New();
 
     kdTree->BuildLocatorFromPoints( pts );
 
@@ -40,8 +30,7 @@ void delaunay3DSurf(vtkSmartPointer<vtkPoints> pts, std::string fileName ) {
         unitP(2,i) = std::round( unitP(2,i)*100 )/100;
     }
     void * voidPtr = (void*) unitP.data();
-    vtkSmartPointer<vtkDoubleArray> unitPData =
-            vtkSmartPointer<vtkDoubleArray>::New();
+    auto unitPData = vtkSmartPointer<vtkDoubleArray>::New();
     unitPData->SetVoidArray(voidPtr,3*N,1);
     unitPData->SetNumberOfComponents(3);
     pts2->SetData(unitPData);

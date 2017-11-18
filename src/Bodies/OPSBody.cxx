@@ -19,21 +19,18 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
 
     //Extract point coordinates for _polyData from x
     void *coords = (void*) _positions.data();
-    vtkSmartPointer<vtkDoubleArray> pointCoords
-            = vtkSmartPointer< vtkDoubleArray >::New();
+    auto pointCoords = vtkSmartPointer< vtkDoubleArray >::New();
     pointCoords->SetVoidArray( coords, 3*_N, 1);
     pointCoords->SetNumberOfComponents(3);
 
-    vtkSmartPointer< vtkPoints > points =
-            vtkSmartPointer<vtkPoints>::New();
+    auto points = vtkSmartPointer<vtkPoints>::New();
     points->SetData( pointCoords );
 
     //Convert rotation vectors to point normals
     _normals = Matrix3Xd::Zero(3,_N);
     computeNormals();
     void* normalsP = (void*) _normals.data();
-    vtkSmartPointer<vtkDoubleArray> pointNormals
-            = vtkSmartPointer< vtkDoubleArray >::New();
+    auto pointNormals = vtkSmartPointer< vtkDoubleArray >::New();
     pointNormals->SetName("PointNormals");
     pointNormals->SetVoidArray(normalsP, 3*_N, 1);
     pointNormals->SetNumberOfComponents(3);
@@ -57,8 +54,7 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
     //Set the initial nearest neighbor vector
     for (auto i = 0; i < _N; i++) {
         Vector3d currPos = _positions.col(i);
-        vtkSmartPointer<vtkIdList> neighbors =
-                vtkSmartPointer<vtkIdList>::New();
+        auto neighbors = vtkSmartPointer<vtkIdList>::New();
         _octree->FindClosestNPoints(2, &(currPos[0]), neighbors);
         neighbors->DeleteId(i);
         _initialNearestNeighbor.push_back( neighbors->GetId(0) );
@@ -83,23 +79,16 @@ void OPSBody::computeNormals(){
 
 //! Updates _polyData with latest deformed node positions and normals
 void OPSBody::updatePolyData() {
-    vtkSmartPointer<vtkPoints> pts =
-            vtkSmartPointer<vtkPoints>::New();
-    vtkSmartPointer<vtkPolyData> unitSphere =
-            vtkSmartPointer<vtkPolyData>::New();
+    auto pts = vtkSmartPointer<vtkPoints>::New();
+    auto unitSphere = vtkSmartPointer<vtkPolyData>::New();
     vtkSmartPointer<vtkPolyData> final;
-    vtkSmartPointer<vtkDataSetSurfaceFilter> dssf =
-            vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-    vtkSmartPointer<vtkIdFilter> idf =
-            vtkSmartPointer<vtkIdFilter>::New();
-    vtkSmartPointer<vtkDelaunay3D> d3D =
-            vtkSmartPointer<vtkDelaunay3D>::New();
-    vtkSmartPointer<vtkCellArray> finalCells =
-            vtkSmartPointer<vtkCellArray>::New();
+    auto dssf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+    auto idf = vtkSmartPointer<vtkIdFilter>::New();
+    auto d3D = vtkSmartPointer<vtkDelaunay3D>::New();
+    auto finalCells = vtkSmartPointer<vtkCellArray>::New();
     vtkSmartPointer<vtkCellArray> interim;
     vtkSmartPointer<vtkIdTypeArray> origIds;
-    vtkSmartPointer<vtkIdList> pointIds =
-            vtkSmartPointer<vtkIdList>::New();
+    auto pointIds = vtkSmartPointer<vtkIdList>::New();
 
     for(auto i=0; i < _N; i++){
         Vector3d x = _positions.col(i).normalized();
@@ -129,8 +118,7 @@ void OPSBody::updatePolyData() {
         std::cout<<"The mesh has " << final->GetNumberOfPolys() << " triangles." << std::endl;
         std::cout<< "Bad Delaunay triangulation detected!" <<std::endl;
         /*
-        vtkSmartPointer<vtkPolyDataWriter> writer =
-                vtkSmartPointer<vtkPolyDataWriter>::New();
+        auto writer = vtkSmartPointer<vtkPolyDataWriter>::New();
         writer->SetInputData(final);
         writer->SetFileName("BadMesh.vtk");
         writer->Write();
@@ -188,10 +176,8 @@ void OPSBody::updateNeighbors(){
 
 //!Print a VTK file
 void OPSBody::printVTKFile(const std::string name){
-    vtkSmartPointer<vtkPolyDataWriter> writer =
-            vtkSmartPointer<vtkPolyDataWriter>::New();
-    vtkSmartPointer<vtkIdFilter> idf =
-            vtkSmartPointer<vtkIdFilter>::New();
+    auto writer = vtkSmartPointer<vtkPolyDataWriter>::New();
+    auto idf = vtkSmartPointer<vtkIdFilter>::New();
     idf->SetInputData(_polyData);
     idf->PointIdsOn();
     idf->SetIdsArrayName("PointIds");
@@ -489,8 +475,7 @@ double_t OPSBody::getVolume(){
     if(_updateVolume){
         _volume = 0.0;
         vtkSmartPointer<vtkCellArray> cells = _polyData->GetPolys();
-        vtkSmartPointer<vtkIdList> verts =
-                vtkSmartPointer<vtkIdList>::New();
+        auto verts = vtkSmartPointer<vtkIdList>::New();
         cells->InitTraversal();
         while( cells->GetNextCell(verts) ){
             int ida, idb, idc;
@@ -515,8 +500,7 @@ double_t OPSBody::getArea(){
     if(_updateArea){
         _area = 0.0;
         vtkSmartPointer<vtkCellArray> cells = _polyData->GetPolys();
-        vtkSmartPointer<vtkIdList> verts =
-                vtkSmartPointer<vtkIdList>::New();
+        auto verts = vtkSmartPointer<vtkIdList>::New();
         cells->InitTraversal();
         while( cells->GetNextCell(verts) ){
             int ida, idb, idc;

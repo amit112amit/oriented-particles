@@ -30,19 +30,15 @@ void BrownianBody::compute(){
 
 void BrownianBody::printVTKFile(const std::string fName){
     void *posPtr = (void*)_x.data();
-    vtkSmartPointer<vtkPoints> pts =
-            vtkSmartPointer<vtkPoints>::New();
-    vtkSmartPointer<vtkDoubleArray> ptsData =
-            vtkSmartPointer<vtkDoubleArray>::New();
+    auto pts = vtkSmartPointer<vtkPoints>::New();
+    auto ptsData = vtkSmartPointer<vtkDoubleArray>::New();
     ptsData->SetVoidArray(posPtr,_N,1);
     ptsData->SetNumberOfComponents(3);
     pts->SetData(ptsData);
 
-    vtkSmartPointer<vtkPolyData> poly =
-            vtkSmartPointer<vtkPolyData>::New();
+    auto poly = vtkSmartPointer<vtkPolyData>::New();
     poly->SetPoints(pts);
-    vtkSmartPointer<vtkPolyDataWriter> writer =
-            vtkSmartPointer<vtkPolyDataWriter>::New();
+    auto writer = vtkSmartPointer<vtkPolyDataWriter>::New();
     writer->SetFileName(fName.c_str());
     writer->SetInputData(poly);
     writer->Write();

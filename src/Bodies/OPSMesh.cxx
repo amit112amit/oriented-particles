@@ -11,16 +11,11 @@ OPSMesh::OPSMesh(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
 //! assuming that the _polyData has been updated
 void OPSMesh::updateNeighbors(){
     // Create the VTK objects
-    vtkSmartPointer<vtkExtractEdges> extract =
-            vtkSmartPointer<vtkExtractEdges>::New();
-    vtkSmartPointer<vtkIdFilter> idf =
-            vtkSmartPointer<vtkIdFilter>::New();
-    vtkSmartPointer<vtkCellArray> newEdges =
-            vtkSmartPointer<vtkCellArray>::New();
-    vtkSmartPointer<vtkIdTypeArray> origIds =
-            vtkSmartPointer<vtkIdTypeArray>::New();
-    vtkSmartPointer<vtkIdList> verts=
-            vtkSmartPointer<vtkIdList>::New();
+    auto extract = vtkSmartPointer<vtkExtractEdges>::New();
+    auto idf = vtkSmartPointer<vtkIdFilter>::New();
+    auto newEdges = vtkSmartPointer<vtkCellArray>::New();
+    auto origIds = vtkSmartPointer<vtkIdTypeArray>::New();
+    auto verts = vtkSmartPointer<vtkIdList>::New();
 
     // Extract the edges
     idf->SetIdsArrayName("PointIds");
@@ -46,8 +41,7 @@ void OPSMesh::updateNeighbors(){
 
 //!Compute the OPSBody energy
 void OPSMesh::compute(){
-    vtkSmartPointer<vtkIdList> pts =
-            vtkSmartPointer<vtkIdList>::New();
+    auto pts = vtkSmartPointer<vtkIdList>::New();
 
     // Initialize energies and forces to be zero
     _morseEn = 0.0;

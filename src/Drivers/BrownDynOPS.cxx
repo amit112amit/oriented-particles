@@ -23,8 +23,7 @@ int main(int argc, char* argv[]){
     // ***************** Read Input VTK File *****************//
     std::string inputFileName = argv[1];
 
-    vtkSmartPointer<vtkPolyDataReader> reader =
-            vtkSmartPointer<vtkPolyDataReader>::New();
+    auto reader = vtkSmartPointer<vtkPolyDataReader>::New();
     vtkSmartPointer<vtkPolyData> mesh;
 
     reader->SetFileName(inputFileName.c_str());
@@ -392,10 +391,8 @@ int main(int argc, char* argv[]){
 
         // Calculate the average particle positions and avg radius
         double avgShapeRad = 0.0, avgShapeAsph = 0.0;
-        vtkSmartPointer<vtkPoints> avgPos =
-                vtkSmartPointer<vtkPoints>::New();
-        vtkSmartPointer<vtkDoubleArray> avgPosData =
-                vtkSmartPointer<vtkDoubleArray>::New();
+        auto avgPos = vtkSmartPointer<vtkPoints>::New();
+        auto avgPosData = vtkSmartPointer<vtkDoubleArray>::New();
         averagePosition = averagePosition / viterMax;
         avgShapeRad = averagePosition.colwise().norm().sum()/N;
         void *avgPosPtr = (void*)averagePosition.data();
