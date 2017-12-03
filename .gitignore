@@ -1,5 +1,13 @@
-# Ignore .directory created by Dolphin
-.directory
+# The project file created by Qt Creator IDE
 CMakeLists.txt.user
+# Any temporary files created by text-editors
 *~
 *swp
+# VIM configuration file
+.vimrc
+# Ignore tags file
+tags
+# Ignore the compile_commands.json
+compile_commands.json
+# Ignore the .ycm_extra_conf.py
+.ycm_extra_conf.py
