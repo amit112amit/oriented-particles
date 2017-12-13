@@ -1,5 +1,6 @@
 #include "OPSBody.h"
 
+namespace OPS{
 //! Constructor for BrownOPS
 OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
                  RefM3Xd rG):_f(f), _positions(pos.data(),3,n),
@@ -539,4 +540,5 @@ void OPSBody::resetToInitialPositions(){
     _rotGradient = Matrix3Xd::Zero(3,_N);
     updatePolyData();
     updateNeighbors();
+}
 }

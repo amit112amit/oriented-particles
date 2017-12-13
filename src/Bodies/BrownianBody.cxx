@@ -1,5 +1,6 @@
 #include "BrownianBody.h"
 
+namespace OPS{
 BrownianBody::BrownianBody(size_t N, double_t coeff, double_t &f,
                            RefVXd x, RefVXd g, RefVXd prevX):_N(N),
     _f(f), _x(x.data(),N,1),_g(g.data(),N,1),_prevX(prevX.data(),N,1),
@@ -42,4 +43,5 @@ void BrownianBody::printVTKFile(const std::string fName){
     writer->SetFileName(fName.c_str());
     writer->SetInputData(poly);
     writer->Write();
+}
 }

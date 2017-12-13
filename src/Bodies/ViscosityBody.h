@@ -5,6 +5,7 @@
 #include <Eigen/Dense>
 #include "Body.h"
 
+namespace OPS{
 class ViscosityBody: public Body{
 public:
     typedef Eigen::VectorXd VectorXd;
@@ -16,7 +17,7 @@ public:
     void compute();
     double_t getViscosityEnergy(){return _viscoEn;}
     VectorXd getPreviousX(){return _prevX;}
-    void setViscosity(double_t v);    
+    void setViscosity(double_t v);
 
 private:
     size_t _N;
@@ -27,5 +28,5 @@ private:
     MapVXd _g;
     MapVXd _prevX;
 };
-
+}
 #endif // __VISCOSITYBODY_H__

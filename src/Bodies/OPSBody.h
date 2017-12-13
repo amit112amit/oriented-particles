@@ -25,6 +25,7 @@
 #include "Body.h"
 #include "HelperFunctions.h"
 
+namespace OPS{
 // ************************* OPSBody Class *********************************//
 /*!
  * \brief The OPSBody class
@@ -94,4 +95,5 @@ protected:
     void updateRotationVectors();
 };
 //***************************************************************************//
+}
 #endif //__OPSBODY_H__

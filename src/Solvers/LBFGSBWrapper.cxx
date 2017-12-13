@@ -26,7 +26,7 @@ using std::right;
 using std::left;
 using std::scientific;
 
-
+namespace OPS{
 //! Constructor
 LBFGSBWrapper::LBFGSBWrapper(LBFGSBParams &p, Model &m, double_t &f,
                              RefV x, RefV g): _model(m), _f(f), _x(x.data(), x.size(),1),
@@ -199,4 +199,5 @@ void LBFGSBWrapper::solve() {
     _iterNo = isave[29];
 
     _model.compute();
+}
 }

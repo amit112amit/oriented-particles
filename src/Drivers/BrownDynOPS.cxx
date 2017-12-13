@@ -11,6 +11,7 @@
 #include "H5Cpp.h"
 
 using namespace H5;
+using namespace OPS;
 
 #define ARR_SIZE 300
 
@@ -40,6 +41,9 @@ struct DetailedOutput {
 	double_t nx[ARR_SIZE];
 	double_t ny[ARR_SIZE];
 	double_t nz[ARR_SIZE];
+	double_t ndx[ARR_SIZE];
+	double_t ndy[ARR_SIZE];
+	double_t ndz[ARR_SIZE];
 
 	//Constructor for the struct
 	DetailedOutput(int s, int ps, double_t a, double_t b,
@@ -48,24 +52,28 @@ struct DetailedOutput {
 			double_t ne, double_t ce, double_t oe,
 			double_t be, double_t ve, double_t te,
 			double_t msd, double_t ad, double_t md,
-			Eigen::Matrix3Xd &pos, Eigen::Matrix3Xd &normals):step(s),
-		paraviewStep(ps), alpha(a), beta(b), gamma(g), asphericity(as),
-		radius(r), volume(v), area(ar), morseEn(me), normEn(ne), circEn(ce),
-		opsEn(oe), brownEn(be), viscoEn(ve), totEn(te), msd(msd), avgDisp(ad),
-		maxDisp(md){
+			Eigen::Matrix3Xd &pos, Eigen::Matrix3Xd &normals,
+			Eigen::Matrix3Xd &normdiff):step(s), paraviewStep(ps),
+       	alpha(a), beta(b), gamma(g), asphericity(as), radius(r), volume(v),
+       	area(ar), morseEn(me), normEn(ne), circEn(ce), opsEn(oe), brownEn(be),
+       	viscoEn(ve), totEn(te), msd(msd), avgDisp(ad), maxDisp(md){
 
 			for ( int i=0; i < pos.cols(); i++ ) {
 				x[i] = pos(0,i);
 				y[i] = pos(1,i);
 				z[i] = pos(2,i);
-			}
-			for ( int i=0; i < normals.cols(); i++ ) {
 				nx[i] = normals(0,i);
 				ny[i] = normals(1,i);
 				nz[i] = normals(2,i);
+
+			}
+			for ( int i=0; i < normdiff.cols(); i++ ) {
+				ndx[i] = normdiff(0,i);
+				ndy[i] = normdiff(1,i);
+				ndz[i] = normdiff(2,i);
 			}	
 		}
-};				/* ----------  end of struct DetailedOutput  ---------- */
+};/* ----------  end of struct DetailedOutput  ---------- */
 
 int main(int argc, char* argv[]){
 	clock_t t1, t2, t3;
@@ -243,33 +251,53 @@ int main(int argc, char* argv[]){
 
 	//Finally create the compound datatype for HDF5
 	CompType mtype( sizeof(DetailedOutput) );
-	mtype.insertMember("Step", HOFFSET(DetailedOutput, step), PredType::NATIVE_INT);
+	mtype.insertMember("Step", HOFFSET(DetailedOutput, step),
+		       	PredType::NATIVE_INT);
 	mtype.insertMember("ParaviewStep", HOFFSET(DetailedOutput, paraviewStep), 
 			PredType::NATIVE_INT);
-	mtype.insertMember("Alpha", HOFFSET(DetailedOutput, alpha), PredType::NATIVE_DOUBLE);
-	mtype.insertMember("Beta", HOFFSET(DetailedOutput, beta), PredType::NATIVE_DOUBLE);
-	mtype.insertMember("Gamma", HOFFSET(DetailedOutput, gamma), PredType::NATIVE_DOUBLE);
+	mtype.insertMember("Alpha", HOFFSET(DetailedOutput, alpha),
+		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("Beta", HOFFSET(DetailedOutput, beta),
+		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("Gamma", HOFFSET(DetailedOutput, gamma),
+		       	PredType::NATIVE_DOUBLE);
 	mtype.insertMember("Asphericity", HOFFSET(DetailedOutput, asphericity), 
 			PredType::NATIVE_DOUBLE);
-	mtype.insertMember("Radius", HOFFSET(DetailedOutput, radius), PredType::NATIVE_DOUBLE);
-	mtype.insertMember("Volume", HOFFSET(DetailedOutput, volume), PredType::NATIVE_DOUBLE);
-	mtype.insertMember("Area", HOFFSET(DetailedOutput, area), PredType::NATIVE_DOUBLE);
-	mtype.insertMember("MorseEn", HOFFSET(DetailedOutput, morseEn), PredType::NATIVE_DOUBLE);
-	mtype.insertMember("NormaEn", HOFFSET(DetailedOutput, normEn), PredType::NATIVE_DOUBLE);
-	mtype.insertMember("CircEn", HOFFSET(DetailedOutput, circEn), PredType::NATIVE_DOUBLE);
-	mtype.insertMember("OPSEn", HOFFSET(DetailedOutput, opsEn), PredType::NATIVE_DOUBLE);
-	mtype.insertMember("BrownEn", HOFFSET(DetailedOutput, brownEn), PredType::NATIVE_DOUBLE);
-	mtype.insertMember("ViscoEn", HOFFSET(DetailedOutput, viscoEn), PredType::NATIVE_DOUBLE);
-	mtype.insertMember("TotalEn", HOFFSET(DetailedOutput, totEn), PredType::NATIVE_DOUBLE);
-	mtype.insertMember("MSD", HOFFSET(DetailedOutput, msd), PredType::NATIVE_DOUBLE);
-	mtype.insertMember("AvgDisp", HOFFSET(DetailedOutput, avgDisp), PredType::NATIVE_DOUBLE);
-	mtype.insertMember("MaxDisp", HOFFSET(DetailedOutput, maxDisp), PredType::NATIVE_DOUBLE);
+	mtype.insertMember("Radius", HOFFSET(DetailedOutput, radius),
+		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("Volume", HOFFSET(DetailedOutput, volume),
+		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("Area", HOFFSET(DetailedOutput, area),
+		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("MorseEn", HOFFSET(DetailedOutput, morseEn),
+		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("NormaEn", HOFFSET(DetailedOutput, normEn),
+		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("CircEn", HOFFSET(DetailedOutput, circEn),
+		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("OPSEn", HOFFSET(DetailedOutput, opsEn),
+		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("BrownEn", HOFFSET(DetailedOutput, brownEn),
+		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("ViscoEn", HOFFSET(DetailedOutput, viscoEn),
+		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("TotalEn", HOFFSET(DetailedOutput, totEn),
+		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("MSD", HOFFSET(DetailedOutput, msd),
+		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("AvgDisp", HOFFSET(DetailedOutput, avgDisp),
+		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("MaxDisp", HOFFSET(DetailedOutput, maxDisp),
+		       	PredType::NATIVE_DOUBLE);
 	mtype.insertMember("X", HOFFSET(DetailedOutput, x), arr_type);
 	mtype.insertMember("Y", HOFFSET(DetailedOutput, y), arr_type);
 	mtype.insertMember("Z", HOFFSET(DetailedOutput, z), arr_type);
 	mtype.insertMember("NX", HOFFSET(DetailedOutput, nx), arr_type);
 	mtype.insertMember("NY", HOFFSET(DetailedOutput, ny), arr_type);
 	mtype.insertMember("NZ", HOFFSET(DetailedOutput, nz), arr_type);
+	mtype.insertMember("NDX", HOFFSET(DetailedOutput, ndx), arr_type);
+	mtype.insertMember("NDY", HOFFSET(DetailedOutput, ndy), arr_type);
+	mtype.insertMember("NDZ", HOFFSET(DetailedOutput, ndz), arr_type);
 
 	// Create a dataspace for our dataset with Compound datatype
 	hsize_t startDim[] = {1};
@@ -280,7 +308,7 @@ int main(int argc, char* argv[]){
 	hsize_t chunk[] = {10000};
 	DSetCreatPropList dsprop;
 	dsprop.setChunk(1, chunk);
-	//dsprop.setDeflate(2);
+	dsprop.setDeflate(4);
 
 	// Identify the Input structure name
 	std::string fname = inputFileName.substr(0, inputFileName.find("."));
@@ -295,14 +323,16 @@ int main(int argc, char* argv[]){
 	H5File file(dataOutputFile, H5F_ACC_TRUNC);
 
 	// Create a dataset in the file using above dataspace and datatype
-	DataSet data = file.createDataSet( "DetailedOutput", mtype, memspace, dsprop);
+	DataSet data = file.createDataSet( "DetailedOutput", mtype, memspace,
+		       	dsprop);
 
 	// Create attributes that contain the numBonds and numPoints
 	H5std_string P("NumParticles");
 	H5std_string B("NumBonds");
 	hsize_t attrDim[] = {1};
 	DataSpace attrDS(1, attrDim);
-	Attribute particles = data.createAttribute( P, PredType::NATIVE_UINT, attrDS );
+	Attribute particles = data.createAttribute( P, PredType::NATIVE_UINT, 
+			attrDS );
 	Attribute bonds = data.createAttribute( B, PredType::NATIVE_UINT, attrDS );
 	particles.write(PredType::NATIVE_UINT, &N);
 	bonds.write(PredType::NATIVE_UINT, &numBonds);
@@ -337,7 +367,8 @@ int main(int argc, char* argv[]){
 	// Calculate Average Edge Length
 	double_t avgEdgeLen = ops.getAverageEdgeLength();
 	if(loggingOn){
-		std::cout << "Initial Avg Edge Length = " << avgEdgeLen << std::endl;
+		std::cout << "Initial Avg Edge Length = " << avgEdgeLen 
+			<< std::endl;
 	}
 	// Renormalize positions such that avgEdgeLen = 1.0
 	for(auto i=0; i < N; ++i){
@@ -380,7 +411,8 @@ int main(int argc, char* argv[]){
 		viscosity = brownCoeff/(alpha*avgEdgeLen);
 		if(loggingOn){
 			std::cout<< "Viscosity = " << viscosity << std::endl;
-			std::cout<< "Brownian Coefficient = " << brownCoeff << std::endl;
+			std::cout<< "Brownian Coefficient = " << brownCoeff 
+				<< std::endl;
 		}
 		brown.setCoefficient(brownCoeff);
 		visco.setViscosity(viscosity);
@@ -389,13 +421,14 @@ int main(int argc, char* argv[]){
 		prevX = x.head(3*N);
 
 		//**************  INNER SOLUTION LOOP ******************//
-		Eigen::Matrix3Xd averagePosition( 3, N ); /*!< Store avg particle positions */
+		Eigen::Matrix3Xd averagePosition( 3, N );
 		averagePosition = Eigen::Matrix3Xd::Zero(3,N);
 
 		for (int viter = 0; viter < viterMax; viter++) {
 			if(loggingOn)
 				std::cout << std::endl
-					<< "VISCOUS ITERATION: " << viter + stepCount
+					<< "VISCOUS ITERATION: " << viter +
+				       	stepCount
 					<< std::endl
 					<< std::endl;
 
@@ -405,7 +438,8 @@ int main(int argc, char* argv[]){
 			// Store data for Kabsch
 			ops.updateDataForKabsch();
 
-			// Set the starting guess for Lambda and K for Augmented Lagrangian
+			// Set the starting guess for Lambda and K for 
+			// Augmented Lagrangian
 			constraint->setLagrangeCoeff(10.0);
 			constraint->setPenaltyCoeff(1000.0);
 
@@ -415,7 +449,8 @@ int main(int argc, char* argv[]){
 
 			while( !constraintMet && (alIter < alMaxIter)){
 				if(loggingOn)
-					std::cout<< "Augmented Lagrangian iteration: " << alIter
+					std::cout<<"Augmented Lagrangian iteration: "
+					       	<< alIter
 						<< std::endl;
 
 				// Solve the unconstrained minimization
@@ -430,7 +465,8 @@ int main(int argc, char* argv[]){
 			}
 			if(loggingOn){
 				constraint->printCompletion();
-				std::cout<< "Constraint satisfied in "<< alIter << " iterations."
+				std::cout<< "Constraint satisfied in "<< alIter 
+					<< " iterations."
 					<< std::endl << std::endl;
 			}
 			// *********************************************************//
@@ -445,19 +481,23 @@ int main(int argc, char* argv[]){
 			// Add current solution to average position data
 			averagePosition += xpos;
 
-			// Calculate statistics about average displacement and largest displacement
+			// Calculate statistics about average displacement and
+			// largest displacement
 			double_t avgDisplacement, maxDisplacement;
 			Eigen::Matrix3Xd posDiff = xpos - prevPos;
 			avgDisplacement = posDiff.colwise().norm().sum()/N;
 			maxDisplacement = posDiff.colwise().norm().maxCoeff();
 			Eigen::Matrix3Xd normDiff(3,numBonds);
 			ops.getDiffNormals(normDiff);
+			Eigen::Matrix3Xd normals(3,numBonds);
+			ops.getNormals(normals);
 
 			//********** Print relaxed configuration ************//
 			//We will print only after every currPrintStep iterations
 			if (viter % printStep == 0) {
 				paraviewStep++;
-				sstm << fname << "-relaxed-" << nameSuffix++ <<".vtk";
+				sstm << fname << "-relaxed-" << nameSuffix++ 
+					<<".vtk";
 				std::string rName = sstm.str();
 				ops.printVTKFile(rName);
 				sstm.str("");
@@ -467,14 +507,18 @@ int main(int argc, char* argv[]){
 			int paraviewStepPrint;
 			paraviewStepPrint = (viter % printStep == 0) ? paraviewStep : -1;
 
-			DetailedOutput dop(step, paraviewStepPrint, alpha, beta, gamma,
-					ops.getAsphericity(), ops.getAverageRadius(),
-					ops.getVolume(), ops.getArea(), ops.getMorseEnergy(),
-					ops.getNormalityEnergy(), ops.getCircularityEnergy(),
-					ops.getTotalEnergy(), brown.getBrownianEnergy(),
+			DetailedOutput dop(step, paraviewStepPrint, alpha,
+				       	beta, gamma, ops.getAsphericity(),
+				       	ops.getAverageRadius(), ops.getVolume(),
+				       	ops.getArea(), ops.getMorseEnergy(),
+					ops.getNormalityEnergy(),
+				       	ops.getCircularityEnergy(),
+					ops.getTotalEnergy(), 
+					brown.getBrownianEnergy(),
 					visco.getViscosityEnergy(), f,
-					ops.getMeanSquaredDisplacement(), avgDisplacement,
-					maxDisplacement, posDiff, normDiff);
+					ops.getMeanSquaredDisplacement(),
+				       	avgDisplacement, maxDisplacement,
+				       	posDiff, normals, normDiff);
 
 			//Write data to the HDF5 file
 			hsize_t size[] = { viter + 1 };		
@@ -538,5 +582,3 @@ int main(int argc, char* argv[]){
 	delete constraint;
 	return 1;
 }
-
-

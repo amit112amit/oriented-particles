@@ -27,6 +27,7 @@
 #define UNSET(X) do { std::cout.unsetf(X); } while(0)
 #endif
 
+namespace OPS{
 //! l-BFGS-b Solver Parameter Class
 class LBFGSBParams{
 public:
@@ -92,4 +93,5 @@ private:
     double _projg;
 
 };
+}
 #endif // __LBFGSBWRAPPER_H__

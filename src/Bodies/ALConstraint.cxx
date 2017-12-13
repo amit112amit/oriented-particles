@@ -1,5 +1,6 @@
 #include "ALConstraint.h"
 
+namespace OPS{
 //! Constructor for Augmented Lagrangian constraint
 ALConstraint::ALConstraint(size_t N, double_t &f, RefM3Xd x,
                            RefM3Xd g):_N(N),_f(f),_xPos(x.data(),3,N),
@@ -218,4 +219,5 @@ void ExactAreaVolConstraint::compute(){
     volFactor = (_K_i*volDiff - _Lambda_i);
     // Add the derivatives
     _xGrad += areaFactor*areaGrad + volFactor*volGrad;
+}
 }

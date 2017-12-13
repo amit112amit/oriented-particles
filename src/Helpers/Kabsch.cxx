@@ -1,5 +1,6 @@
 #include "HelperFunctions.h"
 
+namespace OPS{
 // Given two sets of 3D points, find the rotation + translation + scale
 // which best maps the first set to the second.
 // Source: http://en.wikipedia.org/wiki/Kabsch_algorithm
@@ -91,4 +92,5 @@ void TestFind3DAffineTransform() {
     if ((scale * R - A.linear()).cwiseAbs().maxCoeff() > 1e-13
             || (S - A.translation()).cwiseAbs().maxCoeff() > 1e-13)
         throw "Could not determine the affine transform accurately enough";
+}
 }

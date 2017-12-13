@@ -10,6 +10,7 @@
 #include <vtkPolyDataWriter.h>
 #include <vtkSmartPointer.h>
 
+namespace OPS{
 class BrownianBody: public Body{
 	public:
 		typedef Eigen::VectorXd VectorXd;
@@ -36,6 +37,6 @@ class BrownianBody: public Body{
 		std::mt19937 _e2;
 		std::normal_distribution<> _rng;
 };
-
+}
 #endif // __BROWNIANBODY_H__
 

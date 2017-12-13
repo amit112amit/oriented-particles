@@ -1,5 +1,6 @@
 #include "OPSMesh.h"
 
+namespace OPS{
 //! Constructor for OPSMesh
 OPSMesh::OPSMesh(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
 		RefM3Xd rG):OPSBody(n,f,pos,rot,pG,rG){
@@ -142,4 +143,10 @@ void OPSMesh::getDiffNormals( RefM3Xd in ){
 		q = _normals.col(j);
 		in.col(index++) = p - q;
 	}
+}
+
+//! Function to return the normals for all particles
+void OPSMesh::getNormals( RefM3Xd in ){
+	in = _normals;
+}
 }

@@ -8,6 +8,8 @@
 #include "ViscosityBody.h"
 #include "ALConstraint.h"
 
+using namespace OPS;
+
 int main(int argc, char* argv[]){
 
     // ***************** Read Input VTK File *****************//

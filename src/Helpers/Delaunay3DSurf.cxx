@@ -1,5 +1,6 @@
 #include "HelperFunctions.h"
 
+namespace OPS{
 void delaunay3DSurf(vtkSmartPointer<vtkPoints> pts, std::string fileName ) {
     auto pts2 = vtkSmartPointer<vtkPoints>::New();
     auto unitSphere = vtkSmartPointer<vtkPolyData>::New();
@@ -63,4 +64,5 @@ void delaunay3DSurf(vtkSmartPointer<vtkPoints> pts, std::string fileName ) {
     w->SetInputData(poly);
     w->SetFileName(fileName.c_str());
     w->Write();
+}
 }

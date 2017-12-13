@@ -7,6 +7,7 @@
 #include <Eigen/Dense>
 #include "Body.h"
 
+namespace OPS{
 class Model{
 public:
     typedef Eigen::Ref<Eigen::VectorXd> RefVXd;
@@ -21,4 +22,5 @@ private:
     Eigen::Map<Eigen::VectorXd> _g;
     std::vector<Body*> _everyBody;
 };
+}
 #endif // __MODEL_H__

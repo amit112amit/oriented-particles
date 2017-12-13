@@ -9,6 +9,8 @@
 #include "OPSMesh.h"
 #include "ViscosityBody.h"
 
+using namespace OPS;
+
 int main(int argc, char* argv[]){
     clock_t t1, t2, t3;
     t1 = clock();

@@ -6,6 +6,7 @@
 #include <vtkPolyData.h>
 #include "Body.h"
 
+namespace OPS{
 //! Parent class for all Augmented Lagrangian constraints
 class ALConstraint: public Body{
 	public:
@@ -93,7 +94,7 @@ class ExactAreaVolConstraint: public ALConstraint{
 				_volume = 0.0;
 				_areaConstrained = 0.0;
 				_volConstrained = 0.0;
-			}    
+			}
 		bool constraintSatisfied(){
 			return (std::abs(_area - _areaConstrained) < _tolerance) &&
 				(std::abs(_volume - _volConstrained) < _tolerance);
@@ -116,4 +117,5 @@ class ExactAreaVolConstraint: public ALConstraint{
 		double_t _areaConstrained;
 		vtkSmartPointer<vtkPolyData> _poly;
 };
+}
 #endif //__ALCONSTRAINT_H__

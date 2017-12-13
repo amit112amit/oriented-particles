@@ -1,5 +1,6 @@
 #include "ViscosityBody.h"
 
+namespace OPS{
 //! Constructor
 ViscosityBody::ViscosityBody(size_t N, double_t viscosity, double_t &f,
                              RefVXd x, RefVXd g, RefVXd p):_N(N),_f(f),
@@ -16,4 +17,5 @@ void ViscosityBody::compute(){
 //! Set viscosity value
 void ViscosityBody::setViscosity(double_t v){
     _viscosity = v;
+}
 }
