@@ -308,7 +308,7 @@ int main(int argc, char* argv[]){
 	hsize_t chunk[] = {10000};
 	DSetCreatPropList dsprop;
 	dsprop.setChunk(1, chunk);
-	dsprop.setDeflate(4);
+	//dsprop.setDeflate(4);
 
 	// Identify the Input structure name
 	std::string fname = inputFileName.substr(0, inputFileName.find("."));
@@ -387,7 +387,8 @@ int main(int argc, char* argv[]){
 
 	t3 = clock();
 	// ************************ OUTER SOLUTION LOOP **********************//
-	int printStep, stepCount = 0, step=0;
+	int printStep;
+        hsize_t	step = 0;
 	int paraviewStep = -1;
 	for(int z=0; z < coolVec.size(); z++){
 		alpha = coolVec[z][0];
@@ -427,8 +428,7 @@ int main(int argc, char* argv[]){
 		for (int viter = 0; viter < viterMax; viter++) {
 			if(loggingOn)
 				std::cout << std::endl
-					<< "VISCOUS ITERATION: " << viter +
-				       	stepCount
+					<< "VISCOUS ITERATION: " << step
 					<< std::endl
 					<< std::endl;
 
@@ -521,8 +521,8 @@ int main(int argc, char* argv[]){
 				       	posDiff, normals, normDiff);
 
 			//Write data to the HDF5 file
-			hsize_t size[] = { viter + 1 };		
-			hsize_t start[] = { viter };		
+			hsize_t size[] = { step + 1 };		
+			hsize_t start[] = { step };		
 			hsize_t count[] = { 1 };		
 			data.extend( size );	
 			DataSpace fspace = data.getSpace();
