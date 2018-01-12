@@ -494,7 +494,7 @@ int main(int argc, char* argv[]){
 
 			//********** Print relaxed configuration ************//
 			//We will print only after every currPrintStep iterations
-			if (viter % printStep == 0) {
+			if (viter % printStep == 0 && printStep < viterMax) {
 				paraviewStep++;
 				sstm << fname << "-relaxed-" << nameSuffix++ 
 					<<".vtk";
