@@ -80,11 +80,10 @@ int main(int argc, char* argv[]){
     x.setRandom(x.size());
 
     // Turn off some bodies
-    //p.updateParameter(OPSParams::D_eV,0.0);
-    brown.setCoefficient(0.0);
-    visco.setViscosity(0.0);
-    constraint.setLagrangeCoeff(0.0);
-    constraint.setPenaltyCoeff(0.0);
+    //brown.setCoefficient(0.0);
+    //visco.setViscosity(0.0);
+    //constraint.setLagrangeCoeff(0.0);
+    //constraint.setPenaltyCoeff(0.0);
 
 // ******************  Consistency Check ********************//
 

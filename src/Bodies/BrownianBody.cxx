@@ -4,7 +4,7 @@ namespace OPS{
 BrownianBody::BrownianBody(size_t N, double_t coeff, double_t &f,
                            RefVXd x, RefVXd g, RefVXd prevX):_N(N),
     _f(f), _x(x.data(),N,1),_g(g.data(),N,1),_prevX(prevX.data(),N,1),
-    _coeff(1.41421356237*coeff){
+    _coeff(coeff){
     //Initialize the random number generator
     std::random_device rd;
     _e2 = std::mt19937(rd());
@@ -20,7 +20,7 @@ void BrownianBody::generateParallelKicks(){
 }
 
 void BrownianBody::setCoefficient(double_t C){
-    _coeff = 1.41421356237*C;
+    _coeff = C;
 }
 
 void BrownianBody::compute(){

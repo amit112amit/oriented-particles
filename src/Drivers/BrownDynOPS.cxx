@@ -84,7 +84,7 @@ int main(int argc, char* argv[]){
 		return -1;
 	}
 
-	bool loggingOn = false;
+	bool loggingOn = true;
 
 	// ***************** Read Input VTK File *****************//
 	std::string inputFileName = argv[1];
@@ -244,8 +244,6 @@ int main(int argc, char* argv[]){
 
 	// ***************** Prepare Output Data files *********************//
 	//Array type for hdf5 compound type
-	//hsize_t dim1[] = {N*6};
-	//hsize_t dim2[] = {numBonds};
 	hsize_t dim[] = {ARR_SIZE};
 	ArrayType arr_type(PredType::NATIVE_DOUBLE, 1, dim);
 
@@ -336,7 +334,7 @@ int main(int argc, char* argv[]){
 	Attribute bonds = data.createAttribute( B, PredType::NATIVE_UINT, attrDS );
 	particles.write(PredType::NATIVE_UINT, &N);
 	bonds.write(PredType::NATIVE_UINT, &numBonds);
-	
+
 	// Create the output file for average data
 	ofstream outerLoopFile;
 	sstm << fname << "-AverageOutput.dat";
@@ -356,7 +354,7 @@ int main(int argc, char* argv[]){
 	// ******************************************************************//
 
 	// ************************* Create Solver ************************  //
-	size_t m = 5, iprint = 1000, maxIter = 1e7;
+	size_t m = 5, iprint = 1000, maxIter = 1e5;
 	double_t factr = 10.0, pgtol = 1e-8;
 	LBFGSBParams solverParams(m,iprint,maxIter,factr,pgtol);
 	LBFGSBWrapper solver(solverParams, model, f, x, g);
@@ -407,9 +405,19 @@ int main(int argc, char* argv[]){
 		// Set up the constraint value as the zero temperature value
 		constraint->setConstraint(constrainedVal);
 
+		// For the very first iteration solve at zero temperature first
+		if( z == 0 ){
+			brown.setCoefficient(0.0);
+			visco.setViscosity(0.0);
+			solver.solve();
+		}
+
+		// Update prevX
+		prevX = x.head(3*N);
+
 		// Set the viscosity and Brownian coefficient        
-		brownCoeff = beta*De/(alpha*avgEdgeLen);
-		viscosity = brownCoeff/(alpha*avgEdgeLen);
+		viscosity = alpha*De/(avgEdgeLen*avgEdgeLen);
+		brownCoeff = std::sqrt( 2*alpha/beta )*( De/avgEdgeLen );
 		if(loggingOn){
 			std::cout<< "Viscosity = " << viscosity << std::endl;
 			std::cout<< "Brownian Coefficient = " << brownCoeff 
@@ -418,12 +426,12 @@ int main(int argc, char* argv[]){
 		brown.setCoefficient(brownCoeff);
 		visco.setViscosity(viscosity);
 
-		// Update prevX
-		prevX = x.head(3*N);
-
 		//**************  INNER SOLUTION LOOP ******************//
 		Eigen::Matrix3Xd averagePosition( 3, N );
 		averagePosition = Eigen::Matrix3Xd::Zero(3,N);
+
+		// Average energy across time steps
+		double_t avgTotalEnergy = 0.0;
 
 		for (int viter = 0; viter < viterMax; viter++) {
 			if(loggingOn)
@@ -503,6 +511,15 @@ int main(int argc, char* argv[]){
 				sstm.str("");
 				sstm.clear();
 			}
+			// Print VTK file if there is an abrupt change in energy
+			if ( std::abs( avgTotalEnergy ) > 0 && 
+			std::abs((f - avgTotalEnergy)/avgTotalEnergy) > 2){
+				sstm << fname << "-Spike-" << step <<".vtk";
+				std::string rName = sstm.str();
+				ops.printVTKFile(rName);
+				sstm.str("");
+				sstm.clear();
+			}
 
 			int paraviewStepPrint;
 			paraviewStepPrint = (viter % printStep == 0) ? paraviewStep : -1;
@@ -531,6 +548,9 @@ int main(int argc, char* argv[]){
 
 			// Update prevX
 			prevX = x.head(3*N);
+			avgTotalEnergy = (avgTotalEnergy*step + f)/(step+1);
+			std::cout<< " Average Total Energy = " 
+				<< avgTotalEnergy << std::endl;
 			step++;
 		}
 		//************************************************//
