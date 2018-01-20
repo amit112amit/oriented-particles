@@ -85,6 +85,7 @@ int main(int argc, char* argv[]){
 	}
 
 	bool loggingOn = false;
+	bool spikePrintOn = false;
 
 	// ***************** Read Input VTK File *****************//
 	std::string inputFileName = argv[1];
@@ -512,13 +513,15 @@ int main(int argc, char* argv[]){
 				sstm.clear();
 			}
 			// Print VTK file if there is an abrupt change in energy
-			if ( std::abs( avgTotalEnergy ) > 0 && 
-			std::abs((f - avgTotalEnergy)/avgTotalEnergy) > 2){
-				sstm << fname << "-Spike-" << step <<".vtk";
-				std::string rName = sstm.str();
-				ops.printVTKFile(rName);
-				sstm.str("");
-				sstm.clear();
+			if( spikePrintOn ){
+				if ( std::abs( avgTotalEnergy ) > 0 && 
+					std::abs((f - avgTotalEnergy)/avgTotalEnergy) > 3){
+					sstm << fname << "-Spike-" << step <<".vtk";
+					std::string rName = sstm.str();
+					ops.printVTKFile(rName);
+					sstm.str("");
+					sstm.clear();
+				}
 			}
 
 			int paraviewStepPrint;
