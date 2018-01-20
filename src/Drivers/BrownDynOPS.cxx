@@ -84,7 +84,7 @@ int main(int argc, char* argv[]){
 		return -1;
 	}
 
-	bool loggingOn = true;
+	bool loggingOn = false;
 
 	// ***************** Read Input VTK File *****************//
 	std::string inputFileName = argv[1];
