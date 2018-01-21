@@ -17,6 +17,7 @@ using namespace OPS;
 
 struct DetailedOutput {
 	int step;
+	int paraviewStep;
 	double_t alpha;
 	double_t beta;
 	double_t gamma;
@@ -27,17 +28,51 @@ struct DetailedOutput {
 	double_t morseEn;
 	double_t normEn;
 	double_t circEn;
+	double_t opsEn;
 	double_t brownEn;
 	double_t viscoEn;
+	double_t totEn;
 	double_t msd;
-	
+	double_t avgDisp;
+	double_t maxDisp;
+	double_t x[ARR_SIZE];
+	double_t y[ARR_SIZE];
+	double_t z[ARR_SIZE];
+	double_t nx[ARR_SIZE];
+	double_t ny[ARR_SIZE];
+	double_t nz[ARR_SIZE];
+	double_t ndx[ARR_SIZE];
+	double_t ndy[ARR_SIZE];
+	double_t ndz[ARR_SIZE];
+
 	//Constructor for the struct
-	DetailedOutput(int s, double_t a, double_t b, double_t g, double_t as,
-		       	double_t r, double_t v, double_t ar, double_t me,
-		       	double_t ne, double_t ce, double_t be, double_t ve,
-		       	double_t msd ):step(s), alpha(a), beta(b), gamma(g),
-       	asphericity(as), radius(r), volume(v), area(ar), morseEn(me),
-	normEn(ne), circEn(ce), brownEn(be), viscoEn(ve), msd(msd){}
+	DetailedOutput(int s, int ps, double_t a, double_t b,
+			double_t g, double_t as, double_t r,
+			double_t v, double_t ar, double_t me,
+			double_t ne, double_t ce, double_t oe,
+			double_t be, double_t ve, double_t te,
+			double_t msd, double_t ad, double_t md,
+			Eigen::Matrix3Xd &pos, Eigen::Matrix3Xd &normals,
+			Eigen::Matrix3Xd &normdiff):step(s), paraviewStep(ps),
+       	alpha(a), beta(b), gamma(g), asphericity(as), radius(r), volume(v),
+       	area(ar), morseEn(me), normEn(ne), circEn(ce), opsEn(oe), brownEn(be),
+       	viscoEn(ve), totEn(te), msd(msd), avgDisp(ad), maxDisp(md){
+
+			for ( int i=0; i < pos.cols(); i++ ) {
+				x[i] = pos(0,i);
+				y[i] = pos(1,i);
+				z[i] = pos(2,i);
+				nx[i] = normals(0,i);
+				ny[i] = normals(1,i);
+				nz[i] = normals(2,i);
+
+			}
+			for ( int i=0; i < normdiff.cols(); i++ ) {
+				ndx[i] = normdiff(0,i);
+				ndy[i] = normdiff(1,i);
+				ndz[i] = normdiff(2,i);
+			}	
+		}
 };/* ----------  end of struct DetailedOutput  ---------- */
 
 int main(int argc, char* argv[]){
@@ -217,6 +252,8 @@ int main(int argc, char* argv[]){
 	CompType mtype( sizeof(DetailedOutput) );
 	mtype.insertMember("Step", HOFFSET(DetailedOutput, step),
 		       	PredType::NATIVE_INT);
+	mtype.insertMember("ParaviewStep", HOFFSET(DetailedOutput, paraviewStep), 
+			PredType::NATIVE_INT);
 	mtype.insertMember("Alpha", HOFFSET(DetailedOutput, alpha),
 		       	PredType::NATIVE_DOUBLE);
 	mtype.insertMember("Beta", HOFFSET(DetailedOutput, beta),
@@ -237,12 +274,29 @@ int main(int argc, char* argv[]){
 		       	PredType::NATIVE_DOUBLE);
 	mtype.insertMember("CircEn", HOFFSET(DetailedOutput, circEn),
 		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("OPSEn", HOFFSET(DetailedOutput, opsEn),
+		       	PredType::NATIVE_DOUBLE);
 	mtype.insertMember("BrownEn", HOFFSET(DetailedOutput, brownEn),
 		       	PredType::NATIVE_DOUBLE);
 	mtype.insertMember("ViscoEn", HOFFSET(DetailedOutput, viscoEn),
 		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("TotalEn", HOFFSET(DetailedOutput, totEn),
+		       	PredType::NATIVE_DOUBLE);
 	mtype.insertMember("MSD", HOFFSET(DetailedOutput, msd),
 		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("AvgDisp", HOFFSET(DetailedOutput, avgDisp),
+		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("MaxDisp", HOFFSET(DetailedOutput, maxDisp),
+		       	PredType::NATIVE_DOUBLE);
+	mtype.insertMember("X", HOFFSET(DetailedOutput, x), arr_type);
+	mtype.insertMember("Y", HOFFSET(DetailedOutput, y), arr_type);
+	mtype.insertMember("Z", HOFFSET(DetailedOutput, z), arr_type);
+	mtype.insertMember("NX", HOFFSET(DetailedOutput, nx), arr_type);
+	mtype.insertMember("NY", HOFFSET(DetailedOutput, ny), arr_type);
+	mtype.insertMember("NZ", HOFFSET(DetailedOutput, nz), arr_type);
+	mtype.insertMember("NDX", HOFFSET(DetailedOutput, ndx), arr_type);
+	mtype.insertMember("NDY", HOFFSET(DetailedOutput, ndy), arr_type);
+	mtype.insertMember("NDZ", HOFFSET(DetailedOutput, ndz), arr_type);
 
 	// Create a dataspace for our dataset with Compound datatype
 	hsize_t startDim[] = {1};
@@ -473,16 +527,18 @@ int main(int argc, char* argv[]){
 			int paraviewStepPrint;
 			paraviewStepPrint = (viter % printStep == 0) ? paraviewStep : -1;
 
-			DetailedOutput dop(step, alpha, beta, gamma,
-					ops.getAsphericity(),
-					ops.getAverageRadius(),
-					ops.getVolume(), ops.getArea(),
-					ops.getMorseEnergy(),
+			DetailedOutput dop(step, paraviewStepPrint, alpha,
+				       	beta, gamma, ops.getAsphericity(),
+				       	ops.getAverageRadius(), ops.getVolume(),
+				       	ops.getArea(), ops.getMorseEnergy(),
 					ops.getNormalityEnergy(),
-					ops.getCircularityEnergy(),
+				       	ops.getCircularityEnergy(),
+					ops.getTotalEnergy(), 
 					brown.getBrownianEnergy(),
-					visco.getViscosityEnergy(),
-					ops.getMeanSquaredDisplacement());
+					visco.getViscosityEnergy(), f,
+					ops.getMeanSquaredDisplacement(),
+				       	avgDisplacement, maxDisplacement,
+				       	posDiff, normals, normDiff);
 
 			//Write data to the HDF5 file
 			hsize_t size[] = { step + 1 };		
@@ -495,11 +551,9 @@ int main(int argc, char* argv[]){
 
 			// Update prevX
 			prevX = x.head(3*N);
-			if( loggingOn ){
-				avgTotalEnergy=(avgTotalEnergy*step+f)/(step+1);
-				std::cout<< " Average Total Energy = " 
-					<< avgTotalEnergy << std::endl;
-			}
+			avgTotalEnergy = (avgTotalEnergy*step + f)/(step+1);
+			std::cout<< " Average Total Energy = " 
+				<< avgTotalEnergy << std::endl;
 			step++;
 		}
 		//************************************************//
