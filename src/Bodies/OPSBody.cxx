@@ -181,6 +181,7 @@ void OPSBody::printVTKFile(const std::string name){
     auto idf = vtkSmartPointer<vtkIdFilter>::New();
     idf->SetInputData(_polyData);
     idf->PointIdsOn();
+    idf->CellIdsOff();
     idf->SetIdsArrayName("PointIds");
     idf->Update();
 
