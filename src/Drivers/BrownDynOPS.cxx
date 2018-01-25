@@ -184,14 +184,10 @@ int main(int argc, char* argv[]){
 	std::string fname = inputFileName.substr(0, inputFileName.find("."));
 	std::stringstream sstm;
 	std::string dataOutputFile;
-	sstm << fname << "-DetailedOutput.dat";
-	dataOutputFile = sstm.str();
-	sstm.str("");
-	sstm.clear();
 	
 	// Detailed output data file
 	ofstream detailedOP;
-	sstm << fname << "-AverageOutput.dat";
+	sstm << fname << "-DetailedOutput.dat";
 	dataOutputFile = sstm.str();
 	sstm.str("");
 	sstm.clear();
