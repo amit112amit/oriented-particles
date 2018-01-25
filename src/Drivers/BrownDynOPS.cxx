@@ -8,37 +8,8 @@
 #include "Model.h"
 #include "OPSMesh.h"
 #include "ViscosityBody.h"
-#include "H5Cpp.h"
 
-using namespace H5;
 using namespace OPS;
-
-#define ARR_SIZE 300
-
-struct DetailedOutput {
-	int step;
-	double_t alpha;
-	double_t beta;
-	double_t gamma;
-	double_t asphericity;
-	double_t radius;
-	double_t volume;
-	double_t area;
-	double_t morseEn;
-	double_t normEn;
-	double_t circEn;
-	double_t brownEn;
-	double_t viscoEn;
-	double_t msd;
-	
-	//Constructor for the struct
-	DetailedOutput(int s, double_t a, double_t b, double_t g, double_t as,
-		       	double_t r, double_t v, double_t ar, double_t me,
-		       	double_t ne, double_t ce, double_t be, double_t ve,
-		       	double_t msd ):step(s), alpha(a), beta(b), gamma(g),
-       	asphericity(as), radius(r), volume(v), area(ar), morseEn(me),
-	normEn(ne), circEn(ce), brownEn(be), viscoEn(ve), msd(msd){}
-};/* ----------  end of struct DetailedOutput  ---------- */
 
 int main(int argc, char* argv[]){
 	clock_t t1, t2, t3;
@@ -209,78 +180,37 @@ int main(int argc, char* argv[]){
 	// ****************************************************************//
 
 	// ***************** Prepare Output Data files *********************//
-	//Array type for hdf5 compound type
-	hsize_t dim[] = {ARR_SIZE};
-	ArrayType arr_type(PredType::NATIVE_DOUBLE, 1, dim);
-
-	//Finally create the compound datatype for HDF5
-	CompType mtype( sizeof(DetailedOutput) );
-	mtype.insertMember("Step", HOFFSET(DetailedOutput, step),
-		       	PredType::NATIVE_INT);
-	mtype.insertMember("Alpha", HOFFSET(DetailedOutput, alpha),
-		       	PredType::NATIVE_DOUBLE);
-	mtype.insertMember("Beta", HOFFSET(DetailedOutput, beta),
-		       	PredType::NATIVE_DOUBLE);
-	mtype.insertMember("Gamma", HOFFSET(DetailedOutput, gamma),
-		       	PredType::NATIVE_DOUBLE);
-	mtype.insertMember("Asphericity", HOFFSET(DetailedOutput, asphericity), 
-			PredType::NATIVE_DOUBLE);
-	mtype.insertMember("Radius", HOFFSET(DetailedOutput, radius),
-		       	PredType::NATIVE_DOUBLE);
-	mtype.insertMember("Volume", HOFFSET(DetailedOutput, volume),
-		       	PredType::NATIVE_DOUBLE);
-	mtype.insertMember("Area", HOFFSET(DetailedOutput, area),
-		       	PredType::NATIVE_DOUBLE);
-	mtype.insertMember("MorseEn", HOFFSET(DetailedOutput, morseEn),
-		       	PredType::NATIVE_DOUBLE);
-	mtype.insertMember("NormaEn", HOFFSET(DetailedOutput, normEn),
-		       	PredType::NATIVE_DOUBLE);
-	mtype.insertMember("CircEn", HOFFSET(DetailedOutput, circEn),
-		       	PredType::NATIVE_DOUBLE);
-	mtype.insertMember("BrownEn", HOFFSET(DetailedOutput, brownEn),
-		       	PredType::NATIVE_DOUBLE);
-	mtype.insertMember("ViscoEn", HOFFSET(DetailedOutput, viscoEn),
-		       	PredType::NATIVE_DOUBLE);
-	mtype.insertMember("MSD", HOFFSET(DetailedOutput, msd),
-		       	PredType::NATIVE_DOUBLE);
-
-	// Create a dataspace for our dataset with Compound datatype
-	hsize_t startDim[] = {1};
-	hsize_t maxDim[] = {H5S_UNLIMITED};
-	DataSpace memspace( 1, startDim, maxDim );
-
-	// Create property list to enable chunking and compression in our dataset
-	hsize_t chunk[] = {10000};
-	DSetCreatPropList dsprop;
-	dsprop.setChunk(1, chunk);
-	//dsprop.setDeflate(4);
-
 	// Identify the Input structure name
 	std::string fname = inputFileName.substr(0, inputFileName.find("."));
 	std::stringstream sstm;
 	std::string dataOutputFile;
-	sstm << fname << "-DetailedOutput.h5";
+	sstm << fname << "-DetailedOutput.dat";
 	dataOutputFile = sstm.str();
 	sstm.str("");
 	sstm.clear();
-
-	// Create a file to create a dataset into
-	H5File file(dataOutputFile, H5F_ACC_TRUNC);
-
-	// Create a dataset in the file using above dataspace and datatype
-	DataSet data = file.createDataSet( "DetailedOutput", mtype, memspace,
-		       	dsprop);
-
-	// Create attributes that contain the numBonds and numPoints
-	H5std_string P("NumParticles");
-	H5std_string B("NumBonds");
-	hsize_t attrDim[] = {1};
-	DataSpace attrDS(1, attrDim);
-	Attribute particles = data.createAttribute( P, PredType::NATIVE_UINT, 
-			attrDS );
-	Attribute bonds = data.createAttribute( B, PredType::NATIVE_UINT, attrDS );
-	particles.write(PredType::NATIVE_UINT, &N);
-	bonds.write(PredType::NATIVE_UINT, &numBonds);
+	
+	// Detailed output data file
+	ofstream detailedOP;
+	sstm << fname << "-AverageOutput.dat";
+	dataOutputFile = sstm.str();
+	sstm.str("");
+	sstm.clear();
+	detailedOP.open(dataOutputFile.c_str());
+	detailedOP << "#Step" <<"\t"
+		<< "Alpha" << "\t"
+		<< "Beta" << "\t"
+		<< "Gamma" << "\t"
+		<< "Asphericity" << "\t"
+		<< "Radius"  <<"\t"
+		<< "Volume"  <<"\t"
+		<< "Area"  <<"\t"
+		<< "MorseEn"  <<"\t"
+		<< "NormEn"  <<"\t"
+		<< "CircEn"  <<"\t"
+		<< "BrownEn"  <<"\t"
+		<< "ViscoEn"  <<"\t"
+		<< "MSD" 
+		<< std::endl;
 
 	// Create the output file for average data
 	ofstream outerLoopFile;
@@ -333,8 +263,7 @@ int main(int argc, char* argv[]){
 	t3 = clock();
 	// ************************ OUTER SOLUTION LOOP **********************//
 	int printStep;
-        hsize_t	step = 0;
-	int paraviewStep = -1;
+	int step = 0;
 	for(int z=0; z < coolVec.size(); z++){
 		alpha = coolVec[z][0];
 		beta = coolVec[z][1];
@@ -450,7 +379,6 @@ int main(int argc, char* argv[]){
 			//********** Print relaxed configuration ************//
 			//We will print only after every currPrintStep iterations
 			if (viter % printStep == 0 && printStep < viterMax) {
-				paraviewStep++;
 				sstm << fname << "-relaxed-" << nameSuffix++ 
 					<<".vtk";
 				std::string rName = sstm.str();
@@ -470,29 +398,22 @@ int main(int argc, char* argv[]){
 				}
 			}
 
-			int paraviewStepPrint;
-			paraviewStepPrint = (viter % printStep == 0) ? paraviewStep : -1;
-
-			DetailedOutput dop(step, alpha, beta, gamma,
-					ops.getAsphericity(),
-					ops.getAverageRadius(),
-					ops.getVolume(), ops.getArea(),
-					ops.getMorseEnergy(),
-					ops.getNormalityEnergy(),
-					ops.getCircularityEnergy(),
-					brown.getBrownianEnergy(),
-					visco.getViscosityEnergy(),
-					ops.getMeanSquaredDisplacement());
-
-			//Write data to the HDF5 file
-			hsize_t size[] = { step + 1 };		
-			hsize_t start[] = { step };		
-			hsize_t count[] = { 1 };		
-			data.extend( size );	
-			DataSpace fspace = data.getSpace();
-			fspace.selectHyperslab( H5S_SELECT_SET, count, start);
-			data.write( &dop, mtype, memspace, fspace );
-
+			detailedOP << step << "\t"
+				<< alpha << "\t"
+				<< beta << "\t"
+				<< gamma << "\t"
+				<< ops.getAsphericity() << "\t"
+				<< ops.getAverageRadius() << "\t"
+				<< ops.getVolume() << "\t"
+				<< ops.getArea() << "\t"
+				<< ops.getMorseEnergy() << "\t"
+				<< ops.getNormalityEnergy() << "\t"
+				<< ops.getCircularityEnergy() << "\t"
+				<< brown.getBrownianEnergy() << "\t"
+				<< visco.getViscosityEnergy() << "\t"
+				<< ops.getMeanSquaredDisplacement()
+				<< std::endl;
+			
 			// Update prevX
 			prevX = x.head(3*N);
 			if( loggingOn ){
@@ -542,7 +463,7 @@ int main(int argc, char* argv[]){
 	}
 	// *****************************************************************************//
 
-	file.close();
+	detailedOP.close();
 	outerLoopFile.close();
 	t2 = clock();
 	float diff((float)t2 - (float)t1);
