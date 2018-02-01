@@ -37,7 +37,7 @@ int main(int argc, char* argv[]){
 	// ******************* Read Simulation Parameters *********//
 	double_t De=1.0, re=1.0, s=7.0;
 	double_t alpha=1.0, beta=1.0, gamma=1.0;
-	double_t percentStrain = 15;
+	double_t percentStrain = 15, cocircularityCoeff = 1.0;
 
 	std::string constraintType("NULL");
 	enum Constraint{ AvgArea, AvgVol, ExactArea, ExactVol, ExactAreaAndVolume};
@@ -51,6 +51,7 @@ int main(int argc, char* argv[]){
 	miscInpFile
 		>> temp >> De
 		>> temp >> re
+		>> temp >> cocircularityCoeff
 		>> temp >> constraintType;
 
 	miscInpFile.close();
@@ -139,6 +140,7 @@ int main(int argc, char* argv[]){
 	OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad);
 	ops.setMorseDistance(re);
 	ops.setMorseEnergy(De);
+	ops.setCircularityCoeff( cocircularityCoeff );
 	s = 100*log(2.0)/(re*percentStrain);
 	ops.setMorseWellWidth(s);    
 

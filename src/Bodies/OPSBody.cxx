@@ -278,12 +278,12 @@ void OPSBody::compute(){
             Vector3d centerDx, centerDv, neighborDx, neighborDv;
 
             centerDx = dMorseXi + Ker*dPhi_cXi
-                    + dKerXi*(Phi_n + Phi_c );
-            centerDv = Ker*(dPhi_nVi + dPhi_cVi );
+                    + dKerXi*(Phi_n + _circCoeff*Phi_c );
+            centerDv = Ker*(dPhi_nVi + _circCoeff*dPhi_cVi );
 
             neighborDx = dMorseXj + Ker*(dPhi_cXj)
-                    + dKerXj*(Phi_n + Phi_c );
-            neighborDv = Ker*(dPhi_nVj + dPhi_cVj);
+                    + dKerXj*(Phi_n + _circCoeff*Phi_c );
+            neighborDv = Ker*(dPhi_nVj + _circCoeff*dPhi_cVj);
 
             _posGradient.col(i) += centerDx;
             _posGradient.col(currId) += neighborDx;
@@ -292,9 +292,9 @@ void OPSBody::compute(){
 
             _morseEn += morseEn;
             _normalEn += Ker*Phi_n;
-            _circEn += Ker*Phi_c;
+            _circEn += Ker*_circCoeff*Phi_c;
 
-            _f += morseEn + Ker*(Phi_n + Phi_c);
+            _f += morseEn + Ker*(Phi_n + _circCoeff*Phi_c);
         }
     }
     return;
