@@ -400,7 +400,7 @@ void OPSBody::applyKabschAlgorithm(){
     updatePolyData();
 }
 
-//! Update Rotation Vectors as per the current normals after Kabsch update
+//! Update Rotation Vectors as per the current normals e.g. after Kabsch update
 void OPSBody::updateRotationVectors(){
     for(auto i=0; i < _N; ++i){
         Vector3d x = _normals.col(i);
