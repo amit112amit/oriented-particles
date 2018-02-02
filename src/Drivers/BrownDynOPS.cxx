@@ -318,7 +318,7 @@ int main(int argc, char* argv[]){
 	constraint->setConstraint(constrainedVal);
 
 	// For the very first iteration solve at zero temperature first
-	if( z == 0 ){
+	if( z == 0 && !continueFlag){
 	    brown.setCoefficient(0.0);
 	    visco.setViscosity(0.0);
 	    solver.solve();
