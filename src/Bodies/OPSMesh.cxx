@@ -90,8 +90,10 @@ void OPSMesh::compute(){
 		dMdr = (2*_De*_a/r)*( exp_1 - exp_2 )*rij;
 
 		// Evaluate kernel derivatives
-		Ker = (_De/_gamma)*exp( -r*r/2 );
-		dKdr = (-Ker)*rij;
+		//Ker = (_De/_gamma)*exp( -r*r/2 );
+		//dKdr = (-Ker)*rij;
+		Ker = 1;
+		dKdr << 0, 0, 0;
 
 		//Evaluate co-normality derivatives
 		Phi_n = m.squaredNorm();
@@ -106,15 +108,21 @@ void OPSMesh::compute(){
 		dPhi_cVj = (2*n_dot_rij/(r*r))*N*rij;
 
 		// Calculate the total derivatives of energy wrt xi, vi and vj
-		Dxi = -(dMdr + Ker*dCdr + dKdr*(Phi_n + _circCoeff*Phi_c ));
-		Dvi = Ker*(dPhi_nVi + _circCoeff*dPhi_cVi );
-		Dvj = Ker*(dPhi_nVj + _circCoeff*dPhi_cVj);
+		//Dxi = -(dMdr + Ker*dCdr + dKdr*(Phi_n + _circCoeff*Phi_c ));
+		//Dvi = Ker*(dPhi_nVi + _circCoeff*dPhi_cVi );
+		//Dvj = Ker*(dPhi_nVj + _circCoeff*dPhi_cVj);
+		Dxi = -(dMdr + dCdr);
+		Dvi = (dPhi_nVi + _circCoeff*dPhi_cVi );
+		Dvj = (dPhi_nVj + _circCoeff*dPhi_cVj);
 
 		// Update the energies
 		_morseEn += morseEn;
-		_normalEn += Ker*Phi_n;
-		_circEn += Ker*_circCoeff*Phi_c;
-		_f += morseEn + Ker*(Phi_n + _circCoeff*Phi_c);
+		//_normalEn += Ker*Phi_n;
+		//_circEn += Ker*_circCoeff*Phi_c;
+		//_f += morseEn + Ker*(Phi_n + _circCoeff*Phi_c);
+		_normalEn += Phi_n;
+		_circEn += _circCoeff*Phi_c;
+		_f += morseEn + Phi_n + _circCoeff*Phi_c;
 
 		//Update the derivatives
 		_posGradient.col(i) += Dxi;
