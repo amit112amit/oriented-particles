@@ -4,7 +4,6 @@
 #include <vtkPolyDataReader.h>
 #include "LBFGSBWrapper.h"
 #include "Model.h"
-//#include "OPSBody.h"
 #include "OPSMesh.h"
 
 using namespace OPS;
@@ -32,7 +31,6 @@ int main(int argc, char* argv[]){
     double_t De=1.0, re=1.0, s=7.0, b=1.0;
     double_t percentStrain = 15;
     double_t initialSearchRad = 1.0, finalSearchRad = 1.2;
-    //int lat_res=100, long_res=101;
 
     std::ifstream miscInpFile("miscInp.dat");
     assert(miscInpFile);
@@ -87,7 +85,7 @@ int main(int argc, char* argv[]){
 
     // Create OPSBody
     Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);
-    OPSBody ops(N,f,xpos,xrot,posGrad,rotGrad);
+    OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad);
     ops.setMorseDistance(re);
     ops.setMorseEnergy(De);
     s = 100*log(2.0)/(re*percentStrain);
@@ -189,5 +187,3 @@ int main(int argc, char* argv[]){
               << " seconds" << std::endl;
     return 1;
 }
-
-
