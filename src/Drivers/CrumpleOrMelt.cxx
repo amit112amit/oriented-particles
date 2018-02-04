@@ -44,14 +44,10 @@ int main(int argc, char* argv[]){
 	size_t viterMax = 2e5;
 	size_t nameSuffix = 0;
 
-	std::ifstream miscInpFile("miscInp.dat");
-	assert(miscInpFile);
-	std::string temp;
-	miscInpFile
-		>> temp >> re
-		>> temp >> constraintType;
-
-	miscInpFile.close();
+	InputParameters miscInp = OPS::readKeyValueInput( "miscInp.dat" );
+	re = std::stod( miscInp["re"] );
+	percentStrain = std::stod( miscInp["percentStrain"] );
+	constraintType = miscInp["constraintType"];
 	s = (100 / (re*percentStrain))*log(2.0);
 
 	//Validate constraint type

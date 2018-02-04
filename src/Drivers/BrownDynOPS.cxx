@@ -45,25 +45,21 @@ int main(int argc, char* argv[]){
     double_t alpha=1.0, beta=1.0, gamma=1.0;
     double_t percentStrain = 15, cocircularityCoeff = 1.0;
 
-    std::string constraintType("NULL");
     enum Constraint{ AvgArea, AvgVol, ExactArea, ExactVol, ExactAreaAndVolume};
+    std::string constraintType("NULL"), baseFileName;
     size_t viterMax = 1000;
     size_t nameSuffix = 0;
     size_t step = 0;
 
-    std::ifstream miscInpFile("miscInp.dat");
-    assert(miscInpFile);
-    std::string temp, baseFileName;
-    miscInpFile
-	>> temp >> re
-	>> temp >> cocircularityCoeff
-	>> temp >> constraintType
-	>> temp >> continueFlag
-	>> temp >> baseFileName
-	>> temp >> step
-	>> temp >> nameSuffix;
+    InputParameters miscInp = OPS::readKeyValueInput( "miscInp.dat" );
+    re = std::stod( miscInp["re"] );
+    cocircularityCoeff = std::stod( miscInp["cocircularityCoeff"] );
+    constraintType = miscInp["constraintType"];
+    continueFlag = std::stoi( miscInp["continueFlag"] );
+    baseFileName = miscInp["baseFileName"];
+    step = std::stoi( miscInp["step"] );
+    nameSuffix = std::stoi( miscInp["nameSuffix"] );
 
-    miscInpFile.close();
     s = (100 / (re*percentStrain))*log(2.0);
 
     //Validate constraint type

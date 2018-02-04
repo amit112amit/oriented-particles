@@ -32,16 +32,13 @@ int main(int argc, char* argv[]){
     double_t percentStrain = 15;
     double_t initialSearchRad = 1.0, finalSearchRad = 1.2;
 
-    std::ifstream miscInpFile("miscInp.dat");
-    assert(miscInpFile);
-    std::string temp;
-    miscInpFile
-            >> temp >> re
-            >> temp >> percentStrain
-            >> temp >> initialSearchRad
-            >> temp >> finalSearchRad;
-
-    miscInpFile.close();
+    // Read input parameters from miscInp.dat file
+    InputParameters miscInp = OPS::readKeyValueInput("miscInp.dat");
+    re = std::stod( miscInp["re"] );
+    percentStrain = std::stod( miscInp["percentStrain"] );
+    initialSearchRad = std::stod( miscInp["initialSearchRad"] );
+    finalSearchRad = std::stod( miscInp["finalSearchRad"] );
+    
     s = (100 / (re*percentStrain))*log(2.0);
 
     std::ifstream coolFile("cooling.dat");
