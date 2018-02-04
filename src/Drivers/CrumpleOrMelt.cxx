@@ -32,7 +32,7 @@ int main(int argc, char* argv[]){
 	// ********************************************************//
 
 	// ******************* Read Simulation Parameters *********//
-	double_t De=1.0, re=1.0, s=7.0;
+	double_t re=1.0, s=7.0;
 	double_t alpha=1.0, gamma=1.0, beta=1.0;
 	double_t percentStrain = 15, beta_start=0.0001, beta_increment=0.0001;
 	double_t crumpledAsphericity = 0.01;
@@ -48,7 +48,6 @@ int main(int argc, char* argv[]){
 	assert(miscInpFile);
 	std::string temp;
 	miscInpFile
-		>> temp >> De
 		>> temp >> re
 		>> temp >> constraintType;
 
@@ -134,7 +133,6 @@ int main(int argc, char* argv[]){
 	Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);
 	OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad);
 	ops.setMorseDistance(re);
-	ops.setMorseEnergy(De);
 	s = 100*log(2.0)/(re*percentStrain);
 	ops.setMorseWellWidth(s);
 
@@ -291,8 +289,8 @@ int main(int argc, char* argv[]){
 			beta += beta_increment;
 
 			// Set the viscosity and Brownian coefficient
-			viscosity = alpha*De/(avgEdgeLen*avgEdgeLen);
-			brownCoeff = std::sqrt( 2*alpha/beta )*( De/avgEdgeLen );
+			viscosity = alpha/(avgEdgeLen*avgEdgeLen);
+			brownCoeff = std::sqrt( 2*alpha/beta )/avgEdgeLen;
 			if(loggingOn){
 				std::cout<< "Viscosity = " << viscosity << std::endl;
 				std::cout<< "Brownian Coefficient = " << brownCoeff << std::endl;

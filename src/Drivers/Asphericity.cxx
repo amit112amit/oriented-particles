@@ -28,7 +28,7 @@ int main(int argc, char* argv[]){
     // ********************************************************//
 
     // ******************* Read Simulation Parameters *********//
-    double_t De=1.0, re=1.0, s=7.0, b=1.0;
+    double_t re=1.0, s=7.0, b=1.0;
     double_t percentStrain = 15;
     double_t initialSearchRad = 1.0, finalSearchRad = 1.2;
 
@@ -36,7 +36,6 @@ int main(int argc, char* argv[]){
     assert(miscInpFile);
     std::string temp;
     miscInpFile
-            >> temp >> De
             >> temp >> re
             >> temp >> percentStrain
             >> temp >> b
@@ -87,7 +86,6 @@ int main(int argc, char* argv[]){
     Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);
     OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad);
     ops.setMorseDistance(re);
-    ops.setMorseEnergy(De);
     s = 100*log(2.0)/(re*percentStrain);
     ops.setMorseWellWidth(s);
     ops.setSearchRadius(initialSearchRad);

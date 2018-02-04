@@ -41,7 +41,7 @@ int main(int argc, char* argv[]){
     // This flag determines if its a new simulation or a continuation
     bool continueFlag = false;
 
-    double_t De=1.0, re=1.0, s=7.0, b = 1.0;
+    double_t re=1.0, s=7.0, b = 1.0;
     double_t alpha=1.0, beta=1.0, gamma=1.0;
     double_t percentStrain = 15, cocircularityCoeff = 1.0;
 
@@ -56,7 +56,6 @@ int main(int argc, char* argv[]){
     assert(miscInpFile);
     std::string temp, baseFileName;
     miscInpFile
-	>> temp >> De
 	>> temp >> re
 	>> temp >> b
 	>> temp >> cocircularityCoeff
@@ -170,7 +169,6 @@ int main(int argc, char* argv[]){
     Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);    
     OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad);
     ops.setMorseDistance(re);
-    ops.setMorseEnergy(De);
     ops.setCircularityCoeff( cocircularityCoeff );
     ops.setOPSKernelParameter( b );
     s = 100*log(2.0)/(re*percentStrain);
@@ -328,8 +326,8 @@ int main(int argc, char* argv[]){
 	prevX = x.head(3*N);
 
 	// Set the viscosity and Brownian coefficient        
-	viscosity = alpha*De/(avgEdgeLen*avgEdgeLen);
-	brownCoeff = std::sqrt( 2*alpha/beta )*( De/avgEdgeLen );
+	viscosity = alpha/(avgEdgeLen*avgEdgeLen);
+	brownCoeff = std::sqrt( 2*alpha/beta )/avgEdgeLen;
 	if(loggingOn){
 	    std::cout<< "Viscosity = " << viscosity << std::endl;
 	    std::cout<< "Brownian Coefficient = " << brownCoeff 

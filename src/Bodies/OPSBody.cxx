@@ -251,19 +251,21 @@ void OPSBody::compute(){
             exp_1 = exp( -_a*(r - _re) );
             exp_2 = exp_1*exp_1;
 
-            morseEn = _De*( exp_2 - 2*exp_1 );
-            Ker = (_De/_gamma)*exp( -r*r/(2*_b*_b) );
+            //morseEn = _De*( exp_2 - 2*exp_1 );
+	    morseEn =  exp_2 - 2*exp_1;
+            //Ker = (_De/_gamma)*exp( -r*r/(2*_b*_b) );
             Phi_n = m.squaredNorm();
             Phi_c = n_dot_rij/r;
             Phi_c *= Phi_c;
 
             // Evaluate morse derivatives
-            dMorseXi = (2*_De*_a/r)*( exp_2 - exp_1 )*rij;
+            //dMorseXi = (2*_De*_a/r)*( exp_2 - exp_1 )*rij;
+            dMorseXi = (2*_a/r)*( exp_2 - exp_1 )*rij;
             dMorseXj = -dMorseXi;
 
             // Evaluate kernel derivatives
-            dKerXi = (Ker/(_b*_b))*rij;
-            dKerXj = -dKerXi;
+            //dKerXi = (Ker/(_b*_b))*rij;
+            //dKerXj = -dKerXi;
 
             //Evaluate co-normality derivatives
             dPhi_nVi = 2*M*m;
@@ -276,7 +278,7 @@ void OPSBody::compute(){
             dPhi_cVj = (2*n_dot_rij/(r*r))*N*rij;
 
             Vector3d centerDx, centerDv, neighborDx, neighborDv;
-
+/*
             centerDx = dMorseXi + Ker*dPhi_cXi
                     + dKerXi*(Phi_n + _circCoeff*Phi_c );
             centerDv = Ker*(dPhi_nVi + _circCoeff*dPhi_cVi );
@@ -284,17 +286,23 @@ void OPSBody::compute(){
             neighborDx = dMorseXj + Ker*(dPhi_cXj)
                     + dKerXj*(Phi_n + _circCoeff*Phi_c );
             neighborDv = Ker*(dPhi_nVj + _circCoeff*dPhi_cVj);
+*/
+            centerDx = dMorseXi + dPhi_cXi/_gamma;
+            centerDv = (dPhi_nVi + _circCoeff*dPhi_cVi )/_gamma;
 
+            neighborDx = dMorseXj + (dPhi_cXj)/_gamma;
+            neighborDv = (dPhi_nVj + _circCoeff*dPhi_cVj)/_gamma;
+	    
             _posGradient.col(i) += centerDx;
             _posGradient.col(currId) += neighborDx;
             _rotGradient.col(i) += centerDv;
             _rotGradient.col(currId) += neighborDv;
 
             _morseEn += morseEn;
-            _normalEn += Ker*Phi_n;
-            _circEn += Ker*_circCoeff*Phi_c;
+            _normalEn += Phi_n/_gamma;
+            _circEn += _circCoeff*Phi_c/_gamma;
 
-            _f += morseEn + Ker*(Phi_n + _circCoeff*Phi_c);
+            _f += morseEn + (Phi_n + _circCoeff*Phi_c)/_gamma;
         }
     }
     return;
