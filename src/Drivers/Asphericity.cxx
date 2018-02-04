@@ -28,7 +28,7 @@ int main(int argc, char* argv[]){
     // ********************************************************//
 
     // ******************* Read Simulation Parameters *********//
-    double_t re=1.0, s=7.0, b=1.0;
+    double_t re=1.0, s=7.0;
     double_t percentStrain = 15;
     double_t initialSearchRad = 1.0, finalSearchRad = 1.2;
 
@@ -38,7 +38,6 @@ int main(int argc, char* argv[]){
     miscInpFile
             >> temp >> re
             >> temp >> percentStrain
-            >> temp >> b
             >> temp >> initialSearchRad
             >> temp >> finalSearchRad;
 

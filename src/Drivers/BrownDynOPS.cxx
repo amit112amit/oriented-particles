@@ -41,13 +41,12 @@ int main(int argc, char* argv[]){
     // This flag determines if its a new simulation or a continuation
     bool continueFlag = false;
 
-    double_t re=1.0, s=7.0, b = 1.0;
+    double_t re=1.0, s=7.0;
     double_t alpha=1.0, beta=1.0, gamma=1.0;
     double_t percentStrain = 15, cocircularityCoeff = 1.0;
 
     std::string constraintType("NULL");
     enum Constraint{ AvgArea, AvgVol, ExactArea, ExactVol, ExactAreaAndVolume};
-    //int lat_res=100, long_res=101;
     size_t viterMax = 1000;
     size_t nameSuffix = 0;
     size_t step = 0;
@@ -57,7 +56,6 @@ int main(int argc, char* argv[]){
     std::string temp, baseFileName;
     miscInpFile
 	>> temp >> re
-	>> temp >> b
 	>> temp >> cocircularityCoeff
 	>> temp >> constraintType
 	>> temp >> continueFlag
@@ -170,7 +168,6 @@ int main(int argc, char* argv[]){
     OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad);
     ops.setMorseDistance(re);
     ops.setCircularityCoeff( cocircularityCoeff );
-    ops.setOPSKernelParameter( b );
     s = 100*log(2.0)/(re*percentStrain);
     ops.setMorseWellWidth(s);    
 

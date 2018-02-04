@@ -3,7 +3,6 @@
 #include "BrownianBody.h"
 #include "LBFGSBWrapper.h"
 #include "Model.h"
-//#include "OPSBody.h"
 #include "OPSMesh.h"
 #include "ViscosityBody.h"
 #include "ALConstraint.h"
