@@ -20,9 +20,10 @@ int main(int argc, char* argv[]){
 	return -1;
     }
 
-    //******************** Diagnostic parameters ********************//
+    //******************** Optional parameters ********************//
     bool loggingOn = false;
     bool spikePrintOn = false;
+    bool printAvgShapeData = false;
 
     // ***************** Read Input VTK File *****************//
     std::string inputFileName = argv[1];
@@ -238,22 +239,24 @@ int main(int argc, char* argv[]){
 
     // Create the output file for average data
     ofstream outerLoopFile;
-    sstm << fname << "-AverageOutput.dat";
-    dataOutputFile = sstm.str();
-    sstm.str("");
-    sstm.clear();
-    outerLoopFile.open(dataOutputFile.c_str(), std::ofstream::out |
-	    std::ofstream::app);
-    if( !continueFlag ){
-	outerLoopFile << "#BigStep" <<"\t"
-	    << "PercentStrain" <<"\t"
-	    << "Alpha" << "\t"
-	    << "Beta" << "\t"
-	    << "Gamma" << "\t"
-	    << "PercentStrain" << "\t"
-	    << "Radius"  <<"\t"
-	    << "Asphericity"
-	    << std::endl;
+    if( printAvgShapeData ){
+	sstm << fname << "-AverageOutput.dat";
+	dataOutputFile = sstm.str();
+	sstm.str("");
+	sstm.clear();
+	outerLoopFile.open(dataOutputFile.c_str(), std::ofstream::out |
+		std::ofstream::app);
+	if( !continueFlag ){
+	    outerLoopFile << "#BigStep" <<"\t"
+		<< "PercentStrain" <<"\t"
+		<< "Alpha" << "\t"
+		<< "Beta" << "\t"
+		<< "Gamma" << "\t"
+		<< "PercentStrain" << "\t"
+		<< "Radius"  <<"\t"
+		<< "Asphericity"
+		<< std::endl;
+	}
     }
 
     // ************************* Create Solver ************************  //
@@ -452,41 +455,42 @@ int main(int argc, char* argv[]){
 	}
 	//************************************************//
 
-	// Calculate the average particle positions and avg radius
-	double avgShapeRad = 0.0, avgShapeAsph = 0.0;
-	auto avgPos = vtkSmartPointer<vtkPoints>::New();
-	auto avgPosData = vtkSmartPointer<vtkDoubleArray>::New();
-	averagePosition = averagePosition / viterMax;
-	avgShapeRad = averagePosition.colwise().norm().sum()/N;
-	void *avgPosPtr = (void*)averagePosition.data();
-	avgPosData->SetVoidArray(avgPosPtr,3*N,1);
-	avgPosData->SetNumberOfComponents(3);
-	avgPos->SetData(avgPosData);
+	if( printAvgShapeData ){
+	    // Calculate the average particle positions and avg radius
+	    double avgShapeRad = 0.0, avgShapeAsph = 0.0;
+	    auto avgPos = vtkSmartPointer<vtkPoints>::New();
+	    auto avgPosData = vtkSmartPointer<vtkDoubleArray>::New();
+	    averagePosition = averagePosition / viterMax;
+	    avgShapeRad = averagePosition.colwise().norm().sum()/N;
+	    void *avgPosPtr = (void*)averagePosition.data();
+	    avgPosData->SetVoidArray(avgPosPtr,3*N,1);
+	    avgPosData->SetNumberOfComponents(3);
+	    avgPos->SetData(avgPosData);
 
-	sstm << fname << "-AvgShape-"<< z << ".vtk";
-	dataOutputFile = sstm.str();
-	sstm.str("");
-	sstm.clear();
+	    sstm << fname << "-AvgShape-"<< z << ".vtk";
+	    dataOutputFile = sstm.str();
+	    sstm.str("");
+	    sstm.clear();
 
-	// Print the average shape
-	delaunay3DSurf(avgPos, dataOutputFile);
+	    // Print the average shape
+	    delaunay3DSurf(avgPos, dataOutputFile);
 
-	// Calculate the asphericity of the average shape
-	Eigen::RowVectorXd R(N);
-	R = averagePosition.colwise().norm();
-	avgShapeAsph += ((R.array() - avgShapeRad).square()).sum();
-	avgShapeAsph /= (N*avgShapeRad*avgShapeRad);
+	    // Calculate the asphericity of the average shape
+	    Eigen::RowVectorXd R(N);
+	    R = averagePosition.colwise().norm();
+	    avgShapeAsph += ((R.array() - avgShapeRad).square()).sum();
+	    avgShapeAsph /= (N*avgShapeRad*avgShapeRad);
 
-	outerLoopFile << z <<"\t"
-	    << percentStrain << "\t"
-	    << alpha << "\t"
-	    << beta << "\t"
-	    << gamma << "\t"
-	    << percentStrain << "\t"
-	    << avgShapeRad  << "\t"
-	    << avgShapeAsph
-	    << std::endl;
-
+	    outerLoopFile << z <<"\t"
+		<< percentStrain << "\t"
+		<< alpha << "\t"
+		<< beta << "\t"
+		<< gamma << "\t"
+		<< percentStrain << "\t"
+		<< avgShapeRad  << "\t"
+		<< avgShapeAsph
+		<< std::endl;
+	}
     }
     // *****************************************************************************//
 
