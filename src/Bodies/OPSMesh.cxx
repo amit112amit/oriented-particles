@@ -130,7 +130,7 @@ void OPSMesh::compute(){
 
 //! Function to return the difference between normals of all points connected
 //! with a bond
-void OPSMesh::getDiffNormals( RefM3Xd in ){
+void OPSMesh::getDiffNormals( Matrix3Xd &in ){
 	in = Matrix3Xd::Zero(3,_numBonds);
 	auto pts = vtkSmartPointer<vtkIdList>::New();
 	_edges->InitTraversal();
@@ -149,7 +149,7 @@ void OPSMesh::getDiffNormals( RefM3Xd in ){
 }
 
 //! Function to return the normals for all particles
-void OPSMesh::getNormals( RefM3Xd in ){
+void OPSMesh::getNormals( Matrix3Xd &in ){
 	in = _normals;
 }
 }

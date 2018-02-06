@@ -15,8 +15,8 @@ class OPSMesh : public OPSBody{
 	public:
 		OPSMesh(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd posGrad,
 				RefM3Xd rotGrad);
-		void getDiffNormals(RefM3Xd in);
-		void getNormals(RefM3Xd in);
+		void getDiffNormals(Matrix3Xd &in);
+		void getNormals(Matrix3Xd &in);
 		void compute();
 		void updateNeighbors();
 	private:
