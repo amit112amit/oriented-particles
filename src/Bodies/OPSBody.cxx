@@ -40,11 +40,11 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
     _polyData = vtkSmartPointer<vtkPolyData>::New();
     _polyData->SetPoints( points );
     _polyData->GetPointData()->SetNormals(pointNormals);
+    updatePolyData();
 
     //Construct the kd-tree
     _octree = vtkSmartPointer<vtkOctreePointLocator>::New();
     _octree->SetDataSet(_polyData);
-    updateKdTree();
 
     //Initialize the _neighbors vector
     for(auto i=0; i < _N; i++){
