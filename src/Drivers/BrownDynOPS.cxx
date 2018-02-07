@@ -408,7 +408,7 @@ int main(int argc, char* argv[]){
 
 	    //********** Print relaxed configuration ************//
 	    //We will print only after every currPrintStep iterations
-	    if (viter % printStep == 0 && printStep < viterMax) {
+	    if (viter % printStep == 0 && printStep <= viterMax) {
 		sstm << fname << "-relaxed-" << nameSuffix++ 
 		    <<".vtk";
 		std::string rName = sstm.str();
