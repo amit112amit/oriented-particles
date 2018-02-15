@@ -132,7 +132,7 @@ int main(int argc, char* argv[]){
     if( continueFlag ){
 	// Read normals from input file
 	Eigen::Matrix3Xd normals(3,N);
-	vtkSmartPointer< vtkDoubleArray > normalsArr = 
+	vtkSmartPointer< vtkDoubleArray > normalsArr =
 	    vtkDoubleArray::FastDownCast(mesh->GetPointData()->GetNormals());
 	normalsArr->vtkAbstractArray::SetNumberOfComponents( 3 );
 	for(auto i = 0; i < N; ++i){
@@ -141,7 +141,7 @@ int main(int argc, char* argv[]){
 	    normals.col(i) = cp;
 	}
 	OPSBody::initialRotationVector(normals, rotVecs);
-    }	
+    }
     else{
 	// Generate rotation vectors from input point coordinates
 	OPSBody::initialRotationVector(coords, rotVecs);
@@ -161,12 +161,12 @@ int main(int argc, char* argv[]){
     prevX = x.head(3*N);
 
     // Create OPSBody
-    Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);    
+    Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);
     OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad);
     ops.setMorseDistance(re);
     ops.setCircularityCoeff( cocircularityCoeff );
     s = 100*log(2.0)/(re*percentStrain);
-    ops.setMorseWellWidth(s);    
+    ops.setMorseWellWidth(s);
 
     // Create Brownian and Viscosity bodies
     Eigen::Map<Eigen::VectorXd> thermalX(x.data(),3*N,1);
@@ -233,7 +233,7 @@ int main(int argc, char* argv[]){
 	    << "CircEn"  <<"\t"
 	    << "BrownEn"  <<"\t"
 	    << "ViscoEn"  <<"\t"
-	    << "MSD" 
+	    << "MSD"
 	    << std::endl;
     }
 
@@ -271,7 +271,7 @@ int main(int argc, char* argv[]){
     // Calculate Average Edge Length
     double_t avgEdgeLen = ops.getAverageEdgeLength();
     if(loggingOn){
-	std::cout << "Initial Avg Edge Length = " << avgEdgeLen 
+	std::cout << "Initial Avg Edge Length = " << avgEdgeLen
 	    << std::endl;
     }
     if( !continueFlag ){
@@ -281,7 +281,7 @@ int main(int argc, char* argv[]){
 	}
     }
 
-    // Update the OPSBody member variables as per new positions    
+    // Update the OPSBody member variables as per new positions
     ops.updatePolyData();
     ops.updateNeighbors();
     ops.saveInitialPosition(); /*!< For Mean Squared Displacement */
@@ -321,12 +321,12 @@ int main(int argc, char* argv[]){
 	// Update prevX
 	prevX = x.head(3*N);
 
-	// Set the viscosity and Brownian coefficient        
+	// Set the viscosity and Brownian coefficient
 	viscosity = alpha/(avgEdgeLen*avgEdgeLen);
 	brownCoeff = std::sqrt( 2*alpha/beta )/avgEdgeLen;
 	if(loggingOn){
 	    std::cout<< "Viscosity = " << viscosity << std::endl;
-	    std::cout<< "Brownian Coefficient = " << brownCoeff 
+	    std::cout<< "Brownian Coefficient = " << brownCoeff
 		<< std::endl;
 	}
 	brown.setCoefficient(brownCoeff);
@@ -352,7 +352,7 @@ int main(int argc, char* argv[]){
 	    // Store data for Kabsch
 	    ops.updateDataForKabsch();
 
-	    // Set the starting guess for Lambda and K for 
+	    // Set the starting guess for Lambda and K for
 	    // Augmented Lagrangian
 	    constraint->setLagrangeCoeff(10.0);
 	    constraint->setPenaltyCoeff(1000.0);
@@ -379,7 +379,7 @@ int main(int argc, char* argv[]){
 	    }
 	    if(loggingOn){
 		constraint->printCompletion();
-		std::cout<< "Constraint satisfied in "<< alIter 
+		std::cout<< "Constraint satisfied in "<< alIter
 		    << " iterations."
 		    << std::endl << std::endl;
 	    }
@@ -409,7 +409,7 @@ int main(int argc, char* argv[]){
 	    //********** Print relaxed configuration ************//
 	    //We will print only after every currPrintStep iterations
 	    if (viter % printStep == 0 && printStep <= viterMax) {
-		sstm << fname << "-relaxed-" << nameSuffix++ 
+		sstm << fname << "-relaxed-" << nameSuffix++
 		    <<".vtk";
 		std::string rName = sstm.str();
 		ops.printVTKFile(rName);
@@ -418,7 +418,7 @@ int main(int argc, char* argv[]){
 	    }
 	    // Print VTK file if there is an abrupt change in energy
 	    if( spikePrintOn ){
-		if ( std::abs( avgTotalEnergy ) > 0 && 
+		if ( std::abs( avgTotalEnergy ) > 0 &&
 			std::abs((f - avgTotalEnergy)/avgTotalEnergy) > 3){
 		    sstm << fname << "-Spike-" << step <<".vtk";
 		    std::string rName = sstm.str();
@@ -448,7 +448,7 @@ int main(int argc, char* argv[]){
 	    prevX = x.head(3*N);
 	    if( loggingOn ){
 		avgTotalEnergy=(avgTotalEnergy*step+f)/(step+1);
-		std::cout<< " Average Total Energy = " 
+		std::cout<< " Average Total Energy = "
 		    << avgTotalEnergy << std::endl;
 	    }
 	    step++;

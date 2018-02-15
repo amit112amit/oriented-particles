@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
 {
     if( argc != 5 ) {
 	cout << "argc = " << argc << endl
-	    << "Usage: dualMesh baseName numStart numEnd numOPENMPThreads" 
+	    << "Usage: dualMesh baseName numStart numEnd numOPENMPThreads"
 	    << endl;
 	return(0);
     }
@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
 		newPolys->InsertCellPoint( n._id );
 	    }
 	    valence->InsertNextTuple1( numCellPoints );
-	}	
+	}
 
 	//Assign points and polygons to a new polydata and write it out
 	auto newPolyData = vtkSmartPointer<vtkPolyData>::New();
