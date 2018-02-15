@@ -44,7 +44,7 @@ int main(int argc, char* argv[]){
 
     double_t re=1.0, s=7.0;
     double_t alpha=1.0, beta=1.0, gamma=1.0;
-    double_t percentStrain = 15, cocircularityCoeff = 1.0;
+    double_t percentStrain = 15;
 
     enum Constraint{ AvgArea, AvgVol, ExactArea, ExactVol, ExactAreaAndVolume};
     std::string constraintType("NULL"), baseFileName;
@@ -54,7 +54,6 @@ int main(int argc, char* argv[]){
 
     InputParameters miscInp = OPS::readKeyValueInput( "miscInp.dat" );
     re = std::stod( miscInp["re"] );
-    cocircularityCoeff = std::stod( miscInp["cocircularityCoeff"] );
     constraintType = miscInp["constraintType"];
     continueFlag = std::stoi( miscInp["continueFlag"] );
     baseFileName = miscInp["baseFileName"];
@@ -164,7 +163,6 @@ int main(int argc, char* argv[]){
     Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);
     OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad);
     ops.setMorseDistance(re);
-    ops.setCircularityCoeff( cocircularityCoeff );
     s = 100*log(2.0)/(re*percentStrain);
     ops.setMorseWellWidth(s);
 

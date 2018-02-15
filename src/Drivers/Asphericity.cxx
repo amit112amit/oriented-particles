@@ -38,7 +38,7 @@ int main(int argc, char* argv[]){
     percentStrain = std::stod( miscInp["percentStrain"] );
     initialSearchRad = std::stod( miscInp["initialSearchRad"] );
     finalSearchRad = std::stod( miscInp["finalSearchRad"] );
-    
+
     s = (100 / (re*percentStrain))*log(2.0);
 
     std::ifstream coolFile("cooling.dat");
