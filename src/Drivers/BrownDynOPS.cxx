@@ -281,6 +281,12 @@ int main(int argc, char* argv[]){
 	}
     }
 
+//TODO:
+// We cannot calculate initial position afresh when continuing a existing
+// simulation
+// We also cannot recalculate the average edge lengths because the structure
+// would have distorted
+
     // Update the OPSBody member variables as per new positions
     ops.updatePolyData();
     ops.updateNeighbors();
@@ -289,6 +295,10 @@ int main(int argc, char* argv[]){
     if(loggingOn)
 	std::cout << "After renormalizing, Avg Edge Length = "
 	    << avgEdgeLen << std::endl;
+
+    // Calculate and set the spontaneous curvature
+    double_t C0 = avgEdgeLen/ops.getAverageRadius();
+    ops.setSpontaneousCurvature( C0 );
     // ******************************************************************//
 
     t3 = clock();

@@ -9,6 +9,12 @@ OPSMesh::OPSMesh(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
 	_numBonds = (int)((12*5 + (n-12)*6)/2);
 }
 
+//! Turn on spontaneous curvature and set its value
+void OPSMesh::setSpontaneousCurvature( double_t C ){
+    _spontaneousCurvatureOn = true;
+    _spontaneousCurvature = C;
+}
+
 //! Extract the edges of the polydata
 //! assuming that the _polyData has been updated
 void OPSMesh::updateNeighbors(){
@@ -57,7 +63,7 @@ void OPSMesh::compute(){
 	while(_edges->GetNextCell(pts)){
 
 		double_t r, n_dot_rij, exp_1, exp_2,
-			 morseEn, Ker, Phi_n, Phi_c;
+			 morseEn, Ker, Phi_n, Phi_c, theta;
 		Matrix3d M, N;
 		Vector3d vi, p, vj, q, m, n, rij, dMdr, dKdr, dPhi_nVi,
 			 dPhi_nVj, dPhi_cVi, dPhi_cVj, dCdr, Dxi, Dvi, Dvj;
@@ -82,23 +88,19 @@ void OPSMesh::compute(){
 		n = p + q;
 		r = rij.norm();
 		n_dot_rij = n.dot(rij);
-		
+
 		// Evaluate morse derivatives
 		exp_1 = exp( -_a*(r - _re) );
 		exp_2 = exp_1*exp_1;
-		//morseEn = _De*( exp_2 - 2*exp_1 );
-		//dMdr = (2*_De*_a/r)*( exp_1 - exp_2 )*rij;
 		morseEn =  exp_2 - 2*exp_1;
 		dMdr = (2*_a/r)*( exp_1 - exp_2 )*rij;
 
-		// Evaluate kernel derivatives
-		//Ker = (_De/_gamma)*exp( -r*r/2 );
-		//dKdr = (-Ker)*rij;
-
 		//Evaluate co-normality derivatives
-		Phi_n = m.squaredNorm();
-		dPhi_nVi = 2*M*m;
-		dPhi_nVj = -2*N*m;
+		theta = acos( p.dot(q) ); // angle between the two normals
+		//Phi_n = m.squaredNorm(); // = 2*(1 - cos(theta))
+		Phi_n = 2*(1 - cos( theta - _spontaneousCurvature) );
+		dPhi_nVi = 2*M*m/sin(theta)*sin(theta - _spontaneousCurvature);
+		dPhi_nVj = -2*N*m/sin(theta)*sin(theta - _spontaneousCurvature);
 
 		//Evaluate co-circularity derivatives
 		Phi_c = n_dot_rij/r;
@@ -108,7 +110,6 @@ void OPSMesh::compute(){
 		dPhi_cVj = (2*n_dot_rij/(r*r))*N*rij;
 
 		// Calculate the total derivatives of energy wrt xi, vi and vj
-		//Dxi = -(dMdr + Ker*dCdr + dKdr*(Phi_n + _circCoeff*Phi_c ));
 		Dxi = -(dMdr + dCdr/_gamma);
 		Dvi = (dPhi_nVi + _circCoeff*dPhi_cVi )/_gamma;
 		Dvj = (dPhi_nVj + _circCoeff*dPhi_cVj)/_gamma;
