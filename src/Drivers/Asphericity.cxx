@@ -38,7 +38,7 @@ int main(int argc, char* argv[]){
     percentStrain = std::stod( miscInp["percentStrain"] );
     initialSearchRad = std::stod( miscInp["initialSearchRad"] );
     finalSearchRad = std::stod( miscInp["finalSearchRad"] );
-    
+
     s = (100 / (re*percentStrain))*log(2.0);
 
     std::ifstream coolFile("cooling.dat");
@@ -132,6 +132,8 @@ int main(int argc, char* argv[]){
     for(auto i=0; i < N; ++i){
         xpos.col(i) = xpos.col(i)/avgEdgeLen;
     }
+    //Set spontaneous curvature
+    ops.setSpontaneousCurvature( avgEdgeLen/ops.getAverageRadius() );
     ops.setSearchRadius(finalSearchRad);
     ops.updatePolyData();
     ops.updateNeighbors();

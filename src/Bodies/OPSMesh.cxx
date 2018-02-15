@@ -97,7 +97,6 @@ void OPSMesh::compute(){
 
 		//Evaluate co-normality derivatives
 		theta = acos( p.dot(q) ); // angle between the two normals
-		//Phi_n = m.squaredNorm(); // = 2*(1 - cos(theta))
 		Phi_n = 2*(1 - cos( theta - _spontaneousCurvature) );
 		dPhi_nVi = 2*M*m/sin(theta)*sin(theta - _spontaneousCurvature);
 		dPhi_nVj = -2*N*m/sin(theta)*sin(theta - _spontaneousCurvature);
@@ -111,14 +110,14 @@ void OPSMesh::compute(){
 
 		// Calculate the total derivatives of energy wrt xi, vi and vj
 		Dxi = -(dMdr + dCdr/_gamma);
-		Dvi = (dPhi_nVi + _circCoeff*dPhi_cVi )/_gamma;
-		Dvj = (dPhi_nVj + _circCoeff*dPhi_cVj)/_gamma;
+		Dvi = (dPhi_nVi + dPhi_cVi )/_gamma;
+		Dvj = (dPhi_nVj + dPhi_cVj)/_gamma;
 
 		// Update the energies
 		_morseEn += morseEn;
 		_normalEn += Phi_n/_gamma;
-		_circEn += _circCoeff*Phi_c/_gamma;
-		_f += morseEn + (Phi_n + _circCoeff*Phi_c)/_gamma;
+		_circEn += Phi_c/_gamma;
+		_f += morseEn + (Phi_n + Phi_c)/_gamma;
 
 		//Update the derivatives
 		_posGradient.col(i) += Dxi;
