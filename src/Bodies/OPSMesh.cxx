@@ -82,7 +82,7 @@ void OPSMesh::compute(){
 		n = p + q;
 		r = rij.norm();
 		n_dot_rij = n.dot(rij);
-		
+
 		// Evaluate morse derivatives
 		exp_1 = exp( -_a*(r - _re) );
 		exp_2 = exp_1*exp_1;

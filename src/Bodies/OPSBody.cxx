@@ -208,7 +208,7 @@ double_t OPSBody::getAverageEdgeLength(){
 }
 
 //!Compute the OPSBody energy
-void OPSBody::compute(){    
+void OPSBody::compute(){
 
     // Initialize energies and forces to be zero
     _morseEn = 0.0;
