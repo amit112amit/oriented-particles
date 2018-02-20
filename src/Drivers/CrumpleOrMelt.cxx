@@ -73,17 +73,17 @@ int main(int argc, char* argv[]){
 	}
 
 	// Determine the input file format from the following code
-	std::ifstream coolFile("cooling.dat");
+	std::ifstream coolFile("schedule.dat");
 	assert(coolFile);
 	std::vector<std::vector<double_t> > coolVec;
-	double_t currGamma, currPercentStrain, currArea, currPrintStep, 
+	double_t currGamma, currPercentStrain, currArea, currPrintStep,
 		 currAlpha, currBetaStart, currBetaIncr;
 
 	std::string headerline;
 	std::getline(coolFile, headerline);
 
-	while (coolFile >> currGamma >> currPercentStrain >> currArea 
-			>> currAlpha >> currBetaStart >> currBetaIncr 
+	while (coolFile >> currGamma >> currPercentStrain >> currArea
+			>> currAlpha >> currBetaStart >> currBetaIncr
 			>> currPrintStep ) {
 		std::vector<double> currLine;
 		currLine.push_back(currGamma);

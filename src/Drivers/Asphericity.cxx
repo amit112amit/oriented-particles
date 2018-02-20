@@ -41,7 +41,7 @@ int main(int argc, char* argv[]){
 
     s = (100 / (re*percentStrain))*log(2.0);
 
-    std::ifstream coolFile("cooling.dat");
+    std::ifstream coolFile("schedule.dat");
     assert(coolFile);
     std::vector<double_t> coolVec;
     double_t currGamma;
