@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <stdio.h>
 #include <string>
 #include <vector>
@@ -27,6 +28,10 @@ int main(int argc, char* argv[]){
 
     // ***************** Read Input VTK File *****************//
     std::string inputFileName = argv[1];
+    std::stringstream taskId;
+    std::stringstream sstm;
+    taskId << std::getenv("SGE_TASK_ID");
+    std::cout << "SGE_TASK_ID = " << taskId.str() << std::endl;
 
     auto reader = vtkSmartPointer<vtkPolyDataReader>::New();
     vtkSmartPointer<vtkPolyData> mesh;
@@ -86,7 +91,12 @@ int main(int argc, char* argv[]){
 
     // Input file should contain the following columns
     // Alpha Beta Gamma PercentStrain AreaConstraint NumIterations PrintStep
-    std::ifstream coolFile("cooling.dat");
+    sstm << "schedule-" << taskId.str() << ".dat";
+    const std::string& tmp = sstm.str();
+    const char* cstr = tmp.c_str();
+    sstm.str("");
+    sstm.clear();
+    std::ifstream coolFile(cstr);
     assert(coolFile);
     std::vector<std::vector<double_t> > coolVec;
     double_t currAlpha, currBeta, currGamma, currPercentStrain,
@@ -206,12 +216,11 @@ int main(int argc, char* argv[]){
     // ***************** Prepare Output Data files *********************//
     // Identify the Input structure name
     std::string fname = baseFileName;
-    std::stringstream sstm;
     std::string dataOutputFile;
 
     // Detailed output data file
     ofstream detailedOP;
-    sstm << fname << "-DetailedOutput.dat";
+    sstm << fname << "-DetailedOutput-" << taskId.str() << ".dat";
     dataOutputFile = sstm.str();
     sstm.str("");
     sstm.clear();
@@ -238,7 +247,7 @@ int main(int argc, char* argv[]){
     // Create the output file for average data
     ofstream outerLoopFile;
     if( printAvgShapeData ){
-	sstm << fname << "-AverageOutput.dat";
+	sstm << fname << "-AverageOutput-" << taskId.str() << ".dat";
 	dataOutputFile = sstm.str();
 	sstm.str("");
 	sstm.clear();
