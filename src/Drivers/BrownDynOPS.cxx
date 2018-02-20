@@ -416,8 +416,8 @@ int main(int argc, char* argv[]){
 	    //********** Print relaxed configuration ************//
 	    //We will print only after every currPrintStep iterations
 	    if (viter % printStep == 0 && printStep <= viterMax) {
-		sstm << fname << "-relaxed-" << nameSuffix++
-		    <<".vtk";
+		sstm << fname << "-" << taskId.str() << "-relaxed-"
+		    << nameSuffix++ <<".vtk";
 		std::string rName = sstm.str();
 		ops.printVTKFile(rName);
 		sstm.str("");
