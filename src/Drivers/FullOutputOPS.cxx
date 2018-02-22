@@ -144,7 +144,7 @@ int main(int argc, char* argv[]){
 
 	// Input file should contain the following columns
 	// Alpha Beta Gamma PercentStrain AreaConstraint NumIterations PrintStep
-	std::ifstream coolFile("cooling.dat");
+	std::ifstream coolFile("schedule.dat");
 	assert(coolFile);
 	std::vector<std::vector<double_t> > coolVec;
 	double_t currAlpha, currBeta, currGamma, currPercentStrain,

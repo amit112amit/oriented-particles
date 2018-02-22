@@ -73,7 +73,7 @@ int main(int argc, char* argv[]){
 	}
 
 	// Determine the input file format from the following code
-	std::ifstream coolFile("cooling.dat");
+	std::ifstream coolFile("schedule.dat");
 	assert(coolFile);
 	std::vector<std::vector<double_t> > coolVec;
 	double_t currGamma, currPercentStrain, currArea, currPrintStep, 
