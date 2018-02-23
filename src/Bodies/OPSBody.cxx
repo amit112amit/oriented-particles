@@ -90,9 +90,10 @@ void OPSBody::updatePolyData() {
     vtkSmartPointer<vtkCellArray> interim;
     vtkSmartPointer<vtkIdTypeArray> origIds;
     auto pointIds = vtkSmartPointer<vtkIdList>::New();
+    double_t R = getAverageRadius();
 
     for(auto i=0; i < _N; i++){
-        Vector3d x = _positions.col(i).normalized();
+        Vector3d x = 2*R*_positions.col(i).normalized();
         //We are rounding off to 2 decimals as a hack to aid vtkDelaunay3D
         //Otherwise sometimes we don't get a convex hull
         x[0] = std::round( x[0]*100 )/100;
