@@ -57,7 +57,7 @@ void OPSMesh::compute(){
 	_edges->InitTraversal();
 	while(_edges->GetNextCell(pts)){
 
-		double_t r, r2, n_dot_rn, exp_1, exp_2, p_dot_rn,
+		double_t r, n_dot_rn, exp_1, exp_2, p_dot_rn,
 			 morseEn, Ker, Phi_n, Phi_c, Phi_p, theta;
 		Matrix3d M, N;
 		Vector3d vi, p, vj, q, m, n, rij, rn, dMdr, dPhi_nVi, dPhi_nVj,
@@ -84,7 +84,6 @@ void OPSMesh::compute(){
 		m = p - q;
 		n = p + q;
 		r = rij.norm();
-		r2 = r*r;
 		n_dot_rn = n.dot(rn);
 		p_dot_rn = p.dot(rn);
 
@@ -100,7 +99,7 @@ void OPSMesh::compute(){
 		dPhi_pVi = 2*p_dot_rn*M*rn;
 
 		//Evaluate co-normality derivatives
-		Phi_n = (p - q).squaredNorm();
+		Phi_n = m.squaredNorm();
 		dPhi_nVi = 2*M*m;
 		dPhi_nVj = -2*N*m;
 
