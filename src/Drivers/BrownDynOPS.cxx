@@ -229,6 +229,7 @@ int main(int argc, char* argv[]){
 	    << "MorseEn"  <<"\t"
 	    << "NormEn"  <<"\t"
 	    << "CircEn"  <<"\t"
+	    << "PlanEn" << "\t"
 	    << "BrownEn"  <<"\t"
 	    << "ViscoEn"  <<"\t"
 	    << "MSD"
@@ -294,9 +295,6 @@ int main(int argc, char* argv[]){
 	std::cout << "After renormalizing, Avg Edge Length = "
 	    << avgEdgeLen << std::endl;
 
-    // Calculate and set the spontaneous curvature
-    double_t C0 = avgEdgeLen/ops.getAverageRadius();
-    ops.setSpontaneousCurvature( C0 );
     // ******************************************************************//
 
     t3 = clock();
@@ -447,6 +445,7 @@ int main(int argc, char* argv[]){
 		<< ops.getMorseEnergy() << "\t"
 		<< ops.getNormalityEnergy() << "\t"
 		<< ops.getCircularityEnergy() << "\t"
+		<< ops.getPlanarityEnergy() << "\t"
 		<< brown.getBrownianEnergy() << "\t"
 		<< visco.getViscosityEnergy() << "\t"
 		<< ops.getMeanSquaredDisplacement()

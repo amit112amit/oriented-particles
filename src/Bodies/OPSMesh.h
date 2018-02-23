@@ -19,12 +19,9 @@ class OPSMesh : public OPSBody{
 		void getNormals(Matrix3Xd &in);
 		void compute();
 		void updateNeighbors();
-		void setSpontaneousCurvature(double_t);
 	private:
 		vtkSmartPointer<vtkPolyData> _edgePoly;
 		vtkSmartPointer<vtkCellArray> _edges;
-		bool _spontaneousCurvatureOn = false;
-		double_t _spontaneousCurvature = 0.0;
 		size_t _numBonds;
 };
 //***************************************************************************//

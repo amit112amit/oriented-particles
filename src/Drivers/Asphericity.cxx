@@ -13,8 +13,8 @@ int main(int argc, char* argv[]){
     t1 = clock();
 
     if (argc != 2) {
-        cout << "usage: " << argv[0] << " <filename>\n";
-        return -1;
+	cout << "usage: " << argv[0] << " <filename>\n";
+	return -1;
     }
     // ***************** Read Input VTK File *****************//
     std::string inputFileName = argv[1];
@@ -47,7 +47,7 @@ int main(int argc, char* argv[]){
     double_t currGamma;
 
     while (coolFile >> currGamma) {
-        coolVec.push_back(currGamma);
+	coolVec.push_back(currGamma);
     }
     coolFile.close();
 
@@ -60,9 +60,9 @@ int main(int argc, char* argv[]){
     // Generate Rotation Vectors from input point coordinates
     Eigen::Matrix3Xd coords(3,N);
     for(auto i = 0; i < N; ++i){
-        Eigen::Vector3d cp = Eigen::Vector3d::Zero();
-        mesh->GetPoint(i, &(cp(0)));
-        coords.col(i) = cp;
+	Eigen::Vector3d cp = Eigen::Vector3d::Zero();
+	mesh->GetPoint(i, &(cp(0)));
+	coords.col(i) = cp;
     }
     Eigen::Matrix3Xd rotVecs(3,N);
     OPSBody::initialRotationVector(coords, rotVecs);
@@ -104,16 +104,17 @@ int main(int argc, char* argv[]){
     ofstream outputFile;
     outputFile.open(outputFileName.c_str());
     outputFile << "#Step" << "\t"
-               << "Gamma" << "\t"
-               << "Asphericity" << "\t"
-               << "Radius" << "\t"
-               << "Volume" << "\t"
-               << "Area" << "\t"
-               << "MorseEnergy" << "\t"
-               << "NormalityEn" << "\t"
-               << "CircularityEn" << "\t"
-               << "TotalOPSEnergy"
-               << std::endl;
+	<< "Gamma" << "\t"
+	<< "Asphericity" << "\t"
+	<< "Radius" << "\t"
+	<< "Volume" << "\t"
+	<< "Area" << "\t"
+	<< "MorseEnergy" << "\t"
+	<< "NormalityEn" << "\t"
+	<< "CircularityEn" << "\t"
+	<< "PlanarityEn" << "\t"
+	<< "TotalOPSEnergy"
+	<< std::endl;
     // ******************************************************************//
 
     // ************************* Create Solver ************************  //
@@ -130,10 +131,8 @@ int main(int argc, char* argv[]){
 
     // Renormalize positions such that avgEdgeLen = 1.0
     for(auto i=0; i < N; ++i){
-        xpos.col(i) = xpos.col(i)/avgEdgeLen;
+	xpos.col(i) = xpos.col(i)/avgEdgeLen;
     }
-    //Set spontaneous curvature
-    ops.setSpontaneousCurvature( avgEdgeLen/ops.getAverageRadius() );
     ops.setSearchRadius(finalSearchRad);
     ops.updatePolyData();
     ops.updateNeighbors();
@@ -143,34 +142,35 @@ int main(int argc, char* argv[]){
     // ************************ SOLUTION LOOP **********************//
     int step=0;
     for(auto gamma : coolVec){
-        std::cout<<"Iteration number = "<< step << std::endl;
+	std::cout<<"Iteration number = "<< step << std::endl;
 
-        // Update OPS params
-        ops.setFVK(gamma);
+	// Update OPS params
+	ops.setFVK(gamma);
 
-        // Solve the unconstrained minimization
-        solver.solve();
+	// Solve the unconstrained minimization
+	solver.solve();
 
-        //Update polyData
-        ops.updatePolyData();
+	//Update polyData
+	ops.updatePolyData();
 
-        outputFile << step << "\t"
-                   << gamma << "\t"
-                   << ops.getAsphericity() << "\t"
-                   << ops.getAverageRadius() << "\t"
-                   << ops.getVolume() << "\t"
-                   << ops.getArea() << "\t"
-                   << ops.getMorseEnergy() << "\t"
-                   << ops.getNormalityEnergy() << "\t"
-                   << ops.getCircularityEnergy() << "\t"
-                   << f << std::endl;
+	outputFile << step << "\t"
+	    << gamma << "\t"
+	    << ops.getAsphericity() << "\t"
+	    << ops.getAverageRadius() << "\t"
+	    << ops.getVolume() << "\t"
+	    << ops.getArea() << "\t"
+	    << ops.getMorseEnergy() << "\t"
+	    << ops.getNormalityEnergy() << "\t"
+	    << ops.getCircularityEnergy() << "\t"
+	    << ops.getPlanarityEnergy() << "\t"
+	    << f << std::endl;
 
-        //********** Print relaxed configuration ************//
-        sstm << fname << "-relaxed-" << step++ <<".vtk";
-        std::string rName = sstm.str();
-        ops.printVTKFile(rName);
-        sstm.str("");
-        sstm.clear();
+	//********** Print relaxed configuration ************//
+	sstm << fname << "-relaxed-" << step++ <<".vtk";
+	std::string rName = sstm.str();
+	ops.printVTKFile(rName);
+	sstm.str("");
+	sstm.clear();
     }
     // *****************************************************************************//
     t3 = clock() - t3;
@@ -180,6 +180,6 @@ int main(int argc, char* argv[]){
     t2 = clock();
     float diff((float)t2 - (float)t1);
     std::cout << "Solution loop execution time: " << diff / CLOCKS_PER_SEC
-              << " seconds" << std::endl;
+	<< " seconds" << std::endl;
     return 1;
 }

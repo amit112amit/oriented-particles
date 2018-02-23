@@ -9,12 +9,6 @@ OPSMesh::OPSMesh(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
 	_numBonds = (int)((12*5 + (n-12)*6)/2);
 }
 
-//! Turn on spontaneous curvature and set its value
-void OPSMesh::setSpontaneousCurvature( double_t C ){
-    _spontaneousCurvatureOn = true;
-    _spontaneousCurvature = C;
-}
-
 //! Extract the edges of the polydata
 //! assuming that the _polyData has been updated
 void OPSMesh::updateNeighbors(){
@@ -55,6 +49,7 @@ void OPSMesh::compute(){
 	_morseEn = 0.0;
 	_normalEn = 0.0;
 	_circEn = 0.0;
+	_planarEn = 0.0;
 
 	computeNormals();
 	diffNormalRotVec();
@@ -62,11 +57,12 @@ void OPSMesh::compute(){
 	_edges->InitTraversal();
 	while(_edges->GetNextCell(pts)){
 
-		double_t r, n_dot_rij, exp_1, exp_2,
-			 morseEn, Ker, Phi_n, Phi_c, theta;
+		double_t r, r2, n_dot_rn, exp_1, exp_2, p_dot_rn,
+			 morseEn, Ker, Phi_n, Phi_c, Phi_p, theta;
 		Matrix3d M, N;
-		Vector3d vi, p, vj, q, m, n, rij, dMdr, dKdr, dPhi_nVi,
-			 dPhi_nVj, dPhi_cVi, dPhi_cVj, dCdr, Dxi, Dvi, Dvj;
+		Vector3d vi, p, vj, q, m, n, rij, rn, dMdr, dPhi_nVi, dPhi_nVj,
+			 dPhi_cVi, dPhi_cVj, dCdr, Dxi, Dvi, Dvj, dPdr,
+			 dPhi_pVi, dPhi_pVj;
 		Vector3d xi = Vector3d::Zero();
 		Vector3d xj = Vector3d::Zero();
 		vtkIdType i,j;
@@ -84,10 +80,13 @@ void OPSMesh::compute(){
 		N = _diffNormalRV[j];
 
 		rij = xj - xi;
+		rn = rij.normalized();
 		m = p - q;
 		n = p + q;
 		r = rij.norm();
-		n_dot_rij = n.dot(rij);
+		r2 = r*r;
+		n_dot_rn = n.dot(rn);
+		p_dot_rn = p.dot(rn);
 
 		// Evaluate morse derivatives
 		exp_1 = exp( -_a*(r - _re) );
@@ -95,29 +94,33 @@ void OPSMesh::compute(){
 		morseEn =  exp_2 - 2*exp_1;
 		dMdr = (2*_a/r)*( exp_1 - exp_2 )*rij;
 
+		//Evaluate co-planarity derivatives
+		Phi_p = p_dot_rn*p_dot_rn;
+		dPdr = 2*(p_dot_rn/r)*(p - p_dot_rn*rn);
+		dPhi_pVi = 2*p_dot_rn*M*rn;
+
 		//Evaluate co-normality derivatives
-		theta = acos( p.dot(q) ); // angle between the two normals
-		Phi_n = 2*(1 - cos( theta - _spontaneousCurvature) );
-		dPhi_nVi = 2*M*m/sin(theta)*sin(theta - _spontaneousCurvature);
-		dPhi_nVj = -2*N*m/sin(theta)*sin(theta - _spontaneousCurvature);
+		Phi_n = (p - q).squaredNorm();
+		dPhi_nVi = 2*M*m;
+		dPhi_nVj = -2*N*m;
 
 		//Evaluate co-circularity derivatives
-		Phi_c = n_dot_rij/r;
-		Phi_c *= Phi_c;
-		dCdr = (2*n_dot_rij/(r*r*r*r))*( r*r*n - n_dot_rij*rij );
-		dPhi_cVi = (2*n_dot_rij/(r*r))*M*rij;
-		dPhi_cVj = (2*n_dot_rij/(r*r))*N*rij;
+		Phi_c = n_dot_rn*n_dot_rn;
+		dCdr = (2*n_dot_rn/r)*( n - n_dot_rn*rn );
+		dPhi_cVi = (2*n_dot_rn)*M*rn;
+		dPhi_cVj = (2*n_dot_rn)*N*rn;
 
 		// Calculate the total derivatives of energy wrt xi, vi and vj
-		Dxi = -(dMdr + dCdr/_gamma);
-		Dvi = (dPhi_nVi + dPhi_cVi )/_gamma;
-		Dvj = (dPhi_nVj + dPhi_cVj)/_gamma;
+		Dxi = -( dMdr + ( dCdr + dPdr )/_gamma );
+		Dvi = ( dPhi_nVi + dPhi_cVi + dPhi_pVi )/_gamma;
+		Dvj = ( dPhi_nVj + dPhi_cVj )/_gamma;
 
 		// Update the energies
 		_morseEn += morseEn;
 		_normalEn += Phi_n/_gamma;
 		_circEn += Phi_c/_gamma;
-		_f += morseEn + (Phi_n + Phi_c)/_gamma;
+		_planarEn += Phi_p/_gamma;
+		_f += morseEn + (Phi_n + Phi_c + Phi_p)/_gamma;
 
 		//Update the derivatives
 		_posGradient.col(i) += Dxi;

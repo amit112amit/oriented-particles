@@ -215,6 +215,7 @@ namespace OPS{
 	_morseEn = 0.0;
 	_normalEn = 0.0;
 	_circEn = 0.0;
+	_planarEn = 0.0;
 
 	computeNormals();
 	diffNormalRotVec();
