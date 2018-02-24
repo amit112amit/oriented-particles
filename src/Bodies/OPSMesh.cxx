@@ -56,10 +56,10 @@ void OPSMesh::compute(){
 	_edges->InitTraversal();
 	while(_edges->GetNextCell(pts)){
 
-		double_t r, n_dot_rij, exp_1, exp_2,
+		double_t r, n_dot_rn, exp_1, exp_2,
 			 morseEn, Ker, Phi_n, Phi_c;
 		Matrix3d M, N;
-		Vector3d vi, p, vj, q, m, n, rij, dMdr, dKdr, dPhi_nVi,
+		Vector3d vi, p, vj, q, m, n, rij, rn, dMdr, dKdr, dPhi_nVi,
 			 dPhi_nVj, dPhi_cVi, dPhi_cVj, dCdr, Dxi, Dvi, Dvj;
 		Vector3d xi = Vector3d::Zero();
 		Vector3d xj = Vector3d::Zero();
@@ -78,10 +78,11 @@ void OPSMesh::compute(){
 		N = _diffNormalRV[j];
 
 		rij = xj - xi;
+		rn = rij.normalized();
 		m = p - q;
 		n = p + q;
 		r = rij.norm();
-		n_dot_rij = n.dot(rij);
+		n_dot_rn = n.dot(rn);
 
 		// Evaluate morse derivatives
 		exp_1 = exp( -_a*(r - _re) );
@@ -95,11 +96,10 @@ void OPSMesh::compute(){
 		dPhi_nVj = -2*N*m;
 
 		//Evaluate co-circularity derivatives
-		Phi_c = n_dot_rij/r;
-		Phi_c *= Phi_c;
-		dCdr = (2*n_dot_rij/(r*r*r*r))*( r*r*n - n_dot_rij*rij );
-		dPhi_cVi = (2*n_dot_rij/(r*r))*M*rij;
-		dPhi_cVj = (2*n_dot_rij/(r*r))*N*rij;
+		Phi_c = n_dot_rn*n_dot_rn;
+		dCdr = (2*n_dot_rn/r)*( n - n_dot_rn*rn );
+		dPhi_cVi = (2*n_dot_rn)*M*rn;
+		dPhi_cVj = (2*n_dot_rn)*N*rn;
 
 		// Calculate the total derivatives of energy wrt xi, vi and vj
 		Dxi = -(dMdr + dCdr/_gamma);
