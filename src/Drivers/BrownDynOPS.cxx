@@ -292,9 +292,6 @@ int main(int argc, char* argv[]){
 	visco.setViscosity(viscosity);
 
 	//**************  INNER SOLUTION LOOP ******************//
-	Eigen::Matrix3Xd averagePosition( 3, N );
-	averagePosition = Eigen::Matrix3Xd::Zero(3,N);
-
 	// Average energy across time steps
 	double_t avgTotalEnergy = 0.0;
 
@@ -350,9 +347,6 @@ int main(int argc, char* argv[]){
 	    //Update kdTree, polyData and neighbors
 	    ops.updatePolyData();
 	    ops.updateNeighbors();
-
-	    // Add current solution to average position data
-	    averagePosition += xpos;
 
 	    //********** Print relaxed configuration ************//
 	    //We will print only after every currPrintStep iterations
