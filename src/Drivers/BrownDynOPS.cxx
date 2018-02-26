@@ -410,7 +410,6 @@ int main(int argc, char* argv[]){
     // **********************************************************************//
 
     detailedOP.close();
-    outerLoopFile.close();
     t2 = clock();
     float diff((float)t2 - (float)t1);
     std::cout << "Solution loop execution time: " << diff / CLOCKS_PER_SEC

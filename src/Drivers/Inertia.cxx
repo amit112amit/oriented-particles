@@ -11,6 +11,8 @@
 #include "ViscosityBody.h"
 
 using namespace OPS;
+typedef Eigen::Matrix3d Matrix3d;
+typedef Eigen::Vector3d Vector3d;
 
 int main(int argc, char* argv[]){
     clock_t t1, t2, t3;
@@ -239,6 +241,9 @@ int main(int argc, char* argv[]){
 	    << avgEdgeLen << std::endl;
     // ******************************************************************//
 
+    //Create an eigenvalue solver for inertia tensor
+    Eigen::SelfAdjointEigenSolver< Matrix3d > saes;
+
     t3 = clock();
     // ************************ OUTER SOLUTION LOOP **********************//
     size_t printStep;
@@ -281,9 +286,6 @@ int main(int argc, char* argv[]){
 	visco.setViscosity(viscosity);
 
 	//**************  INNER SOLUTION LOOP ******************//
-	Eigen::Matrix3Xd averagePosition( 3, N );
-	averagePosition = Eigen::Matrix3Xd::Zero(3,N);
-
 	// Average energy across time steps
 	double_t avgTotalEnergy = 0.0;
 
@@ -340,9 +342,6 @@ int main(int argc, char* argv[]){
 	    ops.updatePolyData();
 	    ops.updateNeighbors();
 
-	    // Add current solution to average position data
-	    averagePosition += xpos;
-
 	    //********** Print relaxed configuration ************//
 	    //We will print only after every currPrintStep iterations
 	    if (viter % printStep == 0 && printStep <= viterMax) {
@@ -354,6 +353,22 @@ int main(int argc, char* argv[]){
 		sstm.clear();
 	    }
 
+	    // Calculate the inertia tensor and its eigenvalues
+	    Matrix3d M = Matrix3d::Zero();
+	    for( auto ptId = 0; ptId < N; ++ptId ){
+		Vector3d xk = xpos.col(ptId);
+		M += xk.dot(xk)*Matrix3d::Identity() - xk*xk.transpose();
+	    }
+	    std::cout<< "Inertia tensor = "<< M << std::endl;
+	    // Now calculate the eigen values
+	    saes.compute( M );
+	    Vector3d eigV = saes.eigenvalues();
+	    std::cout<< " Eigen values of M are " << eigV << std::endl;
+
+	    //Calculate the ratio of second largest to largest
+	    double_t I2I1 = eigV[2]/eigV[1];
+
+	    // Write output to data file
 	    detailedOP
 		<< beta << "\t"
 		<< ops.getAsphericity() << "\t"
@@ -363,7 +378,8 @@ int main(int argc, char* argv[]){
 		<< ops.getCircularityEnergy() << "\t"
 		<< brown.getBrownianEnergy() << "\t"
 		<< visco.getViscosityEnergy() << "\t"
-		<< ops.getMeanSquaredDisplacement()
+		<< ops.getMeanSquaredDisplacement() << "\t"
+		<< I2I1
 		<< std::endl;
 
 	    // Update prevX
@@ -378,10 +394,8 @@ int main(int argc, char* argv[]){
 	//************************************************//
 
     }
-    // *****************************************************************************//
-
+    // **********************************************************************//
     detailedOP.close();
-    outerLoopFile.close();
     t2 = clock();
     float diff((float)t2 - (float)t1);
     std::cout << "Solution loop execution time: " << diff / CLOCKS_PER_SEC
