@@ -22,8 +22,6 @@ int main(int argc, char* argv[]){
 
     //******************** Optional parameters ********************//
     bool loggingOn = false;
-    bool spikePrintOn = false;
-    bool printAvgShapeData = false;
 
     // ***************** Read Input VTK File *****************//
     std::string inputFileName = argv[1];
@@ -235,28 +233,6 @@ int main(int argc, char* argv[]){
 	    << std::endl;
     }
 
-    // Create the output file for average data
-    ofstream outerLoopFile;
-    if( printAvgShapeData ){
-	sstm << fname << "-AverageOutput.dat";
-	dataOutputFile = sstm.str();
-	sstm.str("");
-	sstm.clear();
-	outerLoopFile.open(dataOutputFile.c_str(), std::ofstream::out |
-		std::ofstream::app);
-	if( !continueFlag ){
-	    outerLoopFile << "#BigStep" <<"\t"
-		<< "PercentStrain" <<"\t"
-		<< "Alpha" << "\t"
-		<< "Beta" << "\t"
-		<< "Gamma" << "\t"
-		<< "PercentStrain" << "\t"
-		<< "Radius"  <<"\t"
-		<< "Asphericity"
-		<< std::endl;
-	}
-    }
-
     // ************************* Create Solver ************************  //
     size_t m = 5, iprint = 1000, maxIter = 1e5;
     double_t factr = 10.0, pgtol = 1e-8;
@@ -393,17 +369,6 @@ int main(int argc, char* argv[]){
 	    // Add current solution to average position data
 	    averagePosition += xpos;
 
-	    // Calculate statistics about average displacement and
-	    // largest displacement
-	    double_t avgDisplacement, maxDisplacement;
-	    Eigen::Matrix3Xd posDiff = xpos - prevPos;
-	    avgDisplacement = posDiff.colwise().norm().sum()/N;
-	    maxDisplacement = posDiff.colwise().norm().maxCoeff();
-	    Eigen::Matrix3Xd normDiff(3,numBonds);
-	    ops.getDiffNormals(normDiff);
-	    Eigen::Matrix3Xd normals(3,numBonds);
-	    ops.getNormals(normals);
-
 	    //********** Print relaxed configuration ************//
 	    //We will print only after every currPrintStep iterations
 	    if (viter % printStep == 0 && printStep <= viterMax) {
@@ -414,18 +379,8 @@ int main(int argc, char* argv[]){
 		sstm.str("");
 		sstm.clear();
 	    }
-	    // Print VTK file if there is an abrupt change in energy
-	    if( spikePrintOn ){
-		if ( std::abs( avgTotalEnergy ) > 0 &&
-			std::abs((f - avgTotalEnergy)/avgTotalEnergy) > 3){
-		    sstm << fname << "-Spike-" << step <<".vtk";
-		    std::string rName = sstm.str();
-		    ops.printVTKFile(rName);
-		    sstm.str("");
-		    sstm.clear();
-		}
-	    }
 
+	    // Write output to data file
 	    detailedOP << step << "\t"
 		<< alpha << "\t"
 		<< beta << "\t"
@@ -451,46 +406,8 @@ int main(int argc, char* argv[]){
 	    }
 	    step++;
 	}
-	//************************************************//
-
-	if( printAvgShapeData ){
-	    // Calculate the average particle positions and avg radius
-	    double avgShapeRad = 0.0, avgShapeAsph = 0.0;
-	    auto avgPos = vtkSmartPointer<vtkPoints>::New();
-	    auto avgPosData = vtkSmartPointer<vtkDoubleArray>::New();
-	    averagePosition = averagePosition / viterMax;
-	    avgShapeRad = averagePosition.colwise().norm().sum()/N;
-	    void *avgPosPtr = (void*)averagePosition.data();
-	    avgPosData->SetVoidArray(avgPosPtr,3*N,1);
-	    avgPosData->SetNumberOfComponents(3);
-	    avgPos->SetData(avgPosData);
-
-	    sstm << fname << "-AvgShape-"<< z << ".vtk";
-	    dataOutputFile = sstm.str();
-	    sstm.str("");
-	    sstm.clear();
-
-	    // Print the average shape
-	    delaunay3DSurf(avgPos, dataOutputFile);
-
-	    // Calculate the asphericity of the average shape
-	    Eigen::RowVectorXd R(N);
-	    R = averagePosition.colwise().norm();
-	    avgShapeAsph += ((R.array() - avgShapeRad).square()).sum();
-	    avgShapeAsph /= (N*avgShapeRad*avgShapeRad);
-
-	    outerLoopFile << z <<"\t"
-		<< percentStrain << "\t"
-		<< alpha << "\t"
-		<< beta << "\t"
-		<< gamma << "\t"
-		<< percentStrain << "\t"
-		<< avgShapeRad  << "\t"
-		<< avgShapeAsph
-		<< std::endl;
-	}
     }
-    // *****************************************************************************//
+    // **********************************************************************//
 
     detailedOP.close();
     outerLoopFile.close();
