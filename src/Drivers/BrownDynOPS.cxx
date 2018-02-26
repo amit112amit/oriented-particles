@@ -23,8 +23,6 @@ int main(int argc, char* argv[]){
 
     //******************** Optional parameters ********************//
     bool loggingOn = false;
-    bool spikePrintOn = false;
-    bool printAvgShapeData = false;
 
     // ***************** Read Input VTK File *****************//
     std::string inputFileName = argv[1];
@@ -44,9 +42,6 @@ int main(int argc, char* argv[]){
 
     // ******************* Read Simulation Parameters *********//
 
-    // This flag determines if its a new simulation or a continuation
-    bool continueFlag = false;
-
     double_t re=1.0, s=7.0;
     double_t alpha=1.0, beta=1.0, gamma=1.0;
     double_t percentStrain = 15;
@@ -60,7 +55,6 @@ int main(int argc, char* argv[]){
     InputParameters miscInp = OPS::readKeyValueInput( "miscInp.dat" );
     re = std::stod( miscInp["re"] );
     constraintType = miscInp["constraintType"];
-    continueFlag = std::stoi( miscInp["continueFlag"] );
     baseFileName = miscInp["baseFileName"];
     step = std::stoi( miscInp["step"] );
     nameSuffix = std::stoi( miscInp["nameSuffix"] );
@@ -135,26 +129,10 @@ int main(int argc, char* argv[]){
 	coords.col(i) = cp;
     }
 
-    // Generate initial rotation vectors either from input point normals or
-    // from starting point coordinates depending on continueFlag
+    // Generate initial rotation vectors either from starting position
     Eigen::Matrix3Xd rotVecs(3,N);
-    if( continueFlag ){
-	// Read normals from input file
-	Eigen::Matrix3Xd normals(3,N);
-	vtkSmartPointer< vtkDoubleArray > normalsArr =
-	    vtkDoubleArray::FastDownCast(mesh->GetPointData()->GetNormals());
-	normalsArr->vtkAbstractArray::SetNumberOfComponents( 3 );
-	for(auto i = 0; i < N; ++i){
-	    Eigen::Vector3d cp = Eigen::Vector3d::Zero();
-	    normalsArr->GetTuple(i, &(cp(0)));
-	    normals.col(i) = cp;
-	}
-	OPSBody::initialRotationVector(normals, rotVecs);
-    }
-    else{
-	// Generate rotation vectors from input point coordinates
-	OPSBody::initialRotationVector(coords, rotVecs);
-    }
+    // Generate rotation vectors from input point coordinates
+    OPSBody::initialRotationVector(coords, rotVecs);
 
     // Prepare memory for energy, force
     double_t f;
@@ -226,45 +204,21 @@ int main(int argc, char* argv[]){
     sstm.clear();
     detailedOP.open(dataOutputFile.c_str(), std::ofstream::out |
 	    std::ofstream::app);
-    if( !continueFlag ){
-	detailedOP << "#Step" <<"\t"
-	    << "Alpha" << "\t"
-	    << "Beta" << "\t"
-	    << "Gamma" << "\t"
-	    << "Asphericity" << "\t"
-	    << "Radius"  <<"\t"
-	    << "Volume"  <<"\t"
-	    << "Area"  <<"\t"
-	    << "MorseEn"  <<"\t"
-	    << "NormEn"  <<"\t"
-	    << "CircEn"  <<"\t"
-	    << "BrownEn"  <<"\t"
-	    << "ViscoEn"  <<"\t"
-	    << "MSD"
-	    << std::endl;
-    }
-
-    // Create the output file for average data
-    ofstream outerLoopFile;
-    if( printAvgShapeData ){
-	sstm << fname << "-AverageOutput-" << taskId.str() << ".dat";
-	dataOutputFile = sstm.str();
-	sstm.str("");
-	sstm.clear();
-	outerLoopFile.open(dataOutputFile.c_str(), std::ofstream::out |
-		std::ofstream::app);
-	if( !continueFlag ){
-	    outerLoopFile << "#BigStep" <<"\t"
-		<< "PercentStrain" <<"\t"
-		<< "Alpha" << "\t"
-		<< "Beta" << "\t"
-		<< "Gamma" << "\t"
-		<< "PercentStrain" << "\t"
-		<< "Radius"  <<"\t"
-		<< "Asphericity"
-		<< std::endl;
-	}
-    }
+    detailedOP << "#Step" <<"\t"
+	<< "Alpha" << "\t"
+	<< "Beta" << "\t"
+	<< "Gamma" << "\t"
+	<< "Asphericity" << "\t"
+	<< "Radius"  <<"\t"
+	<< "Volume"  <<"\t"
+	<< "Area"  <<"\t"
+	<< "MorseEn"  <<"\t"
+	<< "NormEn"  <<"\t"
+	<< "CircEn"  <<"\t"
+	<< "BrownEn"  <<"\t"
+	<< "ViscoEn"  <<"\t"
+	<< "MSD"
+	<< std::endl;
 
     // ************************* Create Solver ************************  //
     size_t m = 5, iprint = 1000, maxIter = 1e5;
@@ -281,11 +235,9 @@ int main(int argc, char* argv[]){
 	std::cout << "Initial Avg Edge Length = " << avgEdgeLen
 	    << std::endl;
     }
-    if( !continueFlag ){
-	// Renormalize positions such that avgEdgeLen = 1.0
-	for(auto i=0; i < N; ++i){
-	    xpos.col(i) = xpos.col(i)/avgEdgeLen;
-	}
+    // Renormalize positions such that avgEdgeLen = 1.0
+    for(auto i=0; i < N; ++i){
+	xpos.col(i) = xpos.col(i)/avgEdgeLen;
     }
 
     // Update the OPSBody member variables as per new positions
@@ -319,7 +271,7 @@ int main(int argc, char* argv[]){
 	constraint->setConstraint(constrainedVal);
 
 	// For the very first iteration solve at zero temperature first
-	if( z == 0 && !continueFlag){
+	if( z == 0 ){
 	    brown.setCoefficient(0.0);
 	    visco.setViscosity(0.0);
 	    solver.solve();
@@ -402,17 +354,6 @@ int main(int argc, char* argv[]){
 	    // Add current solution to average position data
 	    averagePosition += xpos;
 
-	    // Calculate statistics about average displacement and
-	    // largest displacement
-	    double_t avgDisplacement, maxDisplacement;
-	    Eigen::Matrix3Xd posDiff = xpos - prevPos;
-	    avgDisplacement = posDiff.colwise().norm().sum()/N;
-	    maxDisplacement = posDiff.colwise().norm().maxCoeff();
-	    Eigen::Matrix3Xd normDiff(3,numBonds);
-	    ops.getDiffNormals(normDiff);
-	    Eigen::Matrix3Xd normals(3,numBonds);
-	    ops.getNormals(normals);
-
 	    //********** Print relaxed configuration ************//
 	    //We will print only after every currPrintStep iterations
 	    if (viter % printStep == 0 && printStep <= viterMax) {
@@ -422,17 +363,6 @@ int main(int argc, char* argv[]){
 		ops.printVTKFile(rName);
 		sstm.str("");
 		sstm.clear();
-	    }
-	    // Print VTK file if there is an abrupt change in energy
-	    if( spikePrintOn ){
-		if ( std::abs( avgTotalEnergy ) > 0 &&
-			std::abs((f - avgTotalEnergy)/avgTotalEnergy) > 3){
-		    sstm << fname << "-Spike-" << step <<".vtk";
-		    std::string rName = sstm.str();
-		    ops.printVTKFile(rName);
-		    sstm.str("");
-		    sstm.clear();
-		}
 	    }
 
 	    detailedOP << step << "\t"
@@ -460,49 +390,10 @@ int main(int argc, char* argv[]){
 	    }
 	    step++;
 	}
-	//************************************************//
-
-	if( printAvgShapeData ){
-	    // Calculate the average particle positions and avg radius
-	    double avgShapeRad = 0.0, avgShapeAsph = 0.0;
-	    auto avgPos = vtkSmartPointer<vtkPoints>::New();
-	    auto avgPosData = vtkSmartPointer<vtkDoubleArray>::New();
-	    averagePosition = averagePosition / viterMax;
-	    avgShapeRad = averagePosition.colwise().norm().sum()/N;
-	    void *avgPosPtr = (void*)averagePosition.data();
-	    avgPosData->SetVoidArray(avgPosPtr,3*N,1);
-	    avgPosData->SetNumberOfComponents(3);
-	    avgPos->SetData(avgPosData);
-
-	    sstm << fname << "-AvgShape-"<< z << ".vtk";
-	    dataOutputFile = sstm.str();
-	    sstm.str("");
-	    sstm.clear();
-
-	    // Print the average shape
-	    delaunay3DSurf(avgPos, dataOutputFile);
-
-	    // Calculate the asphericity of the average shape
-	    Eigen::RowVectorXd R(N);
-	    R = averagePosition.colwise().norm();
-	    avgShapeAsph += ((R.array() - avgShapeRad).square()).sum();
-	    avgShapeAsph /= (N*avgShapeRad*avgShapeRad);
-
-	    outerLoopFile << z <<"\t"
-		<< percentStrain << "\t"
-		<< alpha << "\t"
-		<< beta << "\t"
-		<< gamma << "\t"
-		<< percentStrain << "\t"
-		<< avgShapeRad  << "\t"
-		<< avgShapeAsph
-		<< std::endl;
-	}
     }
     // *****************************************************************************//
 
     detailedOP.close();
-    outerLoopFile.close();
     t2 = clock();
     float diff((float)t2 - (float)t1);
     std::cout << "Solution loop execution time: " << diff / CLOCKS_PER_SEC
