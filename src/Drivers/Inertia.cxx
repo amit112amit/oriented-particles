@@ -359,11 +359,9 @@ int main(int argc, char* argv[]){
 		Vector3d xk = xpos.col(ptId);
 		M += xk.dot(xk)*Matrix3d::Identity() - xk*xk.transpose();
 	    }
-	    std::cout<< "Inertia tensor = "<< M << std::endl;
 	    // Now calculate the eigen values
 	    saes.compute( M );
 	    Vector3d eigV = saes.eigenvalues();
-	    std::cout<< " Eigen values of M are " << eigV << std::endl;
 
 	    //Calculate the ratio of second largest to largest
 	    double_t I2I1 = eigV[2]/eigV[1];
