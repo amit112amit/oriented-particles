@@ -199,7 +199,7 @@ int main(int argc, char* argv[]){
     detailedOP.open(dataOutputFile.c_str(), std::ofstream::out |
 	    std::ofstream::app);
     detailedOP
-	    << "Beta" << "\t"
+	    << "#Beta" << "\t"
 	    << "Asphericity" << "\t"
 	    << "Radius"  <<"\t"
 	    << "MorseEn"  <<"\t"
