@@ -216,7 +216,9 @@ int main(int argc, char* argv[]){
 	    << "BrownEn"  <<"\t"
 	    << "ViscoEn"  <<"\t"
 	    << "MSD" << "\t"
-	    << "I2/I1"
+	    << "I1" << "\t"
+	    << "I2" << "\t"
+	    << "I3"
 	    << std::endl;
 
     // ************************* Create Solver ************************  //
@@ -368,11 +370,13 @@ int main(int argc, char* argv[]){
 		M += xk.dot(xk)*Matrix3d::Identity() - xk*xk.transpose();
 	    }
 	    // Now calculate the eigen values
-	    saes.compute( M );
+	    saes.compute( M, Eigen::EigenvaluesOnly );
 	    Vector3d eigV = saes.eigenvalues();
 
 	    //Calculate the ratio of second largest to largest
-	    double_t I2I1 = eigV[2]/eigV[1];
+	    double_t I1 = eigV[0];
+	    double_t I2 = eigV[1];
+	    double_t I3 = eigV[2];
 
 	    // Write output to data file
 	    detailedOP
@@ -385,7 +389,9 @@ int main(int argc, char* argv[]){
 		<< brown.getBrownianEnergy() << "\t"
 		<< visco.getViscosityEnergy() << "\t"
 		<< ops.getMeanSquaredDisplacement() << "\t"
-		<< I2I1
+		<< I1 << "\t"
+		<< I2 << "\t"
+		<< I3
 		<< std::endl;
 
 	    // Update prevX
