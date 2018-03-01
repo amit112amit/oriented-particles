@@ -69,7 +69,6 @@ namespace OPS{
 	    void printVTKFile(const std::string name);
 	    void resetToInitialPositions();
 	    void saveInitialPosition(){ _initialPositions = _positions;}
-	    void setCircularityCoeff(double_t v){ _circCoeff = v;}
 	    void setMorseDistance(double_t r){_re = r;}
 	    void setMorseWellWidth(double_t a){_a = a;}
 	    void setSearchRadius(double_t s){_searchRadius = s;}
@@ -82,8 +81,7 @@ namespace OPS{
 	    bool _updateArea = true, _updateRadius = true, _updateVolume = true;
 	    double_t &_f, _area = 0, _radius = 0, _volume = 0, _morseEn, _normalEn,
 		     _circEn, _msd = 0, _avgNumNeighbors = 0, _re = 1.0,
-		     _a = 4.62098120373, _gamma = 0.1, _searchRadius = 1.4,
-		     _circCoeff = 1.0;
+		     _a = 4.62098120373, _gamma = 0.1, _searchRadius = 1.4;
 	    int _N;
 	    MapM3Xd _positions, _posGradient, _rotGradient, _rotationVectors;
 	    Matrix3Xd _prevX, _normals, _initialPositions;
