@@ -26,7 +26,7 @@ namespace OPS{
 	    typedef Eigen::Matrix3d Matrix3d;
 	    typedef Eigen::Matrix3Xd Matrix3Xd;
 	    typedef Eigen::Map<Matrix3Xd> Map3Xd;
-	    PeriodicPlateBody(size_t N, double_t &f, Matrix3Xd &p, 
+	    PeriodicPlateBody(size_t N, double_t &f, Matrix3Xd &p,
 		    Matrix3Xd &g, Matrix3Xd &r, Matrix3Xd &rg, double_t L,
 		    double_t W);
 	    void applyKabschAlgorithm();
@@ -37,7 +37,7 @@ namespace OPS{
 	    double_t getMeanSquaredDisplacement();
 	    double_t getMorseEnergy(){return _morseEn;}
 	    double_t getNormalityEnergy(){return _normEn;}
-	    static void initialRotationVector(Matrix3Xd &pos, 
+	    static void initialRotationVector(Matrix3Xd &pos,
 		    Matrix3Xd &rotVec);
 	    void printVTKFile(const std::string name);
 	    void setCircularityCoeff(double_t v){ _circCoeff = v;}
@@ -56,7 +56,7 @@ namespace OPS{
 	    size_t _N;
 	    Map3Xd _positions, _posGradient, _rotGradient, _rotationVectors;
 	    Matrix3Xd  _initialPositions, _normals, _prevX;
-	    std::vector< Matrix3d > _diffNormalRV; 
+	    std::vector< Matrix3d > _diffNormalRV;
 	    std::vector< vtkSmartPointer<vtkIdList> > _neighbors;
 	    std::vector< vtkIdType > _initialNearestNeighbor;
 	    std::map< vtkIdType, vtkIdType > periodicMap;

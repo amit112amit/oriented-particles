@@ -31,5 +31,12 @@ namespace OPS{
     //! Reads a key-value input file and returns a map object
     InputParameters readKeyValueInput( std::string fileName );
 
+    //! Rotates a point cloud to get rid of rigid body motions
+    Eigen::Affine2d find2DAffineTransform(Eigen::Ref<Eigen::Matrix2Xd> in,
+	    Eigen::Ref<Eigen::Matrix2Xd> out);
+
+    void TestFind2DAffineTransform();
+    void TestFind3DAffineTransform();
+
 }
 #endif // __HELPERFUNCTIONS_H__

@@ -2,7 +2,7 @@ project(Bodies)
 
 # Append name of the source file to SRCS
 set(SRCS OPSBody.cxx BrownianBody.cxx ViscosityBody.cxx ALConstraint.cxx
-	OPSMesh.cxx PeriodicPlateBody.cxx)
+	OPSMesh.cxx Morse2D.cxx)
 
 add_library(Bodies ${SRCS})
 target_include_directories(Bodies PUBLIC ${VTK_INCLUDE_DIRS} ${EIGEN_INCLUDE_DIRS})

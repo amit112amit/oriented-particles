@@ -49,7 +49,7 @@ int main(int argc, char* argv[]){
     // Create OPSBody
     Eigen::Map<Eigen::Matrix3Xd> pos(x.data(),3,N),
             rot(&x(3*N),3,N), posGrad(g.data(),3,N),
-            rotGrad(&g(3*N),3,N);    
+            rotGrad(&g(3*N),3,N);
     OPSMesh ops(N,f,pos,rot,posGrad,rotGrad);
     ops.updateNeighbors();
 
