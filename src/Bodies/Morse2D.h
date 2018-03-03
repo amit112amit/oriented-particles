@@ -58,7 +58,7 @@ namespace OPS{
 	    MapM2Xd _positions, _posGradient;
 	    Matrix2Xd _prevX, _initialPositions;
 	    std::vector< double_t > _bounds;
-	    std::vector< std::vector<size_t> > _boundaryCrossCounter;
+	    std::vector< std::vector<int> > _boundaryCrossCounter;
 	    std::vector< std::vector<size_t> > _neighbors;
 	    std::vector<size_t> _initialNearestNeighbor;
     };

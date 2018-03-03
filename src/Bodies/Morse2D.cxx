@@ -11,8 +11,8 @@ namespace OPS{
 	// Initialize the vectors
 	_bounds.push_back(Lx);
 	_bounds.push_back(Ly);
-	_boundaryCrossCounter = std::vector< std::vector<size_t> >( _N,
-		std::vector<size_t>(2,0));
+	_boundaryCrossCounter = std::vector< std::vector<int> >( _N,
+		std::vector<int>(2,0));
 	_neighbors = std::vector<std::vector<size_t> >( _N,
 		std::vector<size_t>(0));
 	//Calculate neighbors

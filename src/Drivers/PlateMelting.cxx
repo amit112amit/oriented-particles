@@ -43,7 +43,7 @@ int main(int argc, char* argv[]){
 
     // ******************* Read Simulation Parameters *********//
 
-    double_t re=1.0, s=7.0, percentStrain = 15, searchR = 1.2;
+    double_t re=1.0, s=7.0, percentStrain = 15, searchR = 1.2, boxFactor = 1;
     size_t viterMax = 1000;
     size_t nameSuffix = 0;
     size_t step = 0;
@@ -54,10 +54,12 @@ int main(int argc, char* argv[]){
     s = (100 / (re*percentStrain))*log(2.0);
     baseFileName = miscInp["baseFileName"];
     searchR = std::stod(miscInp["searchRadius"]);
+    boxFactor = std::stod(miscInp["boxFactor"]);
 
-    Lx += 2*re;
-    Ly += 2*re;
-    std::cout<< "Periodic box bounds : " << Lx << ", " << Ly << std::endl;
+    Lx += boxFactor*re;
+    Ly += boxFactor*re;
+    std::cout<< "Periodic box bounds : " << Lx << ", " << Ly << std::endl
+	<< std::endl;
 
     // Input file should contain the following columns
     // Alpha Beta Gamma PercentStrain NumIterations PrintStep
@@ -69,8 +71,7 @@ int main(int argc, char* argv[]){
     std::ifstream coolFile(cstr);
     assert(coolFile);
     std::vector<std::vector<double_t> > coolVec;
-    double_t currAlpha, currBeta, currPercentStrain,
-	     currViterMax, currPrintStep;
+    double_t currAlpha,currBeta,currPercentStrain,currViterMax,currPrintStep;
 
     std::string headerline;
     std::getline(coolFile, headerline);
@@ -147,8 +148,7 @@ int main(int argc, char* argv[]){
     sstm.str("");
     sstm.clear();
     detailedOP.open(dataOutputFile.c_str(), std::ofstream::out);
-    detailedOP << "#Step" <<"\t"
-	<< "Alpha" << "\t"
+    detailedOP << "#Alpha" << "\t"
 	<< "Beta" << "\t"
 	<< "Gamma" << "\t"
 	<< "MorseEn"  <<"\t"
@@ -215,11 +215,7 @@ int main(int argc, char* argv[]){
 		    << std::endl
 		    << std::endl;
 
-	    std::cout << std::endl
-		<< "VISCOUS ITERATION: " << step
-		<< std::endl
-		<< std::endl;
-	    // Generate Brownian Kicks
+	    //Generate Brownian Kicks
 	    brown.generateParallelKicks();
 
 	    // Store data for Kabsch
@@ -249,7 +245,7 @@ int main(int argc, char* argv[]){
 	    }
 
 	    // Write output to data file
-	    detailedOP << step << "\t"
+	    detailedOP
 		<< alpha << "\t"
 		<< beta << "\t"
 		<< morseBody.getMorseEnergy() << "\t"
