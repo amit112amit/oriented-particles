@@ -18,7 +18,7 @@ int main(int argc, char* argv[]){
 	return -1;
     }
     // ***************** Code flags *****************//
-    bool loggingOn = true;
+    bool loggingOn = false;
 
     // ***************** Read Input VTK File *****************//
     std::string inputFileName = argv[1];
@@ -38,7 +38,7 @@ int main(int argc, char* argv[]){
 
     // ******************* Read Simulation Parameters *********//
 
-    double_t re=1.0, s=7.0, percentStrain = 15, searchR = 1.2, boxFactor = 2;
+    double_t re=1.0, s=7.0, percentStrain = 15, searchR = 1.2, boxFactor = 1;
     size_t viterMax = 1000;
     size_t nameSuffix = 0;
     size_t step = 0;
