@@ -57,7 +57,7 @@ int main(int argc, char* argv[]){
 	<< std::endl;
 
     // Input file should contain the following columns
-    // Alpha Beta Gamma PercentStrain NumIterations PrintStep
+    // Alpha Beta PercentStrain NumIterations PrintStep
     std::ifstream coolFile("schedule.dat");
     assert(coolFile);
     std::vector<std::vector<double_t> > coolVec;
@@ -141,7 +141,6 @@ int main(int argc, char* argv[]){
     detailedOP.open(dataOutputFile.c_str(), std::ofstream::out);
     detailedOP << "#Alpha" << "\t"
 	<< "Beta" << "\t"
-	<< "Gamma" << "\t"
 	<< "MorseEn"  <<"\t"
 	<< "BrownEn"  <<"\t"
 	<< "ViscoEn"  <<"\t"
