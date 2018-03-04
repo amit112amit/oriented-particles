@@ -150,7 +150,6 @@ int main(int argc, char* argv[]){
     detailedOP.open(dataOutputFile.c_str(), std::ofstream::out);
     detailedOP << "#Alpha" << "\t"
 	<< "Beta" << "\t"
-	<< "Gamma" << "\t"
 	<< "MorseEn"  <<"\t"
 	<< "BrownEn"  <<"\t"
 	<< "ViscoEn"  <<"\t"
