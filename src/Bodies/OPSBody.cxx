@@ -424,9 +424,9 @@ void OPSBody::updateRotationVectors(){
     }
 }
 
-//! Calculate mean-squared displacement
+//! Calculate the tangential component of mean-squared displacement
 double_t OPSBody::getMeanSquaredDisplacement(){
-    _msd = 0;
+    _msd_tgt = 0;
     int nn = -1;
     // We will subtract off the radial displacement.
     for (auto i = 0; i < _N; i++) {
@@ -450,10 +450,50 @@ double_t OPSBody::getMeanSquaredDisplacement(){
         xj = xj_diff - (nj0.dot(xj_diff)*nj0);
 
         diff = xi - xj;
-        _msd += diff.dot(diff);
+        _msd_tgt += diff.dot(diff);
+    }
+    _msd_tgt = _msd_tgt / (2*_N);
+    return _msd_tgt;
+}
+
+//! Calculate mean-squared displacement
+std::vector<double_t> OPSBody::getMSD(){
+    _msd = 0;
+    _msd_tgt = 0;
+    std::vector<double_t> msdAll(2,0.0);
+    int nn = -1;
+    // We will subtract off the radial displacement.
+    for (auto i = 0; i < _N; i++) {
+        Vector3d xi, xj, diff, xi_diff, xj_diff;
+        Vector3d xi0, xj0, xi1, xj1, ni0, nj0;
+
+        nn = _initialNearestNeighbor[i];
+
+        xi0 = _initialPositions.col(i);
+        xi1 = _positions.col(i);
+        ni0 = xi0.normalized();
+
+        xj0 = _initialPositions.col(nn);
+        xj1 = _positions.col(nn);
+        nj0 = xj0.normalized();
+
+        xi_diff = (xi1 - xi0);
+        xj_diff = (xj1 - xj0);
+
+        xi = xi_diff - (ni0.dot(xi_diff)*ni0);
+        xj = xj_diff - (nj0.dot(xj_diff)*nj0);
+
+	diff = xi_diff - xj_diff;
+	_msd += diff.dot(diff);
+
+        diff = xi - xj;
+        _msd_tgt += diff.dot(diff);
     }
     _msd = _msd / (2*_N);
-    return _msd;
+    _msd_tgt = _msd_tgt / (2*_N);
+    msdAll[0] = _msd;
+    msdAll[1] = _msd_tgt;
+    return msdAll;
 }
 
 //! Calculate asphericity

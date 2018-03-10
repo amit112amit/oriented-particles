@@ -208,6 +208,7 @@ int main(int argc, char* argv[]){
 	    << "BrownEn"  <<"\t"
 	    << "ViscoEn"  <<"\t"
 	    << "MSD" << "\t"
+	    << "MSDT" << "\t"
 	    << "I1" << "\t"
 	    << "I2" << "\t"
 	    << "I3"
@@ -262,6 +263,7 @@ int main(int argc, char* argv[]){
 	s = (100 / (avgEdgeLen*percentStrain))*log(2.0);
 	ops.setFVK(gamma);
 	ops.setMorseWellWidth(s);
+	std::cout<< "Gamma = " << gamma << std::endl;
 
 	// Set up the constraint value as the zero temperature value
 	constraint->setConstraint(constrainedVal);
@@ -369,6 +371,9 @@ int main(int argc, char* argv[]){
 	    double_t I2 = eigV[1];
 	    double_t I3 = eigV[2];
 
+	    std::vector<double_t> msds(2,0);
+	    msds = ops.getMSD();
+
 	    // Write output to data file
 	    detailedOP
 		<< beta << "\t"
@@ -379,7 +384,8 @@ int main(int argc, char* argv[]){
 		<< ops.getCircularityEnergy() << "\t"
 		<< brown.getBrownianEnergy() << "\t"
 		<< visco.getViscosityEnergy() << "\t"
-		<< ops.getMeanSquaredDisplacement() << "\t"
+		<< msds[0] << "\t"
+		<< msds[1] << "\t"
 		<< I1 << "\t"
 		<< I2 << "\t"
 		<< I3
