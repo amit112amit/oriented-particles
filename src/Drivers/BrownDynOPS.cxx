@@ -217,7 +217,8 @@ int main(int argc, char* argv[]){
 	<< "CircEn"  <<"\t"
 	<< "BrownEn"  <<"\t"
 	<< "ViscoEn"  <<"\t"
-	<< "MSD"
+	<< "MSD" << "\t"
+	<< "MSDt"
 	<< std::endl;
 
     // ************************* Create Solver ************************  //
@@ -359,6 +360,9 @@ int main(int argc, char* argv[]){
 		sstm.clear();
 	    }
 
+	    std::vector<double_t> msds(2,0);
+	    msds = ops.getMSD();
+
 	    detailedOP << step << "\t"
 		<< alpha << "\t"
 		<< beta << "\t"
@@ -372,7 +376,8 @@ int main(int argc, char* argv[]){
 		<< ops.getCircularityEnergy() << "\t"
 		<< brown.getBrownianEnergy() << "\t"
 		<< visco.getViscosityEnergy() << "\t"
-		<< ops.getMeanSquaredDisplacement()
+		<< msds[0] << "\t"
+		<< msds[1]
 		<< std::endl;
 
 	    // Update prevX

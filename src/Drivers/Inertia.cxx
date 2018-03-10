@@ -216,6 +216,7 @@ int main(int argc, char* argv[]){
 	    << "BrownEn"  <<"\t"
 	    << "ViscoEn"  <<"\t"
 	    << "MSD" << "\t"
+	    << "MSDt" << "\t"
 	    << "I1" << "\t"
 	    << "I2" << "\t"
 	    << "I3"
@@ -378,6 +379,8 @@ int main(int argc, char* argv[]){
 	    double_t I2 = eigV[1];
 	    double_t I3 = eigV[2];
 
+	    std::vector<double_t> msds(2,0);
+	    msds = ops.getMSD();
 	    // Write output to data file
 	    detailedOP
 		<< beta << "\t"
@@ -388,7 +391,8 @@ int main(int argc, char* argv[]){
 		<< ops.getCircularityEnergy() << "\t"
 		<< brown.getBrownianEnergy() << "\t"
 		<< visco.getViscosityEnergy() << "\t"
-		<< ops.getMeanSquaredDisplacement() << "\t"
+		<< msds[0] << "\t"
+		<< msds[1] << "\t"
 		<< I1 << "\t"
 		<< I2 << "\t"
 		<< I3

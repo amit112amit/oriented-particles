@@ -60,6 +60,7 @@ namespace OPS{
 	    double_t getAverageRadius();
 	    double_t getCircularityEnergy(){return _circEn;}
 	    double_t getMeanSquaredDisplacement();
+	    std::vector<double_t> getMSD();
 	    double_t getMorseEnergy(){return _morseEn;}
 	    double_t getNormalityEnergy(){return _normalEn;}
 	    vtkSmartPointer<vtkPolyData> getPolyData(){return _polyData;}
@@ -80,8 +81,9 @@ namespace OPS{
 	protected:
 	    bool _updateArea = true, _updateRadius = true, _updateVolume = true;
 	    double_t &_f, _area = 0, _radius = 0, _volume = 0, _morseEn, _normalEn,
-		     _circEn, _msd = 0, _avgNumNeighbors = 0, _re = 1.0,
-		     _a = 4.62098120373, _gamma = 0.1, _searchRadius = 1.4;
+		     _circEn, _msd_tgt = 0, _avgNumNeighbors = 0, _re = 1.0,
+		     _a = 4.62098120373, _gamma = 0.1, _searchRadius = 1.4,
+		     _msd;
 	    int _N;
 	    MapM3Xd _positions, _posGradient, _rotGradient, _rotationVectors;
 	    Matrix3Xd _prevX, _normals, _initialPositions;

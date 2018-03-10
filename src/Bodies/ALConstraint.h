@@ -15,6 +15,7 @@ class ALConstraint: public Body{
 		typedef Eigen::Ref<Matrix3Xd> RefM3Xd;
 
 		ALConstraint(size_t N, double_t &f, RefM3Xd x, RefM3Xd g);
+		virtual ~ALConstraint(){;}
 		virtual void compute() = 0;
 		virtual bool constraintSatisfied(){
 			return (std::abs(_value - _constrainedValue) < _tolerance);
