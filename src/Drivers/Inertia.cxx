@@ -207,7 +207,8 @@ int main(int argc, char* argv[]){
     detailedOP.open(dataOutputFile.c_str(), std::ofstream::out |
 	    std::ofstream::app);
     detailedOP
-	    << "#Beta" << "\t"
+	    << "Gamma" << "\t"
+	    << "Beta" << "\t"
 	    << "Asphericity" << "\t"
 	    << "Radius"  <<"\t"
 	    << "MorseEn"  <<"\t"
@@ -216,7 +217,7 @@ int main(int argc, char* argv[]){
 	    << "BrownEn"  <<"\t"
 	    << "ViscoEn"  <<"\t"
 	    << "MSD" << "\t"
-	    << "MSDt" << "\t"
+	    << "MSDT" << "\t"
 	    << "I1" << "\t"
 	    << "I2" << "\t"
 	    << "I3"
@@ -271,6 +272,7 @@ int main(int argc, char* argv[]){
 	s = (100 / (avgEdgeLen*percentStrain))*log(2.0);
 	ops.setFVK(gamma);
 	ops.setMorseWellWidth(s);
+	std::cout<< "Gamma = " << gamma << std::endl;
 
 	// Set up the constraint value as the zero temperature value
 	constraint->setConstraint(constrainedVal);
@@ -374,15 +376,16 @@ int main(int argc, char* argv[]){
 	    saes.compute( M, Eigen::EigenvaluesOnly );
 	    Vector3d eigV = saes.eigenvalues();
 
-	    //Calculate the ratio of second largest to largest
 	    double_t I1 = eigV[0];
 	    double_t I2 = eigV[1];
 	    double_t I3 = eigV[2];
 
 	    std::vector<double_t> msds(2,0);
 	    msds = ops.getMSD();
+
 	    // Write output to data file
 	    detailedOP
+		<< gamma << "\t"
 		<< beta << "\t"
 		<< ops.getAsphericity() << "\t"
 		<< ops.getAverageRadius() << "\t"
