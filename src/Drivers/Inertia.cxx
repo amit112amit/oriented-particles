@@ -199,7 +199,8 @@ int main(int argc, char* argv[]){
     detailedOP.open(dataOutputFile.c_str(), std::ofstream::out |
 	    std::ofstream::app);
     detailedOP
-	    << "#Beta" << "\t"
+	    << "Gamma" << "\t"
+	    << "Beta" << "\t"
 	    << "Asphericity" << "\t"
 	    << "Radius"  <<"\t"
 	    << "MorseEn"  <<"\t"
@@ -376,6 +377,7 @@ int main(int argc, char* argv[]){
 
 	    // Write output to data file
 	    detailedOP
+		<< gamma << "\t"
 		<< beta << "\t"
 		<< ops.getAsphericity() << "\t"
 		<< ops.getAverageRadius() << "\t"
