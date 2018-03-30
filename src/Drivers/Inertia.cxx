@@ -196,20 +196,18 @@ int main(int argc, char* argv[]){
     dataOutputFile = sstm.str();
     sstm.str("");
     sstm.clear();
-    detailedOP.open(dataOutputFile.c_str(), std::ofstream::out |
-	    std::ofstream::app);
+    detailedOP.open(dataOutputFile.c_str(), std::ofstream::out);
     detailedOP
 	    << "Gamma" << "\t"
 	    << "Beta" << "\t"
 	    << "Asphericity" << "\t"
-	    << "Radius"  <<"\t"
 	    << "MorseEn"  <<"\t"
 	    << "NormEn"  <<"\t"
 	    << "CircEn"  <<"\t"
 	    << "BrownEn"  <<"\t"
 	    << "ViscoEn"  <<"\t"
 	    << "MSD" << "\t"
-	    << "MSDT" << "\t"
+	    << "RMSAngleDeficit" << "\t"
 	    << "I1" << "\t"
 	    << "I2" << "\t"
 	    << "I3"
@@ -380,14 +378,13 @@ int main(int argc, char* argv[]){
 		<< gamma << "\t"
 		<< beta << "\t"
 		<< ops.getAsphericity() << "\t"
-		<< ops.getAverageRadius() << "\t"
 		<< ops.getMorseEnergy() << "\t"
 		<< ops.getNormalityEnergy() << "\t"
 		<< ops.getCircularityEnergy() << "\t"
 		<< brown.getBrownianEnergy() << "\t"
 		<< visco.getViscosityEnergy() << "\t"
 		<< msds[0] << "\t"
-		<< msds[1] << "\t"
+		<< ops.getRMSAngleDeficit() << "\t"
 		<< I1 << "\t"
 		<< I2 << "\t"
 		<< I3
