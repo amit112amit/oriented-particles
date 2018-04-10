@@ -112,7 +112,8 @@ int main(int argc, char* argv[]){
                << "MorseEnergy" << "\t"
                << "NormalityEn" << "\t"
                << "CircularityEn" << "\t"
-               << "TotalOPSEnergy"
+               << "TotalOPSEnergy" << "\t"
+	       << "RMSAngleDeficit"
                << std::endl;
     // ******************************************************************//
 
@@ -161,7 +162,9 @@ int main(int argc, char* argv[]){
                    << ops.getMorseEnergy() << "\t"
                    << ops.getNormalityEnergy() << "\t"
                    << ops.getCircularityEnergy() << "\t"
-                   << f << std::endl;
+                   << f << "\t"
+		   << ops.getRMSAngleDeficit()
+		   << std::endl;
 
         //********** Print relaxed configuration ************//
         sstm << fname << "-relaxed-" << step++ <<".vtk";

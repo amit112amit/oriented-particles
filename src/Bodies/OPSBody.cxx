@@ -1,6 +1,7 @@
 #include "OPSBody.h"
 
 namespace OPS{
+
     //! Constructor for BrownOPS
     OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
 	    RefM3Xd rG):_f(f), _positions(pos.data(),3,n),
@@ -80,67 +81,8 @@ namespace OPS{
 
     //! Updates _polyData with latest deformed node positions and normals
     void OPSBody::updatePolyData() {
-	auto pts = vtkSmartPointer<vtkPoints>::New();
-	auto unitSphere = vtkSmartPointer<vtkPolyData>::New();
-	vtkSmartPointer<vtkPolyData> final;
-	auto dssf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-	auto idf = vtkSmartPointer<vtkIdFilter>::New();
-	auto d3D = vtkSmartPointer<vtkDelaunay3D>::New();
-	auto finalCells = vtkSmartPointer<vtkCellArray>::New();
-	vtkSmartPointer<vtkCellArray> interim;
-	vtkSmartPointer<vtkIdTypeArray> origIds;
-	auto pointIds = vtkSmartPointer<vtkIdList>::New();
-	double_t R = getAverageRadius();
-
-	for(auto i=0; i < _N; i++){
-	    Vector3d x = 2*R*_positions.col(i).normalized();
-	    //We are rounding off to 2 decimals as a hack to aid vtkDelaunay3D
-	    //Otherwise sometimes we don't get a convex hull
-	    x[0] = std::round( x[0]*100 )/100;
-	    x[1] = std::round( x[1]*100 )/100;
-	    x[2] = std::round( x[2]*100 )/100;
-	    pts->InsertNextPoint(&(x[0]));
-	}
-	unitSphere->SetPoints(pts);
-
-	idf->SetIdsArrayName("PointIds");
-	idf->PointIdsOn();
-	idf->SetInputData(unitSphere);
-
-	//Calculate ideal number of triangles.
-	int idealTriCount, pentCount = 12, hexCount;
-	hexCount = _N - pentCount;
-	idealTriCount = (6*hexCount + 5*pentCount)/3;
-
-	d3D->SetInputConnection(idf->GetOutputPort());
-	dssf->SetInputConnection(d3D->GetOutputPort());
-	dssf->Update();
-	final = dssf->GetOutput();
-	if( final->GetNumberOfPolys() != idealTriCount){
-	    std::cout<<"The mesh has " << final->GetNumberOfPolys()
-		<< " triangles." << std::endl;
-	    std::cout<< "Bad Delaunay triangulation detected!" <<std::endl;
-	    /*
-	       auto writer = vtkSmartPointer<vtkPolyDataWriter>::New();
-	       writer->SetInputData(final);
-	       writer->SetFileName("BadMesh.vtk");
-	       writer->Write();
-	       exit(EXIT_FAILURE);*/
-	}
-	interim = final->GetPolys();
-	interim->InitTraversal();
-	origIds = vtkIdTypeArray::SafeDownCast(
-		final->GetPointData()->GetArray("PointIds"));
-	while(interim->GetNextCell(pointIds)){
-	    int numIds = pointIds->GetNumberOfIds();
-	    finalCells->InsertNextCell(numIds);
-	    for(auto j=0; j < numIds; j++ ){
-		int id = (int)origIds->GetTuple1( pointIds->GetId(j) );
-		finalCells->InsertCellPoint(id);
-	    }
-	}
-	_polyData->SetPolys(finalCells);
-
+	// Generate Mesh from new positions
+	sphericalDelaunay();
 	//Turn on flags to update radius and volume
 	_updateRadius = true;
 	_updateVolume = true;
@@ -616,6 +558,94 @@ namespace OPS{
 	// Finally calculate the root mean squared angle deficit
 	double_t rmsAngleDeficit = std::sqrt( angleDeficit.square().mean() );
 	return rmsAngleDeficit;
+    }
+
+    void OPSBody::sphericalDelaunay(){
+	auto pts = vtkSmartPointer<vtkPoints>::New();
+	auto unitSphere = vtkSmartPointer<vtkPolyData>::New();
+	vtkSmartPointer<vtkPolyData> final;
+	auto dssf = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+	auto idf = vtkSmartPointer<vtkIdFilter>::New();
+	auto d3D = vtkSmartPointer<vtkDelaunay3D>::New();
+	auto finalCells = vtkSmartPointer<vtkCellArray>::New();
+	vtkSmartPointer<vtkCellArray> interim;
+	vtkSmartPointer<vtkIdTypeArray> origIds;
+	auto pointIds = vtkSmartPointer<vtkIdList>::New();
+	double_t R = getAverageRadius();
+
+	for(auto i=0; i < _N; i++){
+	    Vector3d x = 2*R*_positions.col(i).normalized();
+	    //We are rounding off to 2 decimals as a hack to aid vtkDelaunay3D
+	    //Otherwise sometimes we don't get a convex hull
+	    x[0] = std::round( x[0]*100 )/100;
+	    x[1] = std::round( x[1]*100 )/100;
+	    x[2] = std::round( x[2]*100 )/100;
+	    pts->InsertNextPoint(&(x[0]));
+	}
+	unitSphere->SetPoints(pts);
+
+	idf->SetIdsArrayName("PointIds");
+	idf->PointIdsOn();
+	idf->SetInputData(unitSphere);
+
+	//Calculate ideal number of triangles.
+	int idealTriCount, pentCount = 12, hexCount;
+	hexCount = _N - pentCount;
+	idealTriCount = (6*hexCount + 5*pentCount)/3;
+
+	d3D->SetInputConnection(idf->GetOutputPort());
+	dssf->SetInputConnection(d3D->GetOutputPort());
+	dssf->Update();
+	final = dssf->GetOutput();
+	if( final->GetNumberOfPolys() != idealTriCount){
+	    std::cout<<"The mesh has " << final->GetNumberOfPolys()
+		<< " triangles." << std::endl;
+	    std::cout<< "Bad Delaunay triangulation detected!" <<std::endl;
+	    /*
+	       auto writer = vtkSmartPointer<vtkPolyDataWriter>::New();
+	       writer->SetInputData(final);
+	       writer->SetFileName("BadMesh.vtk");
+	       writer->Write();
+	       exit(EXIT_FAILURE);*/
+	}
+	interim = final->GetPolys();
+	interim->InitTraversal();
+	origIds = vtkIdTypeArray::SafeDownCast(
+		final->GetPointData()->GetArray("PointIds"));
+	while(interim->GetNextCell(pointIds)){
+	    int numIds = pointIds->GetNumberOfIds();
+	    finalCells->InsertNextCell(numIds);
+	    for(auto j=0; j < numIds; j++ ){
+		int id = (int)origIds->GetTuple1( pointIds->GetId(j) );
+		finalCells->InsertCellPoint(id);
+	    }
+	}
+	_polyData->SetPolys(finalCells);
+    }
+
+    double_t OPSBody::determineSearchRadius(){
+	// Create the VTK objects
+	auto extract = vtkSmartPointer<vtkExtractEdges>::New();
+	auto edges = vtkSmartPointer<vtkCellArray>::New();
+	auto pts = vtkSmartPointer<vtkIdList>::New();
+	//Triangulate the point cloud
+	sphericalDelaunay();
+	// Extract the edges
+	extract->SetInputData(_polyData);
+	extract->Update();
+	edges = extract->GetOutput()->GetLines();
+	//Calculate average edge length
+	VectorXd edgeLengths(edges->GetNumberOfCells());
+	edges->InitTraversal();
+	size_t i=0;
+	while(edges->GetNextCell(pts)){
+	    Vector3d p1, p2;
+	    p1 = pts->GetId(0);
+	    p2 = pts->GetId(1);
+	    edgeLengths(i++) = (p2-p1).norm();
+	}
+	_searchRadius = edgeLengths.mean()*1.2;
+	return _searchRadius;
     }
 
 }

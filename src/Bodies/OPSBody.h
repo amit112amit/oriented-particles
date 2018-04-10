@@ -22,6 +22,7 @@
 #include <vtkIdFilter.h>
 #include <vtkDelaunay3D.h>
 #include <vtkDataSetSurfaceFilter.h>
+#include <vtkExtractEdges.h>
 #include "Body.h"
 #include "HelperFunctions.h"
 
@@ -53,6 +54,7 @@ namespace OPS{
 	    virtual void compute();
 	    void computeNormals();
 	    void diffNormalRotVec();
+	    double_t determineSearchRadius();
 	    double_t getAsphericity();
 	    double_t getArea();
 	    double_t getAverageEdgeLength();
@@ -75,6 +77,7 @@ namespace OPS{
 	    void setMorseWellWidth(double_t a){_a = a;}
 	    void setSearchRadius(double_t s){_searchRadius = s;}
 	    void setFVK(double_t g){_gamma = g;}
+	    void sphericalDelaunay();
 	    virtual void updateNeighbors();
 	    void updateDataForKabsch();
 	    void updatePolyData();
