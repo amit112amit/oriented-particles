@@ -5,22 +5,32 @@ find_package(Qt5 COMPONENTS Core Gui Widgets)
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-set(SRCS LiveSimulationWindow.cxx LiveSimulation.cxx
-    RunLiveSimulation.cxx)
+set(SRCS1 LiveSimulationWindow.cxx LiveSimulation.cxx
+        RunLiveSimulation.cxx)
 
-qt5_wrap_cpp(HDR_MOC LiveSimulationWindow.h LiveSimulation.h)
-qt5_wrap_ui(UI_MOC LiveSimulationWindow.ui)
+set(SRCS2 RoughnessWidget.cxx RunRoughnessGUI.cxx)
 
-add_executable(opsLive ${SRCS} ${HDR_MOC} ${UI_MOC})
+qt5_wrap_cpp(HDR_MOC1 LiveSimulationWindow.h LiveSimulation.h)
+qt5_wrap_ui(UI_MOC1 LiveSimulationWindow.ui)
+
+qt5_wrap_cpp(HDR_MOC2 RoughnessWidget.h)
+qt5_wrap_ui(UI_MOC2 RoughnessGUI.ui)
+
+add_executable(opsLive ${SRCS1} ${HDR_MOC1} ${UI_MOC1})
+add_executable(roughness ${SRCS2} ${HDR_MOC2} ${UI_MOC2})
 
 # Link VTK, Qt and QWT libraries and include their headers
-target_link_libraries(opsLive Qt5::Core Qt5::Gui
-    Qt5::Widgets ${QWT_LIBRARIES} ${VTK_LIBRARIES})
-target_include_directories(opsLive PUBLIC ${QWT_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
-
+set(EXECS opsLive roughness)
 # Include OPS directories
 set(INCLD Bodies Model Solvers Helpers)
-foreach(DIR ${INCLD})
-        target_link_libraries(opsLive ${DIR})
-        target_include_directories(opsLive PRIVATE "${PROJECT_SOURCE_DIR}/../${DIR}")
-endforeach(DIR)
+foreach(EXE ${EXECS})
+        target_link_libraries(${EXE} Qt5::Core Qt5::Gui
+                Qt5::Widgets ${QWT_LIBRARIES} ${VTK_LIBRARIES})
+        target_include_directories(${EXE} PUBLIC ${QWT_INCLUDE_DIRS}
+                ${Boost_INCLUDE_DIRS} ${EIGEN_INCLUDE_DIRS})
+        foreach(DIR ${INCLD})
+                target_link_libraries(${EXE} ${DIR})
+                target_include_directories(${EXE} PRIVATE "${PROJECT_SOURCE_DIR}/../${DIR}")
+        endforeach(DIR)
+endforeach(EXE)
+
