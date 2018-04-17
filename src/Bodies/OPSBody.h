@@ -94,7 +94,7 @@ namespace OPS{
 	    std::vector< Matrix3d > _diffNormalRV; /*!< Derivatives of normals with rotation vectors*/
 	    std::vector< vtkSmartPointer<vtkIdList> > _neighbors;
 	    std::vector< vtkIdType > _initialNearestNeighbor;
-	    vtkSmartPointer< vtkPolyData > _polyData;
+        vtkSmartPointer< vtkPolyData > _polyData;
 	    vtkSmartPointer< vtkOctreePointLocator > _octree;
 	    void updateRotationVectors();
     };

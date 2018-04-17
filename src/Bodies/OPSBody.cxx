@@ -626,6 +626,7 @@ namespace OPS{
     double_t OPSBody::determineSearchRadius(){
 	// Create the VTK objects
 	auto extract = vtkSmartPointer<vtkExtractEdges>::New();
+    auto linePd = vtkSmartPointer<vtkPolyData>::New();
 	auto edges = vtkSmartPointer<vtkCellArray>::New();
 	auto pts = vtkSmartPointer<vtkIdList>::New();
 	//Triangulate the point cloud
@@ -633,15 +634,16 @@ namespace OPS{
 	// Extract the edges
 	extract->SetInputData(_polyData);
 	extract->Update();
-	edges = extract->GetOutput()->GetLines();
+    linePd = extract->GetOutput();
+    edges = linePd->GetLines();
 	//Calculate average edge length
 	VectorXd edgeLengths(edges->GetNumberOfCells());
 	edges->InitTraversal();
 	size_t i=0;
 	while(edges->GetNextCell(pts)){
 	    Vector3d p1, p2;
-	    p1 = pts->GetId(0);
-	    p2 = pts->GetId(1);
+        linePd->GetPoint(pts->GetId(0),&p1(0));
+        linePd->GetPoint(pts->GetId(1),&p2(0));
 	    edgeLengths(i++) = (p2-p1).norm();
 	}
 	_searchRadius = edgeLengths.mean()*1.2;

@@ -1,0 +1,287 @@
+#include "LiveSimulation.h"
+
+namespace OPS{
+
+void LiveSimulation::Initialize(){
+    _plotData = new circBuffers();
+    // Initialize circular buffer with capacity 50000
+    _plotData->a = new circ_buff(50000);
+    _plotData->b = new circ_buff(50000);
+    _plotData->x = new circ_buff(50000);
+
+    // ***************** Read Input VTK File *****************//
+    std::string inputFileName = "T7.vtk";
+
+    auto reader = vtkSmartPointer<vtkPolyDataReader>::New();
+    vtkSmartPointer<vtkPolyData> mesh;
+
+    reader->SetFileName(inputFileName.c_str());
+    reader->ReadAllVectorsOn();
+    reader->Update();
+    mesh = reader->GetOutput();
+    // ********************************************************//
+
+    // ******************* Simulation Parameters *********//
+    double_t re=1.0;
+    double_t percentStrain = 15;
+    double_t s = (100 / (re*percentStrain))*log(2.0);
+    double_t brownCoeff = 1.0, viscosity = 1.0;
+    readFvKAreaData("T7_OPS_Asphericity.dat");
+
+    // **********************************************************//
+
+    // ***************** Create Bodies and Model ****************//
+    // Set number of OPS particles
+    _N = mesh->GetNumberOfPoints();
+
+    // Read point coordinates from input mesh
+    Eigen::Matrix3Xd coords(3,_N);
+    for(auto i = 0; i < _N; ++i){
+        Eigen::Vector3d cp = Eigen::Vector3d::Zero();
+        mesh->GetPoint(i, &(cp(0)));
+        coords.col(i) = cp;
+    }
+
+    // Generate initial rotation vectors either from starting point coordinates
+    Eigen::Matrix3Xd rotVecs(3,_N);
+    // Generate rotation vectors from input point coordinates
+    OPSBody::initialRotationVector(coords, rotVecs);
+
+    // Prepare memory for energy, force
+    _x = Eigen::VectorXd(6*_N);
+    _g = Eigen::VectorXd(6*_N);
+    _prevX = Eigen::VectorXd(3*_N);
+
+    // Fill _x with coords and rotVecs
+    Eigen::Map<Eigen::Matrix3Xd> xpos(_x.data(),3,_N), xrot(&(_x(3*_N)),3,_N);
+    xpos = coords;
+    xrot = rotVecs;
+    _prevX = _x.head(3*_N);
+
+    // Create OPSBody
+    Eigen::Map<Eigen::Matrix3Xd> posGrad(_g.data(),3,_N), rotGrad(&_g(3*_N),3,_N);
+    _ops = new OPSMesh(_N,_f,xpos,xrot,posGrad,rotGrad);
+    _ops->setMorseDistance(re);
+    _ops->setMorseWellWidth(s);
+
+    // Create Brownian and Viscosity bodies
+    Eigen::Map<Eigen::VectorXd> thermalX(_x.data(),3*_N,1);
+    Eigen::Map<Eigen::VectorXd> thermalG(_g.data(),3*_N,1);
+    _brown = new BrownianBody(3*_N,brownCoeff,_f,thermalX,thermalG,_prevX);
+    _visco = new ViscosityBody(3*_N,viscosity,_f,thermalX,thermalG,_prevX);
+
+    // Create area constraint
+    vtkSmartPointer<vtkPolyData> poly = _ops->getPolyData();
+    _constraint = new ExactAreaConstraint(_N, _f, xpos, posGrad, poly);
+    _constraint->setConstraint( getInterpolatedArea(_gamma) );
+
+    // Create Model
+    _model = new Model(6*_N,_f,_g);
+    _model->addBody(_ops);
+    _model->addBody(_brown);
+    _model->addBody(_visco);
+    _model->addBody(_constraint);
+    // ****************************************************************//
+
+    // ***************** Prepare Output Data files *********************//
+    // Identify the Input structure name
+    std::string fname = "T7";
+    std::stringstream sstm;
+    std::string dataOutputFile;
+
+    // Detailed output data file
+    sstm << fname << "-DetailedOutput.dat";
+    dataOutputFile = sstm.str();
+    sstm.str("");
+    sstm.clear();
+    _detailedOP.open(dataOutputFile.c_str(), std::ofstream::out);
+    _detailedOP
+                    << "Alpha" << "\t"
+                    << "Beta" << "\t"
+                    << "Gamma" << "\t"
+                    << "Asphericity" << "\t"
+                    << "MorseEn"  <<"\t"
+                    << "NormEn"  <<"\t"
+                    << "CircEn"  <<"\t"
+                    << "BrownEn"  <<"\t"
+                    << "ViscoEn"  <<"\t"
+                    << "MSD" << "\t"
+                    << "RMSAngleDeficit"
+                    << std::endl;
+
+    // ************************* Create Solver ************************  //
+    size_t m = 5, iprint = 1000, maxIter = 1e5;
+    double_t factr = 10.0, pgtol = 1e-8;
+    LBFGSBParams solverParams(m,iprint,maxIter,factr,pgtol);
+    _solver = new LBFGSBWrapper(solverParams, *(_model), _f, _x, _g);
+    _solver->turnOffLogging();
+    // *****************************************************************//
+
+    // ********************* Prepare data for simulation ****************//
+    // Calculate Average Edge Length
+    double_t avgEdgeLen = _ops->getAverageEdgeLength();
+
+    // Renormalize positions such that avgEdgeLen = 1.0
+    for(auto i=0; i < _N; ++i){
+        xpos.col(i) = xpos.col(i)/avgEdgeLen;
+    }
+
+    // Update the OPSBody member variables as per new positions
+    _ops->updatePolyData();
+    _ops->updateNeighbors();
+    _ops->saveInitialPosition();
+    avgEdgeLen = _ops->getAverageEdgeLength();
+
+    // Relax at zero temperature once
+    _brown->setCoefficient(0.0);
+    _visco->setViscosity(0.0);
+    _solver->solve();
+    _prevX = _x.head(3*_N);
+
+    // Set Finite temperature coefficients
+    viscosity = _alpha/(avgEdgeLen*avgEdgeLen);
+    brownCoeff = std::sqrt( 2*_alpha/_beta )/avgEdgeLen;
+    _brown->setCoefficient(brownCoeff);
+    _visco->setViscosity(viscosity);
+    // ******************************************************************//
+    emit simulationReady();
+}
+
+// Interpolation of area
+double_t LiveSimulation::getInterpolatedArea(double_t x){
+    int size = _gammaDat.size();
+    int i = 0;
+    if ( x >= _gammaDat[size - 2] ){
+        i = size - 2;
+    }
+    else{
+        while ( x > _gammaDat[i+1] ) i++;
+    }
+    double_t xL = _gammaDat[i], yL = _areaDat[i],
+                    xR = _gammaDat[i+1], yR = _areaDat[i+1];
+    if ( x < xL ) yR = yL;
+    if ( x > xR ) yL = yR;
+    double_t dydx = ( yR - yL ) / ( xR - xL );
+    return yL + dydx * ( x - xL );
+}
+
+// Read gamma and area data from file
+void LiveSimulation::readFvKAreaData(std::string s){
+    ifstream inputFile(s.c_str());
+    std::string line;
+    double_t gamma, area, ignore;
+    //Clean the existing vectors
+    _gammaDat.clear();
+    _areaDat.clear();
+    // Eat up the header line
+    std::getline(inputFile, line);
+    while (std::getline(inputFile, line)){
+        std::istringstream ss(line);
+        ss >> gamma >> ignore >> ignore >> ignore
+                        >> area >> ignore >> ignore >> ignore
+                        >> ignore;
+        _gammaDat.push_back(gamma);
+        _areaDat.push_back(area);
+    }
+    //Reverse the vectors so that gamma values are increasing
+    std::reverse(_gammaDat.begin(),_gammaDat.end());
+    std::reverse(_areaDat.begin(),_areaDat.end());
+}
+
+// Update gamma and area constraint value
+void LiveSimulation::updateGamma(double g){
+    _gamma = g;
+    _ops->setFVK(g);
+    _constraint->setConstraint(getInterpolatedArea(g));
+}
+
+// Update beta and viscosity and brownian coefficients
+void LiveSimulation::updateBeta(double b){
+    if(b < 1e-6)
+        _alpha = 0;
+    else
+        _beta = 1.0/b;
+    _brown->setCoefficient(std::sqrt( 2*_alpha*b));
+}
+
+// Start running
+void LiveSimulation::SolveOneStep(){
+    if(_keepRunning){
+        // Generate Brownian Kicks
+        _brown->generateParallelKicks();
+
+        // Store data for Kabsch
+        _ops->updateDataForKabsch();
+
+        // Set the starting guess for Lambda and K for
+        // Augmented Lagrangian
+        _constraint->setLagrangeCoeff(10.0);
+        _constraint->setPenaltyCoeff(1000.0);
+
+        // *************** Augmented Lagrangian Loop ************** //
+        bool constraintMet = false;
+        size_t alIter = 0, alMaxIter = 10;
+
+        while( !constraintMet && (alIter < alMaxIter)){
+            // Solve the unconstrained minimization
+            _solver->solve();
+
+            //Uzawa update
+            _constraint->uzawaUpdate();
+
+            // Update termination check quantities
+            alIter++;
+            constraintMet = _constraint->constraintSatisfied();
+        }
+        // *********************************************************//
+
+        // Apply Kabsch Algorithm
+        _ops->applyKabschAlgorithm();
+
+        //Update kdTree, polyData and neighbors
+        _ops->updatePolyData();
+        _ops->updateNeighbors();
+
+        // Calculate output values
+        std::vector<double_t> msds(2,0);
+        msds = _ops->getMSD();
+
+        // Write output to data file
+        double_t morseEn = _ops->getMorseEnergy();
+        double_t normEn = _ops->getNormalityEnergy();
+        double_t circEn = _ops->getCircularityEnergy();
+        double_t rmsAd = _ops->getRMSAngleDeficit();
+        _detailedOP
+                        << _alpha << "\t"
+                        << _beta << "\t"
+                        << _gamma << "\t"
+                        << _ops->getAsphericity() << "\t"
+                        << morseEn << "\t"
+                        << normEn << "\t"
+                        << circEn << "\t"
+                        << _brown->getBrownianEnergy() << "\t"
+                        << _visco->getViscosityEnergy() << "\t"
+                        << msds[0] << "\t"
+                        << rmsAd
+                        << std::endl;
+        // Store the energy and angular deficit data in circular buffer
+        {
+            //std::lock_guard<std::mutex> lock(_mut);
+            _plotData->a->push_back(rmsAd);
+            _plotData->b->push_back(morseEn+circEn+normEn);
+            _plotData->x->push_back(_step);
+        }
+
+        // Update prevX
+        _prevX = _x.head(3*_N);
+
+        // Send signal of step completion
+        emit stepCompleted(_step++);
+    }
+}
+
+vtkSmartPointer<vtkPolyData> LiveSimulation::getPolyData(){
+    return _ops->getPolyData();
+}
+
+}

@@ -13,11 +13,16 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(Eigen REQUIRED)
 find_package(VTK REQUIRED)
+find_package(Boost REQUIRED)
 #find_package(OpenMP REQUIRED)
 #if (OPENMP_FOUND)
 #    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 #    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 #endif()
 include(${VTK_USE_FILE})
+
+# Set path for qwt
+set(QWT_INCLUDE_DIRS "/usr/include/qwt" CACHE PATH "Set Path for qwt header files.")
+set(QWT_LIBRARIES "qwt" CACHE STRING "Name of qwt library.")
 
 add_subdirectory(src)

@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>GUI</class>
+ <widget class="QMainWindow" name="GUI">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>930</width>
+    <height>621</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Live OPS Simulation</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QVTKOpenGLWidget" name="_qVTK">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>10</y>
+      <width>371</width>
+      <height>371</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="_initBtn">
+    <property name="geometry">
+     <rect>
+      <x>80</x>
+      <y>400</y>
+      <width>84</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Initialize</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="_startStopBtn">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>400</y>
+      <width>84</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Start</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="_fvkLbl">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>510</y>
+      <width>41</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>FvK:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="_tempLbl_2">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>540</y>
+      <width>91</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Temperature:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="_timeStepLbl">
+    <property name="geometry">
+     <rect>
+      <x>190</x>
+      <y>510</y>
+      <width>71</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Time Step:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="_fvkValLbl">
+    <property name="geometry">
+     <rect>
+      <x>62</x>
+      <y>510</y>
+      <width>91</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QLabel" name="_timeStepValLbl">
+    <property name="geometry">
+     <rect>
+      <x>270</x>
+      <y>510</y>
+      <width>91</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QLabel" name="_tempValLbl">
+    <property name="geometry">
+     <rect>
+      <x>120</x>
+      <y>540</y>
+      <width>91</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QSplitter" name="splitter_3">
+    <property name="geometry">
+     <rect>
+      <x>410</x>
+      <y>0</y>
+      <width>501</width>
+      <height>421</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Vertical</enum>
+    </property>
+    <widget class="QwtPlot" name="_topPlot"/>
+    <widget class="QwtPlot" name="_bottomPlot"/>
+   </widget>
+   <widget class="QwtTextLabel" name="_gammaSliderLbl">
+    <property name="geometry">
+     <rect>
+      <x>380</x>
+      <y>539</y>
+      <width>86</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="plainText">
+     <string>FvK Number</string>
+    </property>
+   </widget>
+   <widget class="QwtSlider" name="_gammaSlider">
+    <property name="geometry">
+     <rect>
+      <x>491</x>
+      <y>513</y>
+      <width>401</width>
+      <height>50</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+   <widget class="QwtTextLabel" name="_tempSliderLbl">
+    <property name="geometry">
+     <rect>
+      <x>380</x>
+      <y>469</y>
+      <width>85</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="plainText">
+     <string>Temperature</string>
+    </property>
+   </widget>
+   <widget class="QwtSlider" name="_tempSlider">
+    <property name="geometry">
+     <rect>
+      <x>490</x>
+      <y>440</y>
+      <width>401</width>
+      <height>50</height>
+     </rect>
+    </property>
+    <property name="upperBound">
+     <double>5.000000000000000</double>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>930</width>
+     <height>28</height>
+    </rect>
+   </property>
+  </widget>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QwtPlot</class>
+   <extends>QFrame</extends>
+   <header>qwt_plot.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QwtSlider</class>
+   <extends>QWidget</extends>
+   <header>qwt_slider.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QwtTextLabel</class>
+   <extends>QFrame</extends>
+   <header>qwt_text_label.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QVTKOpenGLWidget</class>
+   <extends>QOpenGLWidget</extends>
+   <header>QVTKOpenGLWidget.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>_tempSlider</sender>
+   <signal>valueChanged(double)</signal>
+   <receiver>_tempValLbl</receiver>
+   <slot>setNum(double)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>535</x>
+     <y>454</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>169</x>
+     <y>531</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>_gammaSlider</sender>
+   <signal>valueChanged(double)</signal>
+   <receiver>_fvkValLbl</receiver>
+   <slot>setNum(double)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>627</x>
+     <y>529</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>95</x>
+     <y>497</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>
