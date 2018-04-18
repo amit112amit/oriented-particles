@@ -113,7 +113,7 @@ int main(int argc, char* argv[]){
                << "NormalityEn" << "\t"
                << "CircularityEn" << "\t"
                << "TotalOPSEnergy" << "\t"
-	       << "RMSAngleDeficit"
+               << "RMSAngleDeficit"
                << std::endl;
     // ******************************************************************//
 
@@ -163,8 +163,8 @@ int main(int argc, char* argv[]){
                    << ops.getNormalityEnergy() << "\t"
                    << ops.getCircularityEnergy() << "\t"
                    << f << "\t"
-		   << ops.getRMSAngleDeficit()
-		   << std::endl;
+                   << ops.getRMSAngleDeficit()
+                   << std::endl;
 
         //********** Print relaxed configuration ************//
         sstm << fname << "-relaxed-" << step++ <<".vtk";

@@ -21,13 +21,10 @@
 #include <qwt_scale_engine.h>
 #include <qwt_plot.h>
 #include <qwt_plot_grid.h>
+#include <qwt_plot_marker.h>
 #include <qwt_plot_curve.h>
-#include <qwt_legend.h>
+#include <qwt_plot_layout.h>
 #include <qwt_point_data.h>
-#include <qwt_plot_canvas.h>
-#include <qwt_text.h>
-#include <qwt_symbol.h>
-#include <qwt_math.h>
 #include <boost/circular_buffer.hpp>
 #include "LiveSimulation.h"
 #include "ui_LiveSimulationWindow.h"
@@ -46,9 +43,13 @@ signals:
     void stopRunning();
     void betaChanged(double);
     void gammaChanged(double);
+    void resetRequested();
 public slots:
     void refreshVTKSceneAndPlots(int);
     void setUpVTKPipeAndPlotData();
+    void resetVTKSceneAndPlots();
+    void updateZeroOpsEnMarker(double);
+    void updateZeroRmsAdMarker(double);
 private slots:
     void on__initBtn_clicked();
     void on__startStopBtn_clicked();
@@ -59,10 +60,13 @@ private:
     vtkSmartPointer<vtkPolyData> _poly;
     LiveSimulation* _worker;
     QThread* _thread;
-    circBuffers *_plotDataV;
     std::mutex _mutex;
     QwtPlotGrid *_topGrid, *_bottomGrid;
     QwtPlotCurve *_topCurve, *_bottomCurve;
+    QwtPlotCurve *_topZeroTemp, *_bottomZeroTemp;
+    QwtCircBuffSeriesData *_rmsAd, *_opsEn;
+    double_t _xmin, _xmax, _ymin1, _ymin2, _ymax1, _ymax2;
+    QwtPlotMarker *_topMarker, *_bottomMarker;
 };
 
 }

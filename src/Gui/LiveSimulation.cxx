@@ -3,11 +3,9 @@
 namespace OPS{
 
 void LiveSimulation::Initialize(){
-    _plotData = new circBuffers();
     // Initialize circular buffer with capacity 50000
-    _plotData->a = new circ_buff(50000);
-    _plotData->b = new circ_buff(50000);
-    _plotData->x = new circ_buff(50000);
+    _rmsAD = new QwtCircBuffSeriesData(5000);
+    _opsEn = new QwtCircBuffSeriesData(5000);
 
     // ***************** Read Input VTK File *****************//
     std::string inputFileName = "T7.vtk";
@@ -26,7 +24,9 @@ void LiveSimulation::Initialize(){
     double_t percentStrain = 15;
     double_t s = (100 / (re*percentStrain))*log(2.0);
     double_t brownCoeff = 1.0, viscosity = 1.0;
-    readFvKAreaData("T7_OPS_Asphericity.dat");
+    ReadFvKAreaData("T7_OPS_Asphericity.dat");
+    _zeroOpsEnVal = GetInterpolatedValue(_gamma,_opsEnDat);
+    _zeroRmsAdVal = GetInterpolatedValue(_gamma,_rmsAdDat);
 
     // **********************************************************//
 
@@ -51,6 +51,7 @@ void LiveSimulation::Initialize(){
     _x = Eigen::VectorXd(6*_N);
     _g = Eigen::VectorXd(6*_N);
     _prevX = Eigen::VectorXd(3*_N);
+    _initialX = Eigen::VectorXd(6*_N);
 
     // Fill _x with coords and rotVecs
     Eigen::Map<Eigen::Matrix3Xd> xpos(_x.data(),3,_N), xrot(&(_x(3*_N)),3,_N);
@@ -61,6 +62,7 @@ void LiveSimulation::Initialize(){
     // Create OPSBody
     Eigen::Map<Eigen::Matrix3Xd> posGrad(_g.data(),3,_N), rotGrad(&_g(3*_N),3,_N);
     _ops = new OPSMesh(_N,_f,xpos,xrot,posGrad,rotGrad);
+    _ops->setFVK(_gamma);
     _ops->setMorseDistance(re);
     _ops->setMorseWellWidth(s);
 
@@ -73,7 +75,7 @@ void LiveSimulation::Initialize(){
     // Create area constraint
     vtkSmartPointer<vtkPolyData> poly = _ops->getPolyData();
     _constraint = new ExactAreaConstraint(_N, _f, xpos, posGrad, poly);
-    _constraint->setConstraint( getInterpolatedArea(_gamma) );
+    _constraint->setConstraint( GetInterpolatedValue(_gamma,_areaDat) );
 
     // Create Model
     _model = new Model(6*_N,_f,_g);
@@ -87,14 +89,13 @@ void LiveSimulation::Initialize(){
     // Identify the Input structure name
     std::string fname = "T7";
     std::stringstream sstm;
-    std::string dataOutputFile;
 
     // Detailed output data file
     sstm << fname << "-DetailedOutput.dat";
-    dataOutputFile = sstm.str();
+    _dataOutputFile = sstm.str();
     sstm.str("");
     sstm.clear();
-    _detailedOP.open(dataOutputFile.c_str(), std::ofstream::out);
+    _detailedOP.open(_dataOutputFile.c_str(), std::ofstream::out);
     _detailedOP
                     << "Alpha" << "\t"
                     << "Beta" << "\t"
@@ -138,6 +139,9 @@ void LiveSimulation::Initialize(){
     _solver->solve();
     _prevX = _x.head(3*_N);
 
+    // Save the current _x for resetting the simulation
+    _initialX = _x;
+
     // Set Finite temperature coefficients
     viscosity = _alpha/(avgEdgeLen*avgEdgeLen);
     brownCoeff = std::sqrt( 2*_alpha/_beta )/avgEdgeLen;
@@ -148,7 +152,8 @@ void LiveSimulation::Initialize(){
 }
 
 // Interpolation of area
-double_t LiveSimulation::getInterpolatedArea(double_t x){
+double_t LiveSimulation::GetInterpolatedValue(double_t x,
+                                              std::vector<double_t> &y){
     int size = _gammaDat.size();
     int i = 0;
     if ( x >= _gammaDat[size - 2] ){
@@ -157,8 +162,8 @@ double_t LiveSimulation::getInterpolatedArea(double_t x){
     else{
         while ( x > _gammaDat[i+1] ) i++;
     }
-    double_t xL = _gammaDat[i], yL = _areaDat[i],
-                    xR = _gammaDat[i+1], yR = _areaDat[i+1];
+    double_t xL = _gammaDat[i], yL = y[i],
+                    xR = _gammaDat[i+1], yR = y[i+1];
     if ( x < xL ) yR = yL;
     if ( x > xR ) yL = yR;
     double_t dydx = ( yR - yL ) / ( xR - xL );
@@ -166,42 +171,54 @@ double_t LiveSimulation::getInterpolatedArea(double_t x){
 }
 
 // Read gamma and area data from file
-void LiveSimulation::readFvKAreaData(std::string s){
+void LiveSimulation::ReadFvKAreaData(std::string s){
     ifstream inputFile(s.c_str());
     std::string line;
-    double_t gamma, area, ignore;
+    double_t gamma, area, rmsAd, opsEn, ignore;
     //Clean the existing vectors
     _gammaDat.clear();
     _areaDat.clear();
+    _opsEnDat.clear();
+    _rmsAdDat.clear();
     // Eat up the header line
     std::getline(inputFile, line);
     while (std::getline(inputFile, line)){
         std::istringstream ss(line);
         ss >> gamma >> ignore >> ignore >> ignore
                         >> area >> ignore >> ignore >> ignore
-                        >> ignore;
+                        >> opsEn >> rmsAd;
         _gammaDat.push_back(gamma);
         _areaDat.push_back(area);
+        _opsEnDat.push_back(opsEn);
+        _rmsAdDat.push_back(rmsAd);
     }
     //Reverse the vectors so that gamma values are increasing
     std::reverse(_gammaDat.begin(),_gammaDat.end());
     std::reverse(_areaDat.begin(),_areaDat.end());
+    std::reverse(_opsEnDat.begin(),_opsEnDat.end());
+    std::reverse(_rmsAdDat.begin(),_rmsAdDat.end());
 }
 
 // Update gamma and area constraint value
-void LiveSimulation::updateGamma(double g){
+void LiveSimulation::UpdateGamma(double g){
     _gamma = g;
     _ops->setFVK(g);
-    _constraint->setConstraint(getInterpolatedArea(g));
+    _constraint->setConstraint(GetInterpolatedValue(g,_areaDat));
+    emit updateZeroOpsEn(GetInterpolatedValue(_gamma,_opsEnDat));
+    emit updateZeroRmsAd(GetInterpolatedValue(_gamma,_rmsAdDat));
 }
 
 // Update beta and viscosity and brownian coefficients
-void LiveSimulation::updateBeta(double b){
-    if(b < 1e-6)
+void LiveSimulation::UpdateBeta(double b){
+    if(b < 1e-6){
         _alpha = 0;
-    else
+    }
+    else{
+        _alpha = 2.5e5;
         _beta = 1.0/b;
-    _brown->setCoefficient(std::sqrt( 2*_alpha*b));
+    }
+    _brown->setCoefficient(std::sqrt(2*_alpha*b));
+    _visco->setViscosity(_alpha);
 }
 
 // Start running
@@ -267,9 +284,8 @@ void LiveSimulation::SolveOneStep(){
         // Store the energy and angular deficit data in circular buffer
         {
             //std::lock_guard<std::mutex> lock(_mut);
-            _plotData->a->push_back(rmsAd);
-            _plotData->b->push_back(morseEn+circEn+normEn);
-            _plotData->x->push_back(_step);
+            _rmsAD->push_back(_step,rmsAd);
+            _opsEn->push_back(_step,(morseEn+normEn+circEn));
         }
 
         // Update prevX
@@ -280,8 +296,41 @@ void LiveSimulation::SolveOneStep(){
     }
 }
 
-vtkSmartPointer<vtkPolyData> LiveSimulation::getPolyData(){
+vtkSmartPointer<vtkPolyData> LiveSimulation::GetPolyData(){
     return _ops->getPolyData();
+}
+
+void LiveSimulation::Reset(){
+    // Stop the simulation
+    _keepRunning = false;
+    // Set number of steps to 0
+    _step = 0;
+    // Set positions and normals to starting value
+    _x = _initialX;
+    _ops->computeNormals();
+    _prevX = _x.head(3*_N);
+    _ops->updatePolyData();
+    _ops->updateNeighbors();
+    // Clear the plot data
+    _rmsAD->clear();
+    _opsEn->clear();
+    // Reopen the output file discarding old content
+    _detailedOP.close();
+    _detailedOP.open(_dataOutputFile.c_str(), std::ofstream::out);
+    _detailedOP
+                    << "Alpha" << "\t"
+                    << "Beta" << "\t"
+                    << "Gamma" << "\t"
+                    << "Asphericity" << "\t"
+                    << "MorseEn"  <<"\t"
+                    << "NormEn"  <<"\t"
+                    << "CircEn"  <<"\t"
+                    << "BrownEn"  <<"\t"
+                    << "ViscoEn"  <<"\t"
+                    << "MSD" << "\t"
+                    << "RMSAngleDeficit"
+                    << std::endl;
+    emit resetCompeleted();
 }
 
 }

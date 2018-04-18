@@ -19,8 +19,8 @@ int main(int argc, char* argv[]){
     t1 = clock();
 
     if (argc != 2) {
-	cout << "usage: " << argv[0] << " <filename>\n";
-	return -1;
+        cout << "usage: " << argv[0] << " <filename>\n";
+        return -1;
     }
 
     //******************** Optional parameters ********************//
@@ -62,23 +62,23 @@ int main(int argc, char* argv[]){
     //Validate constraint type
     Constraint type;
     if(constraintType.compare("AverageArea") == 0){
-	type = AvgArea;
+        type = AvgArea;
     }
     else if(constraintType.compare("AverageVolume") == 0){
-	type = AvgArea;
+        type = AvgArea;
     }
     else if(constraintType.compare("ExactArea") == 0){
-	type = ExactArea;
+        type = ExactArea;
     }
     else if(constraintType.compare("ExactVolume") == 0){
-	type = ExactVol;
+        type = ExactVol;
     }
     else if(constraintType.compare("ExactAreaAndVolume") == 0){
-	type = ExactAreaAndVolume;
+        type = ExactAreaAndVolume;
     }
     else{
-	std::cout<< "Invalid constraint type specified." << std::endl;
-	exit(EXIT_FAILURE);
+        std::cout<< "Invalid constraint type specified." << std::endl;
+        exit(EXIT_FAILURE);
     }
 
     // Input file should contain the following columns
@@ -87,22 +87,22 @@ int main(int argc, char* argv[]){
     assert(coolFile);
     std::vector<std::vector<double_t> > coolVec;
     double_t currAlpha, currBeta, currGamma, currPercentStrain,
-	     currViterMax, currPrintStep, currArea;
+                    currViterMax, currPrintStep, currArea;
 
     std::string headerline;
     std::getline(coolFile, headerline);
 
     while (coolFile >> currAlpha >> currBeta >> currGamma >> currPercentStrain
-	    >> currArea >> currViterMax >> currPrintStep) {
-	std::vector<double> currLine;
-	currLine.push_back(currAlpha);
-	currLine.push_back(currBeta);
-	currLine.push_back(currGamma);
-	currLine.push_back(currPercentStrain);
-	currLine.push_back(currArea);
-	currLine.push_back(currViterMax);
-	currLine.push_back(currPrintStep);
-	coolVec.push_back(currLine);
+                    >> currArea >> currViterMax >> currPrintStep) {
+        std::vector<double> currLine;
+        currLine.push_back(currAlpha);
+        currLine.push_back(currBeta);
+        currLine.push_back(currGamma);
+        currLine.push_back(currPercentStrain);
+        currLine.push_back(currArea);
+        currLine.push_back(currViterMax);
+        currLine.push_back(currPrintStep);
+        coolVec.push_back(currLine);
     }
     coolFile.close();
 
@@ -117,9 +117,9 @@ int main(int argc, char* argv[]){
     // Read point coordinates from input mesh
     Eigen::Matrix3Xd coords(3,N);
     for(auto i = 0; i < N; ++i){
-	Eigen::Vector3d cp = Eigen::Vector3d::Zero();
-	mesh->GetPoint(i, &(cp(0)));
-	coords.col(i) = cp;
+        Eigen::Vector3d cp = Eigen::Vector3d::Zero();
+        mesh->GetPoint(i, &(cp(0)));
+        coords.col(i) = cp;
     }
 
     // Generate initial rotation vectors either from starting point coordinates
@@ -135,7 +135,7 @@ int main(int argc, char* argv[]){
 
     // Fill x with coords and rotVecs
     Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N),
-	prevPos(prevX.data(),3,N);
+                    prevPos(prevX.data(),3,N);
     xpos = coords;
     xrot = rotVecs;
     prevX = x.head(3*N);
@@ -157,23 +157,23 @@ int main(int argc, char* argv[]){
     // Create the Augmented Lagrangian volume constraint body
     ALConstraint* constraint;
     if(type == AvgArea){
-	constraint = new AvgAreaConstraint(N, f, xpos, posGrad);
+        constraint = new AvgAreaConstraint(N, f, xpos, posGrad);
     }
     else if(type == AvgVol){
-	constraint = new AvgVolConstraint(N, f, xpos, posGrad);
+        constraint = new AvgVolConstraint(N, f, xpos, posGrad);
     }
     else if(type == ExactArea){
-	vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
-	constraint = new ExactAreaConstraint(N, f, xpos, posGrad, poly);
+        vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
+        constraint = new ExactAreaConstraint(N, f, xpos, posGrad, poly);
     }
     else if(type == ExactVol){
-	vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
-	constraint = new ExactVolConstraint(N, f, xpos, posGrad, poly);
+        vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
+        constraint = new ExactVolConstraint(N, f, xpos, posGrad, poly);
     }
     else if(type == ExactAreaAndVolume){
-	vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
-	constraint = new ExactAreaVolConstraint(N, f, xpos, posGrad, poly);
-	constraint->setTolerance(1e-8);
+        vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
+        constraint = new ExactAreaVolConstraint(N, f, xpos, posGrad, poly);
+        constraint->setTolerance(1e-8);
     }
 
     // Create Model
@@ -198,20 +198,20 @@ int main(int argc, char* argv[]){
     sstm.clear();
     detailedOP.open(dataOutputFile.c_str(), std::ofstream::out);
     detailedOP
-	    << "Gamma" << "\t"
-	    << "Beta" << "\t"
-	    << "Asphericity" << "\t"
-	    << "MorseEn"  <<"\t"
-	    << "NormEn"  <<"\t"
-	    << "CircEn"  <<"\t"
-	    << "BrownEn"  <<"\t"
-	    << "ViscoEn"  <<"\t"
-	    << "MSD" << "\t"
-	    << "RMSAngleDeficit" << "\t"
-	    << "I1" << "\t"
-	    << "I2" << "\t"
-	    << "I3"
-	    << std::endl;
+                    << "Gamma" << "\t"
+                    << "Beta" << "\t"
+                    << "Asphericity" << "\t"
+                    << "MorseEn"  <<"\t"
+                    << "NormEn"  <<"\t"
+                    << "CircEn"  <<"\t"
+                    << "BrownEn"  <<"\t"
+                    << "ViscoEn"  <<"\t"
+                    << "MSD" << "\t"
+                    << "RMSAngleDeficit" << "\t"
+                    << "I1" << "\t"
+                    << "I2" << "\t"
+                    << "I3"
+                    << std::endl;
 
     // ************************* Create Solver ************************  //
     size_t m = 5, iprint = 1000, maxIter = 1e5;
@@ -225,12 +225,12 @@ int main(int argc, char* argv[]){
     // Calculate Average Edge Length
     double_t avgEdgeLen = ops.getAverageEdgeLength();
     if(loggingOn){
-	std::cout << "Initial Avg Edge Length = " << avgEdgeLen
-	    << std::endl;
+        std::cout << "Initial Avg Edge Length = " << avgEdgeLen
+                  << std::endl;
     }
     // Renormalize positions such that avgEdgeLen = 1.0
     for(auto i=0; i < N; ++i){
-	xpos.col(i) = xpos.col(i)/avgEdgeLen;
+        xpos.col(i) = xpos.col(i)/avgEdgeLen;
     }
 
     // Update the OPSBody member variables as per new positions
@@ -239,8 +239,8 @@ int main(int argc, char* argv[]){
     ops.saveInitialPosition(); /*!< For Mean Squared Displacement */
     avgEdgeLen = ops.getAverageEdgeLength();
     if(loggingOn)
-	std::cout << "After renormalizing, Avg Edge Length = "
-	    << avgEdgeLen << std::endl;
+        std::cout << "After renormalizing, Avg Edge Length = "
+                  << avgEdgeLen << std::endl;
     // ******************************************************************//
 
     //Create an eigenvalue solver for inertia tensor
@@ -250,156 +250,156 @@ int main(int argc, char* argv[]){
     // ************************ OUTER SOLUTION LOOP **********************//
     size_t printStep;
     for(int z=0; z < coolVec.size(); z++){
-	alpha = coolVec[z][0];
-	beta = coolVec[z][1];
-	gamma = coolVec[z][2];
-	percentStrain = coolVec[z][3];
-	double_t constrainedVal = coolVec[z][4];
-	viterMax = coolVec[z][5];
-	printStep = (int)coolVec[z][6];
+        alpha = coolVec[z][0];
+        beta = coolVec[z][1];
+        gamma = coolVec[z][2];
+        percentStrain = coolVec[z][3];
+        double_t constrainedVal = coolVec[z][4];
+        viterMax = coolVec[z][5];
+        printStep = (int)coolVec[z][6];
 
-	// Update OPS params
-	s = (100 / (avgEdgeLen*percentStrain))*log(2.0);
-	ops.setFVK(gamma);
-	ops.setMorseWellWidth(s);
-	std::cout<< "Gamma = " << gamma << std::endl;
+        // Update OPS params
+        s = (100 / (avgEdgeLen*percentStrain))*log(2.0);
+        ops.setFVK(gamma);
+        ops.setMorseWellWidth(s);
+        std::cout<< "Gamma = " << gamma << std::endl;
 
-	// Set up the constraint value as the zero temperature value
-	constraint->setConstraint(constrainedVal);
+        // Set up the constraint value as the zero temperature value
+        constraint->setConstraint(constrainedVal);
 
-	// For the very first iteration solve at zero temperature first
-	if( z == 0 ){
-	    brown.setCoefficient(0.0);
-	    visco.setViscosity(0.0);
-	    solver.solve();
-	}
+        // For the very first iteration solve at zero temperature first
+        if( z == 0 ){
+            brown.setCoefficient(0.0);
+            visco.setViscosity(0.0);
+            solver.solve();
+        }
 
-	// Update prevX
-	prevX = x.head(3*N);
+        // Update prevX
+        prevX = x.head(3*N);
 
-	// Set the viscosity and Brownian coefficient
-	viscosity = alpha/(avgEdgeLen*avgEdgeLen);
-	brownCoeff = std::sqrt( 2*alpha/beta )/avgEdgeLen;
-	if(loggingOn){
-	    std::cout<< "Viscosity = " << viscosity << std::endl;
-	    std::cout<< "Brownian Coefficient = " << brownCoeff
-		<< std::endl;
-	}
-	brown.setCoefficient(brownCoeff);
-	visco.setViscosity(viscosity);
+        // Set the viscosity and Brownian coefficient
+        viscosity = alpha/(avgEdgeLen*avgEdgeLen);
+        brownCoeff = std::sqrt( 2*alpha/beta )/avgEdgeLen;
+        if(loggingOn){
+            std::cout<< "Viscosity = " << viscosity << std::endl;
+            std::cout<< "Brownian Coefficient = " << brownCoeff
+                     << std::endl;
+        }
+        brown.setCoefficient(brownCoeff);
+        visco.setViscosity(viscosity);
 
-	//**************  INNER SOLUTION LOOP ******************//
-	// Average energy across time steps
-	double_t avgTotalEnergy = 0.0;
+        //**************  INNER SOLUTION LOOP ******************//
+        // Average energy across time steps
+        double_t avgTotalEnergy = 0.0;
 
-	for (int viter = 0; viter < viterMax; viter++) {
-	    if(loggingOn)
-		std::cout << std::endl
-		    << "VISCOUS ITERATION: " << step
-		    << std::endl
-		    << std::endl;
+        for (int viter = 0; viter < viterMax; viter++) {
+            if(loggingOn)
+                std::cout << std::endl
+                          << "VISCOUS ITERATION: " << step
+                          << std::endl
+                          << std::endl;
 
-	    // Generate Brownian Kicks
-	    brown.generateParallelKicks();
+            // Generate Brownian Kicks
+            brown.generateParallelKicks();
 
-	    // Store data for Kabsch
-	    ops.updateDataForKabsch();
+            // Store data for Kabsch
+            ops.updateDataForKabsch();
 
-	    // Set the starting guess for Lambda and K for
-	    // Augmented Lagrangian
-	    constraint->setLagrangeCoeff(10.0);
-	    constraint->setPenaltyCoeff(1000.0);
+            // Set the starting guess for Lambda and K for
+            // Augmented Lagrangian
+            constraint->setLagrangeCoeff(10.0);
+            constraint->setPenaltyCoeff(1000.0);
 
-	    // *************** Augmented Lagrangian Loop ************** //
-	    bool constraintMet = false;
-	    size_t alIter = 0, alMaxIter = 10;
+            // *************** Augmented Lagrangian Loop ************** //
+            bool constraintMet = false;
+            size_t alIter = 0, alMaxIter = 10;
 
-	    while( !constraintMet && (alIter < alMaxIter)){
-		if(loggingOn)
-		    std::cout<<"Augmented Lagrangian iteration: "
-			<< alIter
-			<< std::endl;
+            while( !constraintMet && (alIter < alMaxIter)){
+                if(loggingOn)
+                    std::cout<<"Augmented Lagrangian iteration: "
+                            << alIter
+                            << std::endl;
 
-		// Solve the unconstrained minimization
-		solver.solve();
+                // Solve the unconstrained minimization
+                solver.solve();
 
-		//Uzawa update
-		constraint->uzawaUpdate();
+                //Uzawa update
+                constraint->uzawaUpdate();
 
-		// Update termination check quantities
-		alIter++;
-		constraintMet = constraint->constraintSatisfied();
-	    }
-	    if(loggingOn){
-		constraint->printCompletion();
-		std::cout<< "Constraint satisfied in "<< alIter
-		    << " iterations."
-		    << std::endl << std::endl;
-	    }
-	    // *********************************************************//
+                // Update termination check quantities
+                alIter++;
+                constraintMet = constraint->constraintSatisfied();
+            }
+            if(loggingOn){
+                constraint->printCompletion();
+                std::cout<< "Constraint satisfied in "<< alIter
+                         << " iterations."
+                         << std::endl << std::endl;
+            }
+            // *********************************************************//
 
-	    // Apply Kabsch Algorithm
-	    ops.applyKabschAlgorithm();
+            // Apply Kabsch Algorithm
+            ops.applyKabschAlgorithm();
 
-	    //Update kdTree, polyData and neighbors
-	    ops.updatePolyData();
-	    ops.updateNeighbors();
+            //Update kdTree, polyData and neighbors
+            ops.updatePolyData();
+            ops.updateNeighbors();
 
-	    //********** Print relaxed configuration ************//
-	    //We will print only after every currPrintStep iterations
-	    if (viter % printStep == 0 && printStep <= viterMax) {
-		sstm << fname << "-relaxed-" << nameSuffix++
-		    <<".vtk";
-		std::string rName = sstm.str();
-		ops.printVTKFile(rName);
-		sstm.str("");
-		sstm.clear();
-	    }
+            //********** Print relaxed configuration ************//
+            //We will print only after every currPrintStep iterations
+            if (viter % printStep == 0 && printStep <= viterMax) {
+                sstm << fname << "-relaxed-" << nameSuffix++
+                     <<".vtk";
+                std::string rName = sstm.str();
+                ops.printVTKFile(rName);
+                sstm.str("");
+                sstm.clear();
+            }
 
-	    // Calculate the inertia tensor and its eigenvalues
-	    Matrix3d M = Matrix3d::Zero();
-	    for( auto ptId = 0; ptId < N; ++ptId ){
-		Vector3d xk = xpos.col(ptId);
-		M += xk.dot(xk)*Matrix3d::Identity() - xk*xk.transpose();
-	    }
-	    // Now calculate the eigen values
-	    saes.compute( M, Eigen::EigenvaluesOnly );
-	    Vector3d eigV = saes.eigenvalues();
+            // Calculate the inertia tensor and its eigenvalues
+            Matrix3d M = Matrix3d::Zero();
+            for( auto ptId = 0; ptId < N; ++ptId ){
+                Vector3d xk = xpos.col(ptId);
+                M += xk.dot(xk)*Matrix3d::Identity() - xk*xk.transpose();
+            }
+            // Now calculate the eigen values
+            saes.compute( M, Eigen::EigenvaluesOnly );
+            Vector3d eigV = saes.eigenvalues();
 
-	    double_t I1 = eigV[0];
-	    double_t I2 = eigV[1];
-	    double_t I3 = eigV[2];
+            double_t I1 = eigV[0];
+            double_t I2 = eigV[1];
+            double_t I3 = eigV[2];
 
-	    std::vector<double_t> msds(2,0);
-	    msds = ops.getMSD();
+            std::vector<double_t> msds(2,0);
+            msds = ops.getMSD();
 
-	    // Write output to data file
-	    detailedOP
-		<< gamma << "\t"
-		<< beta << "\t"
-		<< ops.getAsphericity() << "\t"
-		<< ops.getMorseEnergy() << "\t"
-		<< ops.getNormalityEnergy() << "\t"
-		<< ops.getCircularityEnergy() << "\t"
-		<< brown.getBrownianEnergy() << "\t"
-		<< visco.getViscosityEnergy() << "\t"
-		<< msds[0] << "\t"
-		<< ops.getRMSAngleDeficit() << "\t"
-		<< I1 << "\t"
-		<< I2 << "\t"
-		<< I3
-		<< std::endl;
+            // Write output to data file
+            detailedOP
+                            << gamma << "\t"
+                            << beta << "\t"
+                            << ops.getAsphericity() << "\t"
+                            << ops.getMorseEnergy() << "\t"
+                            << ops.getNormalityEnergy() << "\t"
+                            << ops.getCircularityEnergy() << "\t"
+                            << brown.getBrownianEnergy() << "\t"
+                            << visco.getViscosityEnergy() << "\t"
+                            << msds[0] << "\t"
+                            << ops.getRMSAngleDeficit() << "\t"
+                            << I1 << "\t"
+                            << I2 << "\t"
+                            << I3
+                            << std::endl;
 
-	    // Update prevX
-	    prevX = x.head(3*N);
-	    if( loggingOn ){
-		avgTotalEnergy=(avgTotalEnergy*step+f)/(step+1);
-		std::cout<< " Average Total Energy = "
-		    << avgTotalEnergy << std::endl;
-	    }
-	    step++;
-	}
-	//************************************************//
+            // Update prevX
+            prevX = x.head(3*N);
+            if( loggingOn ){
+                avgTotalEnergy=(avgTotalEnergy*step+f)/(step+1);
+                std::cout<< " Average Total Energy = "
+                         << avgTotalEnergy << std::endl;
+            }
+            step++;
+        }
+        //************************************************//
 
     }
     // **********************************************************************//
@@ -407,7 +407,7 @@ int main(int argc, char* argv[]){
     t2 = clock();
     float diff((float)t2 - (float)t1);
     std::cout << "Solution loop execution time: " << diff / CLOCKS_PER_SEC
-	<< " seconds" << std::endl;
+              << " seconds" << std::endl;
     delete constraint;
     return 1;
 }

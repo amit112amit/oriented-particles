@@ -66,7 +66,7 @@ namespace OPS{
 	    double_t getMorseEnergy(){return _morseEn;}
 	    double_t getNormalityEnergy(){return _normalEn;}
 	    vtkSmartPointer<vtkPolyData> getPolyData(){return _polyData;}
-	    double_t getRMSAngleDeficit();
+        double_t getRMSAngleDeficit();
 	    double_t getTotalEnergy();
 	    double_t getVolume();
 	    static void initialRotationVector(RefM3Xd pos, RefM3Xd rotVec);
