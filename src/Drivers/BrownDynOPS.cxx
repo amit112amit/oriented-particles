@@ -25,6 +25,8 @@ int main(int argc, char* argv[]){
 
     // ***************** Read Input VTK File *****************//
     std::string inputFileName = argv[1];
+    std::string baseFileName = inputFileName.substr(0,
+	    inputFileName.length() - 4);
 
     auto reader = vtkSmartPointer<vtkPolyDataReader>::New();
     vtkSmartPointer<vtkPolyData> mesh;
@@ -35,52 +37,17 @@ int main(int argc, char* argv[]){
     mesh = reader->GetOutput();
     // ********************************************************//
 
-    // ******************* Read Simulation Parameters *********//
-
-    // This flag determines if its a new simulation or a continuation
-    bool continueFlag = false;
+    // ******************* Simulation Parameters *********//
 
     double_t re=1.0, s=7.0;
     double_t alpha=1.0, beta=1.0, gamma=1.0;
     double_t percentStrain = 15;
 
-    enum Constraint{ AvgArea, AvgVol, ExactArea, ExactVol, ExactAreaAndVolume};
-    std::string constraintType("NULL"), baseFileName;
     size_t viterMax = 1000;
     size_t nameSuffix = 0;
     size_t step = 0;
 
-    InputParameters miscInp = OPS::readKeyValueInput( "miscInp.dat" );
-    re = std::stod( miscInp["re"] );
-    constraintType = miscInp["constraintType"];
-    continueFlag = std::stoi( miscInp["continueFlag"] );
-    baseFileName = miscInp["baseFileName"];
-    step = std::stoi( miscInp["step"] );
-    nameSuffix = std::stoi( miscInp["nameSuffix"] );
-
     s = (100 / (re*percentStrain))*log(2.0);
-
-    //Validate constraint type
-    Constraint type;
-    if(constraintType.compare("AverageArea") == 0){
-	type = AvgArea;
-    }
-    else if(constraintType.compare("AverageVolume") == 0){
-	type = AvgArea;
-    }
-    else if(constraintType.compare("ExactArea") == 0){
-	type = ExactArea;
-    }
-    else if(constraintType.compare("ExactVolume") == 0){
-	type = ExactVol;
-    }
-    else if(constraintType.compare("ExactAreaAndVolume") == 0){
-	type = ExactAreaAndVolume;
-    }
-    else{
-	std::cout<< "Invalid constraint type specified." << std::endl;
-	exit(EXIT_FAILURE);
-    }
 
     // Input file should contain the following columns
     // Alpha Beta Gamma PercentStrain AreaConstraint NumIterations PrintStep
@@ -112,8 +79,6 @@ int main(int argc, char* argv[]){
     // ***************** Create Bodies and Model ****************//
     // Set number of OPS particles
     size_t N = mesh->GetNumberOfPoints();
-    //Calculate the number of bonds;
-    size_t numBonds = (int)((12*5 + (N-12)*6)/2);
 
     // Read point coordinates from input mesh
     Eigen::Matrix3Xd coords(3,N);
@@ -126,23 +91,8 @@ int main(int argc, char* argv[]){
     // Generate initial rotation vectors either from input point normals or
     // from starting point coordinates depending on continueFlag
     Eigen::Matrix3Xd rotVecs(3,N);
-    if( continueFlag ){
-	// Read normals from input file
-	Eigen::Matrix3Xd normals(3,N);
-	vtkSmartPointer< vtkDoubleArray > normalsArr =
-	    vtkDoubleArray::FastDownCast(mesh->GetPointData()->GetNormals());
-	normalsArr->vtkAbstractArray::SetNumberOfComponents( 3 );
-	for(auto i = 0; i < N; ++i){
-	    Eigen::Vector3d cp = Eigen::Vector3d::Zero();
-	    normalsArr->GetTuple(i, &(cp(0)));
-	    normals.col(i) = cp;
-	}
-	OPSBody::initialRotationVector(normals, rotVecs);
-    }
-    else{
-	// Generate rotation vectors from input point coordinates
-	OPSBody::initialRotationVector(coords, rotVecs);
-    }
+    // Generate rotation vectors from input point coordinates
+    OPSBody::initialRotationVector(coords, rotVecs);
 
     // Prepare memory for energy, force
     double_t f;
@@ -172,33 +122,14 @@ int main(int argc, char* argv[]){
     ViscosityBody visco(3*N,viscosity,f,thermalX,thermalG,prevX);
 
     // Create the Augmented Lagrangian volume constraint body
-    ALConstraint* constraint;
-    if(type == AvgArea){
-	constraint = new AvgAreaConstraint(N, f, xpos, posGrad);
-    }
-    else if(type == AvgVol){
-	constraint = new AvgVolConstraint(N, f, xpos, posGrad);
-    }
-    else if(type == ExactArea){
-	vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
-	constraint = new ExactAreaConstraint(N, f, xpos, posGrad, poly);
-    }
-    else if(type == ExactVol){
-	vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
-	constraint = new ExactVolConstraint(N, f, xpos, posGrad, poly);
-    }
-    else if(type == ExactAreaAndVolume){
-	vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
-	constraint = new ExactAreaVolConstraint(N, f, xpos, posGrad, poly);
-	constraint->setTolerance(1e-8);
-    }
+    ExactAreaConstraint constraint(N, f, xpos, posGrad, ops.getPolyData());
 
     // Create Model
     Model model(6*N,f,g);
     model.addBody(&ops);
     model.addBody(&brown);
     model.addBody(&visco);
-    model.addBody(constraint);
+    model.addBody(&constraint);
     // ****************************************************************//
 
     // ***************** Prepare Output Data files *********************//
@@ -213,26 +144,22 @@ int main(int argc, char* argv[]){
     dataOutputFile = sstm.str();
     sstm.str("");
     sstm.clear();
-    detailedOP.open(dataOutputFile.c_str(), std::ofstream::out |
-	    std::ofstream::app);
-    if( !continueFlag ){
-	detailedOP << "#Step" <<"\t"
-	    << "Alpha" << "\t"
-	    << "Beta" << "\t"
-	    << "Gamma" << "\t"
-	    << "Asphericity" << "\t"
-	    << "Radius"  <<"\t"
-	    << "Volume"  <<"\t"
-	    << "Area"  <<"\t"
-	    << "MorseEn"  <<"\t"
-	    << "NormEn"  <<"\t"
-	    << "CircEn"  <<"\t"
-	    << "BrownEn"  <<"\t"
-	    << "ViscoEn"  <<"\t"
-	    << "MSD" << "\t"
-	    << "MSDt"
-	    << std::endl;
-    }
+    detailedOP.open(dataOutputFile.c_str(), std::ofstream::out);
+    detailedOP << "#Step" <<"\t"
+	<< "Beta" << "\t"
+	<< "Gamma" << "\t"
+	<< "Asphericity" << "\t"
+	<< "Radius"  <<"\t"
+	<< "Volume"  <<"\t"
+	<< "Area"  <<"\t"
+	<< "MorseEn"  <<"\t"
+	<< "NormEn"  <<"\t"
+	<< "CircEn"  <<"\t"
+	<< "BrownEn"  <<"\t"
+	<< "ViscoEn"  <<"\t"
+	<< "MSD" << "\t"
+	<< "MSDt"
+	<< std::endl;
 
     // ************************* Create Solver ************************  //
     size_t m = 5, iprint = 1000, maxIter = 1e5;
@@ -249,11 +176,10 @@ int main(int argc, char* argv[]){
 	std::cout << "Initial Avg Edge Length = " << avgEdgeLen
 	    << std::endl;
     }
-    if( !continueFlag ){
-	// Renormalize positions such that avgEdgeLen = 1.0
-	for(auto i=0; i < N; ++i){
-	    xpos.col(i) = xpos.col(i)/avgEdgeLen;
-	}
+    
+    // Renormalize positions such that avgEdgeLen = 1.0
+    for(auto i=0; i < N; ++i){
+	xpos.col(i) = xpos.col(i)/avgEdgeLen;
     }
 
     // Update the OPSBody member variables as per new positions
@@ -261,9 +187,6 @@ int main(int argc, char* argv[]){
     ops.updateNeighbors();
     ops.saveInitialPosition(); /*!< For Mean Squared Displacement */
     avgEdgeLen = ops.getAverageEdgeLength();
-    if(loggingOn)
-	std::cout << "After renormalizing, Avg Edge Length = "
-	    << avgEdgeLen << std::endl;
     // ******************************************************************//
 
     t3 = clock();
@@ -279,15 +202,15 @@ int main(int argc, char* argv[]){
 	printStep = (int)coolVec[z][6];
 
 	// Update OPS params
-	s = (100 / (avgEdgeLen*percentStrain))*log(2.0);
+	s = (100 / percentStrain)*log(2.0);
 	ops.setFVK(gamma);
 	ops.setMorseWellWidth(s);
 
 	// Set up the constraint value as the zero temperature value
-	constraint->setConstraint(constrainedVal);
+	constraint.setConstraint(constrainedVal);
 
 	// For the very first iteration solve at zero temperature first
-	if( z == 0 && !continueFlag){
+	if( z == 0 ){
 	    brown.setCoefficient(0.0);
 	    visco.setViscosity(0.0);
 	    solver.solve();
@@ -297,29 +220,13 @@ int main(int argc, char* argv[]){
 	prevX = x.head(3*N);
 
 	// Set the viscosity and Brownian coefficient
-	viscosity = alpha/(avgEdgeLen*avgEdgeLen);
-	brownCoeff = std::sqrt( 2*alpha/beta )/avgEdgeLen;
-	if(loggingOn){
-	    std::cout<< "Viscosity = " << viscosity << std::endl;
-	    std::cout<< "Brownian Coefficient = " << brownCoeff
-		<< std::endl;
-	}
+	viscosity = alpha;
+	brownCoeff = std::sqrt( 2*alpha/beta );
 	brown.setCoefficient(brownCoeff);
 	visco.setViscosity(viscosity);
 
 	//**************  INNER SOLUTION LOOP ******************//
-	Eigen::Matrix3Xd averagePosition( 3, N );
-	averagePosition = Eigen::Matrix3Xd::Zero(3,N);
-
-	// Average energy across time steps
-	double_t avgTotalEnergy = 0.0;
-
 	for (int viter = 0; viter < viterMax; viter++) {
-	    if(loggingOn)
-		std::cout << std::endl
-		    << "VISCOUS ITERATION: " << step
-		    << std::endl
-		    << std::endl;
 
 	    // Generate Brownian Kicks
 	    brown.generateParallelKicks();
@@ -329,34 +236,24 @@ int main(int argc, char* argv[]){
 
 	    // Set the starting guess for Lambda and K for
 	    // Augmented Lagrangian
-	    constraint->setLagrangeCoeff(10.0);
-	    constraint->setPenaltyCoeff(1000.0);
+	    constraint.setLagrangeCoeff(10.0);
+	    constraint.setPenaltyCoeff(1000.0);
 
 	    // *************** Augmented Lagrangian Loop ************** //
 	    bool constraintMet = false;
 	    size_t alIter = 0, alMaxIter = 10;
 
 	    while( !constraintMet && (alIter < alMaxIter)){
-		if(loggingOn)
-		    std::cout<<"Augmented Lagrangian iteration: "
-			<< alIter
-			<< std::endl;
 
 		// Solve the unconstrained minimization
 		solver.solve();
 
 		//Uzawa update
-		constraint->uzawaUpdate();
+		constraint.uzawaUpdate();
 
 		// Update termination check quantities
 		alIter++;
-		constraintMet = constraint->constraintSatisfied();
-	    }
-	    if(loggingOn){
-		constraint->printCompletion();
-		std::cout<< "Constraint satisfied in "<< alIter
-		    << " iterations."
-		    << std::endl << std::endl;
+		constraintMet = constraint.constraintSatisfied();
 	    }
 	    // *********************************************************//
 
@@ -366,9 +263,6 @@ int main(int argc, char* argv[]){
 	    //Update kdTree, polyData and neighbors
 	    ops.updatePolyData();
 	    ops.updateNeighbors();
-
-	    // Add current solution to average position data
-	    averagePosition += xpos;
 
 	    //********** Print relaxed configuration ************//
 	    //We will print only after every currPrintStep iterations
@@ -386,7 +280,6 @@ int main(int argc, char* argv[]){
 
 	    // Write output to data file
 	    detailedOP << step << "\t"
-		<< alpha << "\t"
 		<< beta << "\t"
 		<< gamma << "\t"
 		<< ops.getAsphericity() << "\t"
@@ -404,11 +297,6 @@ int main(int argc, char* argv[]){
 
 	    // Update prevX
 	    prevX = x.head(3*N);
-	    if( loggingOn ){
-		avgTotalEnergy=(avgTotalEnergy*step+f)/(step+1);
-		std::cout<< " Average Total Energy = "
-		    << avgTotalEnergy << std::endl;
-	    }
 	    step++;
 	}
     }
@@ -419,6 +307,5 @@ int main(int argc, char* argv[]){
     float diff((float)t2 - (float)t1);
     std::cout << "Solution loop execution time: " << diff / CLOCKS_PER_SEC
 	<< " seconds" << std::endl;
-    delete constraint;
     return 1;
 }
