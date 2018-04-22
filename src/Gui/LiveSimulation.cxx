@@ -224,6 +224,18 @@ void LiveSimulation::UpdateBeta(double b){
 // Start running
 void LiveSimulation::SolveOneStep(){
     if(_keepRunning){
+        if(_step == 0){
+            // Relax at zero temperature once
+            _brown->setCoefficient(0.0);
+            _visco->setViscosity(0.0);
+            _solver->solve();
+            _prevX = _x.head(3*_N);
+            _ops->updatePolyData();
+            _ops->updateNeighbors();
+            _brown->setCoefficient(std::sqrt(2*_alpha/_beta));
+            _visco->setViscosity(_alpha);
+        }
+
         // Generate Brownian Kicks
         _brown->generateParallelKicks();
 
@@ -307,8 +319,8 @@ void LiveSimulation::Reset(){
     _step = 0;
     // Set positions and normals to starting value
     _x = _initialX;
-    _ops->computeNormals();
     _prevX = _x.head(3*_N);
+    _ops->computeNormals();
     _ops->updatePolyData();
     _ops->updateNeighbors();
     // Clear the plot data

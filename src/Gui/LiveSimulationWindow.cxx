@@ -23,7 +23,7 @@ LiveSimulationWindow::LiveSimulationWindow(QWidget *parent){
 
     _topPlot->setTitle("RMS Angle Deficit");
     _topPlot->setCanvasBackground(Qt::white);
-    _xmax = 5000; _ymin1 = 0.10, _ymax1 = 0.6;
+    _xmax = 5000; _ymin1 = 0.10, _ymax1 = 0.5;
     _topPlot->setAxisScale(QwtPlot::xBottom,0,_xmax);
     _topPlot->setAxisScale(QwtPlot::yLeft,_ymin1,_ymax1);
     // Create a grid
@@ -44,7 +44,7 @@ LiveSimulationWindow::LiveSimulationWindow(QWidget *parent){
 
     _bottomPlot->setTitle("OPS Energy");
     _bottomPlot->setCanvasBackground(Qt::white);
-    _ymin2 = -500, _ymax2 = 5000;
+    _ymin2 = -500, _ymax2 = 4500;
     _bottomPlot->setAxisScale(QwtPlot::xBottom,0,_xmax);
     _bottomPlot->setAxisScale(QwtPlot::yLeft,_ymin2,_ymax2);
     // Create a grid
@@ -142,6 +142,11 @@ void LiveSimulationWindow::refreshVTKSceneAndPlots(int s){
         _xmax += 1000;
         _topPlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
         _bottomPlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
+    }
+    if(y1 > _ymax1 || y2 < _ymin1){
+        _ymin1 = std::min(1.5*y2,_ymin1);
+        _ymax1 = std::max(1.5*y1,_ymax1);
+        _topPlot->setAxisScale(QwtPlot::yLeft,_ymin1,_ymax1);
     }
     _bottomCurve->boundingRect().getCoords(&x1,&y1,&x2,&y2);
     if(y1 > _ymax2 || y2 < _ymin2){
