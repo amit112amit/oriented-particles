@@ -602,11 +602,11 @@ void OPSBody::sphericalDelaunay(){
                 << " triangles." << std::endl;
         std::cout<< "Bad Delaunay triangulation detected!" <<std::endl;
         /*
-           auto writer = vtkSmartPointer<vtkPolyDataWriter>::New();
-           writer->SetInputData(final);
-           writer->SetFileName("BadMesh.vtk");
-           writer->Write();
-           exit(EXIT_FAILURE);*/
+       auto writer = vtkSmartPointer<vtkPolyDataWriter>::New();
+       writer->SetInputData(final);
+       writer->SetFileName("BadMesh.vtk");
+       writer->Write();
+       exit(EXIT_FAILURE);*/
     }
     interim = final->GetPolys();
     interim->InitTraversal();

@@ -23,6 +23,7 @@
 #include <vtkDelaunay3D.h>
 #include <vtkDataSetSurfaceFilter.h>
 #include <vtkExtractEdges.h>
+#include <vtkMassProperties.h>
 #include "Body.h"
 #include "HelperFunctions.h"
 
@@ -57,7 +58,7 @@ namespace OPS{
 	    double_t determineSearchRadius();
 	    double_t getAsphericity();
 	    double_t getArea();
-	    double_t getAverageEdgeLength();
+        double_t getAverageEdgeLength();
 	    double_t getAverageNumberOfNeighbors(){return _avgNumNeighbors;}
 	    double_t getAverageRadius();
 	    double_t getCircularityEnergy(){return _circEn;}

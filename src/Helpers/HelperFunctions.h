@@ -35,6 +35,19 @@ namespace OPS{
     Eigen::Affine2d find2DAffineTransform(Eigen::Ref<Eigen::Matrix2Xd> in,
 	    Eigen::Ref<Eigen::Matrix2Xd> out);
 
+    //! Read Interpolation Data from Input File and return vector of vectors
+    void ReadInterpolationData(std::string, std::vector<double_t> &x,
+                               std::vector<double_t> &r,
+                               std::vector<double_t> &y,
+                               std::vector<double_t> &e);
+
+    //! Return interpolated value based on data
+    std::vector<double_t> GetInterpolatedValue(double_t x,
+                                               std::vector<double_t> &a,
+                                               std::vector<double_t> &y,
+                                               std::vector<double_t> &z,
+                                               std::vector<double_t> &w);
+
     void TestFind2DAffineTransform();
     void TestFind3DAffineTransform();
 
