@@ -6,15 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>734</width>
-    <height>565</height>
+    <width>767</width>
+    <height>663</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Asphericity and RMS Angle Deficit</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout">
+   <layout class="QVBoxLayout" stretch="8,1,1,1,1">
     <property name="spacing">
      <number>6</number>
     </property>
@@ -30,6 +30,31 @@
     <property name="bottomMargin">
      <number>9</number>
     </property>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout0">
+      <property name="spacing">
+       <number>6</number>
+      </property>
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QVTKOpenGLWidget" name="qVTK1"/>
+      </item>
+      <item>
+       <widget class="QVTKOpenGLWidget" name="qVTK2"/>
+      </item>
+     </layout>
+    </item>
     <item>
      <layout class="QHBoxLayout" name="horizontalLay" stretch="0,0">
       <property name="spacing">
@@ -85,45 +110,6 @@
         </property>
         <property name="groove">
          <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <layout class="QHBoxLayout" name="horizontalLayout0">
-      <property name="spacing">
-       <number>6</number>
-      </property>
-      <property name="leftMargin">
-       <number>0</number>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>0</number>
-      </property>
-      <property name="bottomMargin">
-       <number>0</number>
-      </property>
-      <item>
-       <widget class="QVTKOpenGLWidget" name="qVTK1" native="true">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QVTKOpenGLWidget" name="qVTK2" native="true">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
         </property>
        </widget>
       </item>
@@ -219,6 +205,36 @@
       </item>
      </layout>
     </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_3">
+      <item>
+       <widget class="QLabel" name="label5">
+        <property name="font">
+         <font>
+          <family>Latin Modern Roman</family>
+          <pointsize>14</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="label6">
+        <property name="font">
+         <font>
+          <family>Latin Modern Roman</family>
+          <pointsize>14</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -226,7 +242,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>734</width>
+     <width>767</width>
      <height>28</height>
     </rect>
    </property>
@@ -253,7 +269,7 @@
   </customwidget>
   <customwidget>
    <class>QVTKOpenGLWidget</class>
-   <extends>QWidget</extends>
+   <extends>QOpenGLWidget</extends>
    <header>QVTKOpenGLWidget.h</header>
   </customwidget>
  </customwidgets>

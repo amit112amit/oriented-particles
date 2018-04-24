@@ -48,19 +48,50 @@ RoughnessWidget::RoughnessWidget(QWidget *parent) : QMainWindow(parent){
     qVTK2->SetRenderWindow(renwin2);
 
     //Set Asphericity and RMS Angle Deficit
-    double_t val = calculateAsphericity(poly1);
-    QString txt = QString("Asphericity: %1").arg(val,0,'g',3);
+    double_t rmsAd, asphericity, ratio;
+    QString txt;
+    asphericity = calculateAsphericity(poly1);
+    rmsAd = calculateRMSAd(poly1);
+    ratio = asphericity/rmsAd;
+    txt = QString("Asphericity: %1").arg(asphericity,0,'g',3);
     label1->setText(txt);
-    val = calculateAsphericity(poly2);
-    txt = QString("Asphericity: %1").arg(val,0,'g',3);
-    label2->setText(txt);
-
-    val = calculateRMSAd(poly1);
-    txt = QString("RMS Angle Deficit: %1").arg(val,0,'g',3);
+    txt = QString("RMS Angle Deficit: %1").arg(rmsAd,0,'g',3);
     label3->setText(txt);
-    val = calculateRMSAd(poly2);
-    txt = QString("RMS Angle Deficit: %1").arg(val,0,'g',3);
+    txt = QString("Ratio: %1").arg(ratio,0,'g',3);
+    label5->setText(txt);
+
+    asphericity = calculateAsphericity(poly2);
+    rmsAd = calculateRMSAd(poly2);
+    ratio = asphericity/rmsAd;
+    txt = QString("Asphericity: %1").arg(asphericity,0,'g',3);
+    label2->setText(txt);
+    txt = QString("RMS Angle Deficit: %1").arg(rmsAd,0,'g',3);
     label4->setText(txt);
+    txt = QString("Ratio: %1").arg(ratio,0,'g',3);
+    label6->setText(txt);
+}
+
+void RoughnessWidget::on_slider1_valueChanged(double position){
+    double_t d = 1 + 2.0*position;
+    for(auto i=0; i < poly1->GetNumberOfPoints(); ++i){
+        double p[3] = {0,0,0};
+        poly1_0->GetPoint(i,p);
+        p[1] = d*p[1];
+        poly1->GetPoints()->SetPoint(i,p);
+    }
+    double_t rmsAd, asphericity, ratio;
+    QString txt;
+    asphericity = calculateAsphericity(poly1);
+    rmsAd = calculateRMSAd(poly1);
+    ratio = asphericity/rmsAd;
+    txt = QString("Asphericity: %1").arg(asphericity,0,'g',3);
+    label1->setText(txt);
+    txt = QString("RMS Angle Deficit: %1").arg(rmsAd,0,'g',3);
+    label3->setText(txt);
+    txt = QString("Ratio: %1").arg(ratio,0,'g',3);
+    label5->setText(txt);
+    poly1->Modified();
+    qVTK1->GetRenderWindow()->Render();
 }
 
 void RoughnessWidget::on_slider2_valueChanged(double position){
@@ -74,12 +105,17 @@ void RoughnessWidget::on_slider2_valueChanged(double position){
         p -= position*randomBit*p;
         poly2->GetPoints()->SetPoint(i,&p(0));
     }
-    double_t val = calculateAsphericity(poly2);
-    QString txt = QString("Asphericity: %1").arg(val,0,'g',3);
+    double_t rmsAd, asphericity, ratio;
+    QString txt;
+    asphericity = calculateAsphericity(poly2);
+    rmsAd = calculateRMSAd(poly2);
+    ratio = asphericity/rmsAd;
+    txt = QString("Asphericity: %1").arg(asphericity,0,'g',3);
     label2->setText(txt);
-    val = calculateRMSAd(poly2);
-    txt = QString("RMS Angle Deficit: %1").arg(val,0,'g',3);
+    txt = QString("RMS Angle Deficit: %1").arg(rmsAd,0,'g',3);
     label4->setText(txt);
+    txt = QString("Ratio: %1").arg(ratio,0,'g',3);
+    label6->setText(txt);
     poly2->Modified();
     qVTK2->GetRenderWindow()->Render();
 }
@@ -117,22 +153,4 @@ double_t RoughnessWidget::calculateRMSAd(vtkSmartPointer<vtkPolyData> p){
     }
     double_t RMSad = std::sqrt( Ad.array().square().mean() );
     return RMSad;
-}
-
-void RoughnessWidget::on_slider1_valueChanged(double position){
-    double_t d = 1 + 2.0*position;
-    for(auto i=0; i < poly1->GetNumberOfPoints(); ++i){
-        double p[3] = {0,0,0};
-        poly1_0->GetPoint(i,p);
-        p[1] = d*p[1];
-        poly1->GetPoints()->SetPoint(i,p);
-    }
-    double_t val = calculateAsphericity(poly1);
-    QString txt = QString("Asphericity: %1").arg(val,0,'g',3);
-    label1->setText(txt);
-    val = calculateRMSAd(poly1);
-    txt = QString("RMS Angle Deficit: %1").arg(val,0,'g',3);
-    label3->setText(txt);
-    poly1->Modified();
-    qVTK1->GetRenderWindow()->Render();
 }
