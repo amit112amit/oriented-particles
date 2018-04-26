@@ -17,6 +17,7 @@
 #include <vtkOpenGLActor.h>
 #include <vtkOpenGLProperty.h>
 #include <vtkSphereSource.h>
+#include <vtkGlyph3D.h>
 #include <qwt_slider.h>
 #include <qwt_scale_engine.h>
 #include <qwt_plot.h>
@@ -58,6 +59,7 @@ private slots:
 
 private:
     vtkSmartPointer<vtkPolyData> _poly;
+    vtkSmartPointer<vtkSphereSource> _glyphSource;
     LiveSimulation* _worker;
     QThread* _thread;
     std::mutex _mutex;

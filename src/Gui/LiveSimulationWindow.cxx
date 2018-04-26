@@ -65,6 +65,10 @@ LiveSimulationWindow::LiveSimulationWindow(QWidget *parent){
 
     // Set up QVTKOpenGLWidget
     _poly = vtkSmartPointer<vtkPolyData>::New();
+    _glyphSource = vtkSmartPointer<vtkSphereSource>::New();
+    _glyphSource->SetRadius(0.15);
+    _glyphSource->SetThetaResolution(10);
+    _glyphSource->SetPhiResolution(10);
     auto renderWin = vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
     _qVTK->SetRenderWindow(renderWin);
 
@@ -106,15 +110,29 @@ void LiveSimulationWindow::setUpVTKPipeAndPlotData(){
     // Set up QVTKOpenGLRenderer
     //std::lock_guard<std::mutex> lock(_mutex);
     _poly->DeepCopy(_worker->GetPolyData());
-    auto _mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    _mapper->SetInputData(_poly);
-    _mapper->ScalarVisibilityOff();
+    auto glyph = vtkSmartPointer<vtkGlyph3D>::New();
+    auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    auto gMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
     auto actor = vtkSmartPointer<vtkOpenGLActor>::New();
-    actor->SetMapper(_mapper);
-    actor->GetProperty()->EdgeVisibilityOn();
-    actor->GetProperty()->SetEdgeColor(0,0,0.5);
+    auto gActor = vtkSmartPointer<vtkOpenGLActor>::New();
     auto renderer = vtkSmartPointer<vtkOpenGLRenderer>::New();
+    // Set the shell mapper and actor
+    mapper->SetInputData(_poly);
+    mapper->ScalarVisibilityOff();
+    actor->SetMapper(mapper);
+    actor->GetProperty()->SetColor(0.6666667,1.,1.);
+    //actor->GetProperty()->EdgeVisibilityOn();
+    //actor->GetProperty()->SetEdgeColor(0.3,1,1);
+    // Set the glyph mapper and actor
+    glyph->SetInputData(_poly);
+    glyph->SetSourceConnection(_glyphSource->GetOutputPort());
+    gMapper->SetInputConnection(glyph->GetOutputPort());
+    gMapper->ScalarVisibilityOff();
+    gActor->SetMapper(gMapper);
+    gActor->GetProperty()->SetColor(0.6666667,0.,0.);
+    // Add the two actors to renderer
     renderer->AddViewProp(actor);
+    renderer->AddViewProp(gActor);
     renderer->SetBackground(0.318,0.341,0.431);
     _qVTK->GetRenderWindow()->AddRenderer(renderer);
     _qVTK->GetRenderWindow()->Render();
