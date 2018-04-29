@@ -26,8 +26,8 @@ int main(int argc, char* argv[]){
 
     // ***************** Read Input VTK File *****************//
     std::string inputFileName = argv[1];
-    std::string baseFileName = inputFileName.substr(0,
-                                                    inputFileName.length() - 4);
+    std::string baseFileName =
+            inputFileName.substr(0, inputFileName.length() - 4);
 
     auto reader = vtkSmartPointer<vtkPolyDataReader>::New();
     vtkSmartPointer<vtkPolyData> mesh;
@@ -107,14 +107,15 @@ int main(int argc, char* argv[]){
     x.setZero(x.size());
 
     // Fill x with coords and rotVecs
-    Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N);
+    Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N),
+                    prevPos(prevX.data(),3,N);
     xpos = coords;
     xrot = rotVecs;
     prevX = x.head(3*N);
 
     // Create OPSBody
     Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);
-    OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad);
+    OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad,prevPos);
     ops.setMorseDistance(re);
     s = 100*log(2.0)/(re*percentStrain);
     ops.setMorseWellWidth(s);
@@ -237,9 +238,6 @@ int main(int argc, char* argv[]){
             // Generate Brownian Kicks
             brown.generateParallelKicks();
 
-            // Store data for Kabsch
-            ops.updateDataForKabsch();
-
             // Set the starting guess for Lambda and K for
             // Augmented Lagrangian
             constraint.setLagrangeCoeff(10.0);
@@ -285,7 +283,8 @@ int main(int argc, char* argv[]){
             msds = ops.getMSD();
 
             std::vector<double_t> data0 = GetInterpolatedValue(
-                                    gamma, gammaData, volumeData, energyData, radiusData);
+                                    gamma, gammaData, volumeData,
+                                    energyData, radiusData);
             double_t volume = ops.getVolume();
             double_t morseEn = ops.getMorseEnergy();
             double_t normEn = ops.getNormalityEnergy();

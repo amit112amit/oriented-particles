@@ -41,7 +41,8 @@ int main(int argc, char* argv[]){
     x.setZero(x.size());
 
     // Fill x with coords and rotVecs and copy coords in prevX
-    Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N);
+    Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N),
+            prevPos(prevX.data(),3,N);
     xpos = coords;
     xrot = rotVecs;
     prevX = x.head(3*N);
@@ -50,7 +51,7 @@ int main(int argc, char* argv[]){
     Eigen::Map<Eigen::Matrix3Xd> pos(x.data(),3,N),
             rot(&x(3*N),3,N), posGrad(g.data(),3,N),
             rotGrad(&g(3*N),3,N);    
-    OPSMesh ops(N,f,pos,rot,posGrad,rotGrad);
+    OPSMesh ops(N,f,pos,rot,posGrad,rotGrad,prevPos);
     ops.updateNeighbors();
 
     // Create Brownian and Viscosity bodies

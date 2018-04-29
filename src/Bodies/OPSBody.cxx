@@ -4,9 +4,9 @@ namespace OPS{
 
 //! Constructor for BrownOPS
 OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
-                 RefM3Xd rG):_f(f), _positions(pos.data(),3,n),
+                 RefM3Xd rG, RefM3Xd pX):_f(f), _positions(pos.data(),3,n),
         _rotationVectors(rot.data(),3,n), _posGradient(pG.data(),3,n),
-        _rotGradient(rG.data(),3,n){
+        _rotGradient(rG.data(),3,n),_prevX(pX.data(),3,n){
 
     // Ensure that there is enough memory for n-particles
     assert(n <= pos.cols() && n <= rot.cols() && n <= pG.cols()
@@ -16,7 +16,6 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
     _N = n;
 
     // Initialize internal arrays
-    _prevX = _positions;
     _diffNormalRV = std::vector< Matrix3d >(_N,Matrix3d::Zero());
 
     //Extract point coordinates for _polyData from x
@@ -88,11 +87,6 @@ void OPSBody::updatePolyData() {
     _updateVolume = true;
     _updateArea = true;
     return;
-}
-
-//! Store the previous position for Kabsch
-void OPSBody::updateDataForKabsch(){
-    _prevX = _positions;
 }
 
 //! Store the neighbors information for each node

@@ -54,14 +54,15 @@ void LiveSimulation::Initialize(){
     _initialX = Eigen::VectorXd(6*_N);
 
     // Fill _x with coords and rotVecs
-    Eigen::Map<Eigen::Matrix3Xd> xpos(_x.data(),3,_N), xrot(&(_x(3*_N)),3,_N);
+    Eigen::Map<Eigen::Matrix3Xd> xpos(_x.data(),3,_N), xrot(&(_x(3*_N)),3,_N),
+            prevPos(_prevX.data(),3,_N);
     xpos = coords;
     xrot = rotVecs;
     _prevX = _x.head(3*_N);
 
     // Create OPSBody
     Eigen::Map<Eigen::Matrix3Xd> posGrad(_g.data(),3,_N), rotGrad(&_g(3*_N),3,_N);
-    _ops = new OPSMesh(_N,_f,xpos,xrot,posGrad,rotGrad);
+    _ops = new OPSMesh(_N,_f,xpos,xrot,posGrad,rotGrad,prevPos);
     _ops->setFVK(_gamma);
     _ops->setMorseDistance(re);
     _ops->setMorseWellWidth(s);
@@ -238,9 +239,6 @@ void LiveSimulation::SolveOneStep(){
 
         // Generate Brownian Kicks
         _brown->generateParallelKicks();
-
-        // Store data for Kabsch
-        _ops->updateDataForKabsch();
 
         // Set the starting guess for Lambda and K for
         // Augmented Lagrangian

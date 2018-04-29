@@ -111,8 +111,6 @@ int main(int argc, char* argv[]){
     // ***************** Create Bodies and Model ****************//
     // Set number of OPS particles
     size_t N = mesh->GetNumberOfPoints();
-    //Calculate the number of bonds;
-    size_t numBonds = (int)((12*5 + (N-12)*6)/2);
 
     // Read point coordinates from input mesh
     Eigen::Matrix3Xd coords(3,N);
@@ -135,14 +133,14 @@ int main(int argc, char* argv[]){
 
     // Fill x with coords and rotVecs
     Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N),
-                    prevPos(prevX.data(),3,N);
+            prevPos(prevX.data(),3,N);
     xpos = coords;
     xrot = rotVecs;
     prevX = x.head(3*N);
 
     // Create OPSBody
     Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);
-    OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad);
+    OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad,prevPos);
     ops.setMorseDistance(re);
     s = 100*log(2.0)/(re*percentStrain);
     ops.setMorseWellWidth(s);
@@ -302,9 +300,6 @@ int main(int argc, char* argv[]){
             // Generate Brownian Kicks
             brown.generateParallelKicks();
 
-            // Store data for Kabsch
-            ops.updateDataForKabsch();
-
             // Set the starting guess for Lambda and K for
             // Augmented Lagrangian
             constraint->setLagrangeCoeff(10.0);
@@ -392,6 +387,7 @@ int main(int argc, char* argv[]){
 
             // Update prevX
             prevX = x.head(3*N);
+
             if( loggingOn ){
                 avgTotalEnergy=(avgTotalEnergy*step+f)/(step+1);
                 std::cout<< " Average Total Energy = "

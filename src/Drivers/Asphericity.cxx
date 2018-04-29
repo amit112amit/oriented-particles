@@ -69,18 +69,19 @@ int main(int argc, char* argv[]){
 
     // Prepare memory for energy, force
     double_t f;
-    Eigen::VectorXd x(6*N), g(6*N);
+    Eigen::VectorXd x(6*N), g(6*N), pX(3*N);
     g.setZero(g.size());
     x.setZero(x.size());
 
     // Fill x with coords and rotVecs
-    Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N);
+    Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N),
+            prevPos(pX.data(),3,N);
     xpos = coords;
     xrot = rotVecs;
 
     // Create OPSBody
     Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);
-    OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad);
+    OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad,prevPos);
     ops.setMorseDistance(re);
     s = 100*log(2.0)/(re*percentStrain);
     ops.setMorseWellWidth(s);
