@@ -13,6 +13,7 @@
 #include <vector>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+#include <Eigen/StdVector>
 #include <vtkSmartPointer.h>
 #include <vtkDoubleArray.h>
 #include <vtkPolyData.h>
@@ -61,9 +62,12 @@ public:
     double_t getAverageEdgeLength();
     double_t getAverageRadius();
     double_t getCircularityEnergy(){return _circEn;}
+    void getInitialPositions(Matrix3Xd &v){ v = _initialPositions;}
     double_t getMeanSquaredDisplacement();
     std::vector<double_t> getMSD();
-    std::vector<vtkIdType> getInitialNeighbors();
+    std::vector<vtkIdType> getInitialNeighbors(){
+        return _initialNearestNeighbor;
+    }
     double_t getMorseEnergy(){return _morseEn;}
     double_t getNormalityEnergy(){return _normalEn;}
     vtkSmartPointer<vtkPolyData> getPolyData(){return _polyData;}
@@ -75,6 +79,7 @@ public:
     void resetToInitialPositions();
     void saveInitialPosition(){ _initialPositions = _positions;}
     void setInitialNeighbors(std::vector<vtkIdType> &x){_initialNearestNeighbor = x;}
+    void setInitialPositions(M3X p){_initialPositions = p;}
     void setMorseDistance(double_t r){_re = r;}
     void setMorseWellWidth(double_t a){_a = a;}
     void setSearchRadius(double_t s){_searchRadius = s;}
@@ -91,7 +96,7 @@ protected:
     int _N;
     MapM3Xd _positions, _posGradient, _rotGradient, _rotationVectors, _prevX;
     Matrix3Xd _normals, _initialPositions;
-    std::vector< Matrix3d > _diffNormalRV; /*!< Derivatives of normals with rotation vectors*/
+    std::vector< Matrix3d, Eigen::aligned_allocator<Matrix3d> > _diffNormalRV;
     std::vector< vtkSmartPointer<vtkIdList> > _neighbors;
     std::vector< vtkIdType > _initialNearestNeighbor;
     vtkSmartPointer< vtkPolyData > _polyData;

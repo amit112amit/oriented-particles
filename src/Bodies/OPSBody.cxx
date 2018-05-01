@@ -16,7 +16,8 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
     _N = n;
 
     // Initialize internal arrays
-    _diffNormalRV = std::vector< Matrix3d >(_N,Matrix3d::Zero());
+    _diffNormalRV = std::vector< Matrix3d,
+            Eigen::aligned_allocator<Matrix3d> >(_N, Matrix3d::Zero());
 
     //Extract point coordinates for _polyData from x
     void *coords = (void*) _positions.data();

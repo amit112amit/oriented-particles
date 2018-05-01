@@ -257,10 +257,9 @@ int main(int argc, char* argv[]){
         printStep = (int)coolVec[z][6];
 
         // Update OPS params
-        s = (100 / (avgEdgeLen*percentStrain))*log(2.0);
+        s = (100 / percentStrain)*log(2.0);
         ops.setFVK(gamma);
         ops.setMorseWellWidth(s);
-        std::cout<< "Gamma = " << gamma << std::endl;
 
         // Set up the constraint value as the zero temperature value
         constraint->setConstraint(constrainedVal);
@@ -276,8 +275,8 @@ int main(int argc, char* argv[]){
         prevX = x.head(3*N);
 
         // Set the viscosity and Brownian coefficient
-        viscosity = alpha/(avgEdgeLen*avgEdgeLen);
-        brownCoeff = std::sqrt( 2*alpha/beta )/avgEdgeLen;
+        viscosity = alpha;
+        brownCoeff = std::sqrt( 2*alpha/beta );
         if(loggingOn){
             std::cout<< "Viscosity = " << viscosity << std::endl;
             std::cout<< "Brownian Coefficient = " << brownCoeff

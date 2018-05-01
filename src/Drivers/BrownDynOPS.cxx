@@ -1,3 +1,4 @@
+#include <random>
 #include <stdio.h>
 #include <string>
 #include <vector>
@@ -11,9 +12,10 @@
 #include "HelperFunctions.h"
 
 using namespace OPS;
+using namespace std;
 
 int main(int argc, char* argv[]){
-    clock_t t1, t2, t3;
+    clock_t t1;
     t1 = clock();
 
     if (argc != 2) {
@@ -21,110 +23,132 @@ int main(int argc, char* argv[]){
         return -1;
     }
 
-    //******************** Optional parameters ********************//
-    bool loggingOn = false;
+    //******************** Create variables ********************//
+    std::string inFile = argv[1];
+    std::string baseFileName = inFile.substr(0,inFile.length() - 4);
 
-    // ***************** Read Input VTK File *****************//
-    std::string inputFileName = argv[1];
-    std::string baseFileName =
-            inputFileName.substr(0, inputFileName.length() - 4);
+    double_t alpha=1.0, beta=1.0, gamma=1.0, re=1.0, f = 0,
+                    percentStrain = 15,
+                    s=(100/(re*percentStrain))*log(2.0);
 
-    auto reader = vtkSmartPointer<vtkPolyDataReader>::New();
-    vtkSmartPointer<vtkPolyData> mesh;
+    size_t viterMax, nameSuffix=0, step=0, N=10, saveFreq = 100000;
 
-    reader->SetFileName(inputFileName.c_str());
-    reader->ReadAllVectorsOn();
-    reader->Update();
-    mesh = reader->GetOutput();
+    Eigen::VectorXd x(6*N), prevX(3*N), g(6*N);
+    Eigen::Matrix3Xd coords(3,N), rotVecs(3,N), initPos(3,N);
+    std::vector<vtkIdType> neighbors(N);
+    std::mt19937 engine;
+    auto rng = std::normal_distribution<double_t>(0.0,1.0);
+    //**********************************************************//
 
-    // Read Interpolation Data from file
-    std::vector<double_t> gammaData, volumeData, energyData, radiusData;
-    ReadInterpolationData("T7_OPS_Asphericity.dat",
-                          gammaData, volumeData, energyData, radiusData);
-    // ********************************************************//
+    //******************** Resume or fresh start? ********************//
+    // Create a SimulationState
+    SimulationState state;
 
-    // ******************* Simulation Parameters *********//
+    // Check if a state file exists in current directory
+    std::string stateFileName("SimulationState.dat");
+    ifstream stateFile( stateFileName.c_str() );
 
-    double_t re=1.0, s=7.0;
-    double_t alpha=1.0, beta=1.0, gamma=1.0;
-    double_t percentStrain = 15;
-
-    size_t viterMax = 1000;
-    size_t nameSuffix = 0;
-    size_t step = 0;
-
-    s = (100 / (re*percentStrain))*log(2.0);
-
-    // Input file should contain the following columns
-    // Alpha Beta Gamma PercentStrain AreaConstraint NumIterations PrintStep
-    std::ifstream coolFile("schedule.dat");
-    assert(coolFile);
-    std::vector<std::vector<double_t> > coolVec;
-    double_t currAlpha, currBeta, currGamma, currPercentStrain,
-                    currViterMax, currPrintStep, currArea;
-
-    std::string headerline;
-    std::getline(coolFile, headerline);
-
-    while (coolFile >> currAlpha >> currBeta >> currGamma >> currPercentStrain
-                    >> currArea >> currViterMax >> currPrintStep) {
-        std::vector<double> currLine;
-        currLine.push_back(currAlpha);
-        currLine.push_back(currBeta);
-        currLine.push_back(currGamma);
-        currLine.push_back(currPercentStrain);
-        currLine.push_back(currArea);
-        currLine.push_back(currViterMax);
-        currLine.push_back(currPrintStep);
-        coolVec.push_back(currLine);
+    if(stateFile.good()){
+        // Read previously stored state to resume the simulation
+        state = SimulationState::readFromFile(stateFileName);
+        nameSuffix = state.getNameSuffix();
+        nameSuffix = nameSuffix > 0? nameSuffix + 1: 0;
+        step = state.getStep() + 1;
+        N = state.getN();
+        engine = state.getRandomEngine();
+        rng = state.getRandomGenerator();
+        // Resize matrices and vectors
+        x.resize(6*N);
+        g.resize(6*N);
+        prevX.resize(3*N);
+        initPos.resize(3,N);
+        coords.resize(3,N);
+        rotVecs.resize(3,N);
+        neighbors.resize(N);
+        // Read the vectors into local variables
+        x = state.getX();
+        prevX = state.getPrevX();
+        neighbors = state.getNeighbors();
+        initPos = state.getInitPos();
+        // Copy position and rotation vectors into coords, rotVecs
+        for( auto i=0; i < N; ++i ){
+            size_t si = 3*i;
+            coords.col(i) << x(si), x(si+1), x(si+2);
+        }
+        for( auto i=0; i < N; ++i ){
+            size_t si = 3*(N+i);
+            rotVecs.col(i) << x(si), x(si+1), x(si+2);
+        }
     }
-    coolFile.close();
-
-    // **********************************************************//
+    else{
+        // No state file found. So we need to start a new simulation
+        vtkSmartPointer<vtkPolyData> mesh;
+        auto reader = vtkSmartPointer<vtkPolyDataReader>::New();
+        reader->SetFileName(inFile.c_str());
+        reader->ReadAllVectorsOn();
+        reader->Update();
+        mesh = reader->GetOutput();
+        N = mesh->GetNumberOfPoints();
+        // Resize matrices and vectors
+        x.resize(6*N);
+        g.resize(6*N);
+        prevX.resize(3*N);
+        initPos.resize(3,N);
+        coords.resize(3,N);
+        rotVecs.resize(3,N);
+        neighbors.resize(N);
+        // Read point coordinates from input mesh
+        for(auto i = 0; i < N; ++i){
+            Eigen::Vector3d cp = Eigen::Vector3d::Zero();
+            mesh->GetPoint(i, &(cp(0)));
+            coords.col(i) = cp;
+        }
+        // Renormalize by the average edge length
+        double_t avgEdgeLen = getPointCloudAvgEdgeLen(inFile);
+        for(auto i=0; i < N; ++i){
+            coords.col(i) = coords.col(i)/avgEdgeLen;
+        }
+        // Generate rotation vectors from input point coordinates
+        OPSBody::initialRotationVector(coords, rotVecs);
+    }
+    // ****************************************************************//
 
     // ***************** Create Bodies and Model ****************//
-    // Set number of OPS particles
-    size_t N = mesh->GetNumberOfPoints();
-
-    // Read point coordinates from input mesh
-    Eigen::Matrix3Xd coords(3,N);
-    for(auto i = 0; i < N; ++i){
-        Eigen::Vector3d cp = Eigen::Vector3d::Zero();
-        mesh->GetPoint(i, &(cp(0)));
-        coords.col(i) = cp;
-    }
-
-    // Generate initial rotation vectors either from input point normals or
-    // from starting point coordinates depending on continueFlag
-    Eigen::Matrix3Xd rotVecs(3,N);
-    // Generate rotation vectors from input point coordinates
-    OPSBody::initialRotationVector(coords, rotVecs);
-
-    // Prepare memory for energy, force
-    double_t f;
-    Eigen::VectorXd x(6*N), g(6*N), prevX(3*N);
-    g.setZero(g.size());
-    x.setZero(x.size());
 
     // Fill x with coords and rotVecs
     Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N),
                     prevPos(prevX.data(),3,N);
     xpos = coords;
     xrot = rotVecs;
-    prevX = x.head(3*N);
 
     // Create OPSBody
+    g.setZero(g.size());
     Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);
     OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad,prevPos);
     ops.setMorseDistance(re);
-    s = 100*log(2.0)/(re*percentStrain);
     ops.setMorseWellWidth(s);
+    ops.updatePolyData();
+    ops.updateNeighbors();
 
     // Create Brownian and Viscosity bodies
     Eigen::Map<Eigen::VectorXd> thermalX(x.data(),3*N,1);
     Eigen::Map<Eigen::VectorXd> thermalG(g.data(),3*N,1);
     double_t brownCoeff = 1.0, viscosity = 1.0;
     BrownianBody brown(3*N,brownCoeff,f,thermalX,thermalG,prevX);
+
+    // Set ops history variables
+    if( stateFile.good() ){
+        ops.setInitialNeighbors(neighbors);
+        ops.setInitialPositions(initPos);
+        brown.setRandomEngine(engine);
+        brown.setRandomGenerator(rng);
+    }
+    else{
+        prevX = x.head(3*N);
+        neighbors = ops.getInitialNeighbors();
+    }
+
+    // Prepare memory for energy, force
     ViscosityBody visco(3*N,viscosity,f,thermalX,thermalG,prevX);
 
     // Create the Augmented Lagrangian volume constraint body
@@ -138,6 +162,31 @@ int main(int argc, char* argv[]){
     model.addBody(&constraint);
     // ****************************************************************//
 
+    // ******************** Read parameter schedule ********************//
+    // Input file should contain the following columns
+    // Alpha Beta Gamma PercentStrain AreaConstraint NumIterations PrintStep
+    std::ifstream coolFile("schedule.dat");
+    assert(coolFile);
+    std::vector<std::vector<double_t> > coolVec;
+    double_t currAlpha, currBeta, currGamma, currPercentStrain,
+                    currViterMax, currPrintStep, currArea;
+    std::string headerline;
+    std::getline(coolFile, headerline);// Eat up header line
+    while (coolFile >> currAlpha >> currBeta >> currGamma >> currPercentStrain
+                    >> currArea >> currViterMax >> currPrintStep) {
+        std::vector<double> currLine;
+        currLine.push_back(currAlpha);
+        currLine.push_back(currBeta);
+        currLine.push_back(currGamma);
+        currLine.push_back(currPercentStrain);
+        currLine.push_back(currArea);
+        currLine.push_back(currViterMax);
+        currLine.push_back(currPrintStep);
+        coolVec.push_back(currLine);
+    }
+    coolFile.close();
+    // **********************************************************//
+
     // ***************** Prepare Output Data files *********************//
     // Identify the Input structure name
     std::string fname = baseFileName;
@@ -150,7 +199,7 @@ int main(int argc, char* argv[]){
     dataOutputFile = sstm.str();
     sstm.str("");
     sstm.clear();
-    detailedOP.open(dataOutputFile.c_str(), std::ofstream::out);
+    detailedOP.open( dataOutputFile );
     detailedOP << "#Step" <<"\t"
                << "Beta" << "\t"
                << "Gamma" << "\t"
@@ -164,8 +213,7 @@ int main(int argc, char* argv[]){
                << "BrownEn"  <<"\t"
                << "ViscoEn"  <<"\t"
                << "MSD" << "\t"
-               << "RMSAngleDeficit" << "\t"
-               << "pRpc"
+               << "RMSAngleDeficit"
                << std::endl;
 
     // ************************* Create Solver ************************  //
@@ -176,30 +224,19 @@ int main(int argc, char* argv[]){
     solver.turnOffLogging();
     // *****************************************************************//
 
-    // ********************* Prepare data for simulation ****************//
-    // Calculate Average Edge Length
-    double_t avgEdgeLen = ops.getAverageEdgeLength();
-    if(loggingOn){
-        std::cout << "Initial Avg Edge Length = " << avgEdgeLen
-                  << std::endl;
-    }
-
-    // Renormalize positions such that avgEdgeLen = 1.0
-    for(auto i=0; i < N; ++i){
-        xpos.col(i) = xpos.col(i)/avgEdgeLen;
-    }
-
-    // Update the OPSBody member variables as per new positions
-    ops.updatePolyData();
-    ops.updateNeighbors();
-    ops.saveInitialPosition(); /*!< For Mean Squared Displacement */
-    avgEdgeLen = ops.getAverageEdgeLength();
-    // ******************************************************************//
-
-    t3 = clock();
     // ************************ OUTER SOLUTION LOOP **********************//
+    // Determine the correct value for the loop start indices
+    size_t rowId = 0, colId;
+    size_t totSteps = 0;
+    while( totSteps < step ){
+        totSteps += coolVec[rowId++][5];
+    };
+    rowId = rowId > 0? rowId - 1 : 0;
+    colId = step > 0? coolVec[rowId][5] - (totSteps - step) : 0;
+
+    // The outer loop
     size_t printStep;
-    for(int z=0; z < coolVec.size(); z++){
+    for(auto z=rowId; z < coolVec.size(); ++z){
         alpha = coolVec[z][0];
         beta = coolVec[z][1];
         gamma = coolVec[z][2];
@@ -217,10 +254,12 @@ int main(int argc, char* argv[]){
         constraint.setConstraint(constrainedVal);
 
         // For the very first iteration solve at zero temperature first
-        if( z == 0 ){
+        if( z == 0 && colId == 0){
             brown.setCoefficient(0.0);
             visco.setViscosity(0.0);
             solver.solve();
+            ops.saveInitialPosition();
+            ops.getInitialPositions( initPos );
         }
 
         // Update prevX
@@ -233,8 +272,7 @@ int main(int argc, char* argv[]){
         visco.setViscosity(viscosity);
 
         //**************  INNER SOLUTION LOOP ******************//
-        for (int viter = 0; viter < viterMax; viter++) {
-
+        for (auto viter = colId; viter < viterMax; ++viter) {
             // Generate Brownian Kicks
             brown.generateParallelKicks();
 
@@ -264,12 +302,20 @@ int main(int argc, char* argv[]){
             // Apply Kabsch Algorithm
             ops.applyKabschAlgorithm();
 
-            //Update kdTree, polyData and neighbors
+            // Update kdTree, polyData and neighbors
             ops.updatePolyData();
             ops.updateNeighbors();
 
-            //********** Print relaxed configuration ************//
-            //We will print only after every currPrintStep iterations
+            // Check step and save state if needed
+            if( step % saveFreq == (saveFreq - 1) ){
+                engine = brown.getRandomEngine();
+                rng = brown.getRandomGenerator();
+                state = SimulationState(N,nameSuffix,step,x,prevX,
+                                        initPos,neighbors,engine,rng);
+                state.writeToFile("SimulationState.dat");
+            }
+
+            // We will print only after every currPrintStep iterations
             if (viter % printStep == 0 && printStep <= viterMax) {
                 sstm << fname << "-relaxed-" << nameSuffix++
                      <<".vtk";
@@ -282,17 +328,10 @@ int main(int argc, char* argv[]){
             std::vector<double_t> msds(2,0);
             msds = ops.getMSD();
 
-            std::vector<double_t> data0 = GetInterpolatedValue(
-                                    gamma, gammaData, volumeData,
-                                    energyData, radiusData);
             double_t volume = ops.getVolume();
             double_t morseEn = ops.getMorseEnergy();
             double_t normEn = ops.getNormalityEnergy();
             double_t circEn = ops.getCircularityEnergy();
-            double_t volDiff = data0[0] - volume;
-            double_t totEnDiff = data0[1] - morseEn - normEn - circEn ;
-            double_t pRpc = -0.1645092516*totEnDiff*sqrt(gamma)*
-                            data0[2]*data0[2]/volDiff;
 
             // Write output to data file
             detailedOP << step << "\t"
@@ -308,8 +347,7 @@ int main(int argc, char* argv[]){
                        << brown.getBrownianEnergy() << "\t"
                        << visco.getViscosityEnergy() << "\t"
                        << msds[0] << "\t"
-                       << ops.getRMSAngleDeficit() << "\t"
-                       << pRpc
+                       << ops.getRMSAngleDeficit()
                        << std::endl;
 
             // Update prevX
@@ -320,9 +358,8 @@ int main(int argc, char* argv[]){
     // **********************************************************************//
 
     detailedOP.close();
-    t2 = clock();
-    float diff((float)t2 - (float)t1);
-    std::cout << "Solution loop execution time: " << diff / CLOCKS_PER_SEC
+    float diff((float)clock() - (float)t1);
+    std::cout << "Time elapsed : " << diff / CLOCKS_PER_SEC
               << " seconds" << std::endl;
     return 1;
 }
