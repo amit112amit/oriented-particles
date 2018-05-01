@@ -1,4 +1,3 @@
-#include <cstdlib>
 #include <stdio.h>
 #include <string>
 #include <vtkPolyDataReader.h>
@@ -214,7 +213,7 @@ int main(int argc, char* argv[]){
 		    << std::endl
 		    << std::endl;
 
-	    //Generate Brownian Kicks
+	    //Generate Brownian kicks
 	    brown.generateParallelKicks();
 
 	    // Store data for Kabsch

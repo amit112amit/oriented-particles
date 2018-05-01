@@ -8,7 +8,7 @@ BrownianBody::BrownianBody(size_t N, double_t coeff, double_t &f,
     //Initialize the random number generator
     std::random_device rd;
     _e2 = std::mt19937(rd());
-    _rng = std::normal_distribution<>(0,1);
+    _rng = NormD(0.,1.);
     //Set initial kicks to zero
     _xi = VectorXd::Zero(N);
 }
