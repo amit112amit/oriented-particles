@@ -5,8 +5,6 @@ namespace OPS{
 LiveSimulationWindow::LiveSimulationWindow(QWidget *parent){
     setupUi(this);
     // Settings for FvK slider
-    _gammaSlider->setOrientation(Qt::Horizontal);
-    _gammaSlider->setTrough( true );
     _gammaSlider->setScaleEngine( new QwtLogScaleEngine );
     _gammaSlider->setStepAlignment( false );
     _gammaSlider->setBorderWidth( 1 );
@@ -14,54 +12,84 @@ LiveSimulationWindow::LiveSimulationWindow(QWidget *parent){
     _gammaSlider->setTotalSteps( 200 );
     _gammaSlider->setPageSteps( 10 );
     _gammaSlider->setScaleMaxMinor( 9 );
+    // Settings for the Pressure Slider
+    _pressureSlider->setScaleEngine( new QwtLogScaleEngine );
+    _pressureSlider->setStepAlignment( false );
+    _pressureSlider->setBorderWidth( 1 );
+    _pressureSlider->setScale( 1.0, 1.0e5 );
+    _pressureSlider->setTotalSteps( 200 );
+    _pressureSlider->setPageSteps( 10 );
+    _pressureSlider->setScaleMaxMinor( 9 );
     // Settings for temperature slider
     _tempSlider->setTotalSteps( 200 );
     _tempSlider->setValue(0.10);
     _tempValLbl->setText(QString::number(0.10));
 
-    // Set up the plots
-
-    _topPlot->setTitle("RMS Angle Deficit");
-    _topPlot->setCanvasBackground(Qt::white);
+    // Set up the angle deficit plot
+    //_angleDeficitPlot->setTitle("RMS Angle Deficit");
+    _angleDeficitPlot->setCanvasBackground(Qt::white);
     _xmax = 5000; _ymin1 = 0.10, _ymax1 = 0.5;
-    _topPlot->setAxisScale(QwtPlot::xBottom,0,_xmax);
-    _topPlot->setAxisScale(QwtPlot::yLeft,_ymin1,_ymax1);
+    _angleDeficitPlot->setAxisScale(QwtPlot::xBottom,0,_xmax);
+    _angleDeficitPlot->setAxisScale(QwtPlot::yLeft,_ymin1,_ymax1);
     // Create a grid
-    _topGrid = new QwtPlotGrid();
-    _topGrid->setPen(Qt::black,1.0,Qt::PenStyle::DashLine);
+    _adGrid = new QwtPlotGrid();
+    _adGrid->setPen(Qt::black,1.0,Qt::PenStyle::DashLine);
     // Create a curve
-    _topCurve = new QwtPlotCurve();
-    _topCurve->setPen(Qt::blue);
-    _topCurve->setRenderHint(QwtPlotItem::RenderAntialiased,true);
+    _angleDeficitCurve = new QwtPlotCurve();
+    _angleDeficitCurve->setPen(Qt::blue);
+    _angleDeficitCurve->setRenderHint(QwtPlotItem::RenderAntialiased,true);
     // Create a marker
-    _topMarker = new QwtPlotMarker();
-    _topMarker->setLineStyle(QwtPlotMarker::HLine);
-    _topMarker->setLinePen(Qt::red,1.0,Qt::PenStyle::SolidLine);
+    _adMarker = new QwtPlotMarker();
+    _adMarker->setLineStyle(QwtPlotMarker::HLine);
+    _adMarker->setLinePen(Qt::red,1.0,Qt::PenStyle::SolidLine);
     // Attach grid, curve and marker to the plot
-    _topGrid->attach(_topPlot);
-    _topCurve->attach(_topPlot);
-    _topMarker->attach(_topPlot);
+    _adGrid->attach(_angleDeficitPlot);
+    _angleDeficitCurve->attach(_angleDeficitPlot);
+    _adMarker->attach(_angleDeficitPlot);
 
-    _bottomPlot->setTitle("OPS Energy");
-    _bottomPlot->setCanvasBackground(Qt::white);
-    _ymin2 = -500, _ymax2 = 4500;
-    _bottomPlot->setAxisScale(QwtPlot::xBottom,0,_xmax);
-    _bottomPlot->setAxisScale(QwtPlot::yLeft,_ymin2,_ymax2);
+    // Set up the volume plot
+    //_volumePlot->setTitle("Volume");
+    _volumePlot->setCanvasBackground(Qt::white);
+    _xmax = 5000; _ymin3 = 30, _ymax3 = 50;
+    _volumePlot->setAxisScale(QwtPlot::xBottom,0,_xmax);
+    _volumePlot->setAxisScale(QwtPlot::yLeft,_ymin3,_ymax3);
     // Create a grid
-    _bottomGrid = new QwtPlotGrid();
-    _bottomGrid->setPen(Qt::black,1.0,Qt::PenStyle::DashLine);
-    // Create a Plot
-    _bottomCurve = new QwtPlotCurve();
-    _bottomCurve->setPen(Qt::blue);
-    _bottomCurve->setRenderHint(QwtPlotItem::RenderAntialiased,true);
+    _volGrid = new QwtPlotGrid();
+    _volGrid->setPen(Qt::black,1.0,Qt::PenStyle::DashLine);
+    // Create a curve
+    _volCurve = new QwtPlotCurve();
+    _volCurve->setPen(Qt::blue);
+    _volCurve->setRenderHint(QwtPlotItem::RenderAntialiased,true);
     // Create a marker
-    _bottomMarker = new QwtPlotMarker();
-    _bottomMarker->setLineStyle(QwtPlotMarker::HLine);
-    _bottomMarker->setLinePen(Qt::red,1.0,Qt::PenStyle::SolidLine);
+    _volMarker = new QwtPlotMarker();
+    _volMarker->setLineStyle(QwtPlotMarker::HLine);
+    _volMarker->setLinePen(Qt::red,1.0,Qt::PenStyle::SolidLine);
+    // Attach grid, curve and marker to the plot
+    _volGrid->attach(_volumePlot);
+    _volCurve->attach(_volumePlot);
+    _volMarker->attach(_volumePlot);
+
+    // Set up the energy plot
+    //_energyPlot->setTitle("OPS Energy");
+    _energyPlot->setCanvasBackground(Qt::white);
+    _ymin2 = -500, _ymax2 = 4500;
+    _energyPlot->setAxisScale(QwtPlot::xBottom,0,_xmax);
+    _energyPlot->setAxisScale(QwtPlot::yLeft,_ymin2,_ymax2);
+    // Create a grid
+    _enGrid = new QwtPlotGrid();
+    _enGrid->setPen(Qt::black,1.0,Qt::PenStyle::DashLine);
+    // Create a Plot
+    _energyCurve = new QwtPlotCurve();
+    _energyCurve->setPen(Qt::blue);
+    _energyCurve->setRenderHint(QwtPlotItem::RenderAntialiased,true);
+    // Create a marker
+    _enMarker = new QwtPlotMarker();
+    _enMarker->setLineStyle(QwtPlotMarker::HLine);
+    _enMarker->setLinePen(Qt::red,1.0,Qt::PenStyle::SolidLine);
     // Attache grid, curve and marker to the plot
-    _bottomGrid->attach(_bottomPlot);
-    _bottomCurve->attach(_bottomPlot);
-    _bottomMarker->attach(_bottomPlot);
+    _enGrid->attach(_energyPlot);
+    _energyCurve->attach(_energyPlot);
+    _enMarker->attach(_energyPlot);
 
     // Set up QVTKOpenGLWidget
     _poly = vtkSmartPointer<vtkPolyData>::New();
@@ -84,6 +112,7 @@ LiveSimulationWindow::LiveSimulationWindow(QWidget *parent){
     connect(_worker, SIGNAL(resetCompeleted()), this, SLOT(resetVTKSceneAndPlots()));
     connect(_worker, SIGNAL(updateZeroOpsEn(double)), this, SLOT(updateZeroOpsEnMarker(double)));
     connect(_worker, SIGNAL(updateZeroRmsAd(double)), this, SLOT(updateZeroRmsAdMarker(double)));
+    connect(_worker, SIGNAL(updateZeroVolume(double)), this, SLOT(updateZeroVolumeMarker(double)));
     connect(this, SIGNAL(sceneRefreshed()), _worker, SLOT(SolveOneStep()));
     connect(this, SIGNAL(resetRequested()), _worker, SLOT(Reset()));
     connect(_thread, SIGNAL(finished()), _thread, SLOT(deleteLater()));
@@ -92,6 +121,7 @@ LiveSimulationWindow::LiveSimulationWindow(QWidget *parent){
     connect(this, SIGNAL(stopRunning()), _worker, SLOT(StopRunning()));
     connect(this, SIGNAL(betaChanged(double)), _worker, SLOT(UpdateBeta(double)));
     connect(this, SIGNAL(gammaChanged(double)), _worker, SLOT(UpdateGamma(double)));
+    connect(this, SIGNAL(pressureChanged(double)), _worker, SLOT(UpdatePressure(double)));
 }
 
 void LiveSimulationWindow::on__initBtn_clicked(){
@@ -138,11 +168,14 @@ void LiveSimulationWindow::setUpVTKPipeAndPlotData(){
     _qVTK->GetRenderWindow()->Render();
     // Also get addresses of plotting data circular buffers;
     _rmsAd = _worker->GetRmsAd();
-    _opsEn = _worker->GetOpsEn();
-    _topCurve->setSamples(_rmsAd);
-    _bottomCurve->setSamples(_opsEn);
-    _topMarker->setYValue(_worker->GetZeroRmsAd());
-    _bottomMarker->setYValue(_worker->GetZeroOpsEn());
+    _totEn = _worker->GetOpsEn();
+    _vol = _worker->GetVolume();
+    _angleDeficitCurve->setSamples(_rmsAd);
+    _volCurve->setSamples(_vol);
+    _energyCurve->setSamples(_totEn);
+    _adMarker->setYValue(_worker->GetZeroRmsAd());
+    _volMarker->setYValue(_worker->GetZeroVolume());
+    _enMarker->setYValue(_worker->GetZeroOpsEn());
 }
 
 void LiveSimulationWindow::refreshVTKSceneAndPlots(int s){
@@ -154,27 +187,35 @@ void LiveSimulationWindow::refreshVTKSceneAndPlots(int s){
     _qVTK->GetRenderWindow()->Render();
     // Update the plots
     qreal x1,y1,x2,y2;
-    _topCurve->boundingRect().getCoords(&x1,&y1,&x2,&y2);
+    _angleDeficitCurve->boundingRect().getCoords(&x1,&y1,&x2,&y2);
     if(x2 > _xmax){
         _xmin += 1000;
         _xmax += 1000;
-        _topPlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
-        _bottomPlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
+        _angleDeficitPlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
+        _energyPlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
+        _volumePlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
     }
     if(y1 > _ymax1 || y2 < _ymin1){
         _ymin1 = std::min(1.5*y2,_ymin1);
         _ymax1 = std::max(1.5*y1,_ymax1);
-        _topPlot->setAxisScale(QwtPlot::yLeft,_ymin1,_ymax1);
+        _angleDeficitPlot->setAxisScale(QwtPlot::yLeft,_ymin1,_ymax1);
     }
-    _bottomCurve->boundingRect().getCoords(&x1,&y1,&x2,&y2);
+    _volCurve->boundingRect().getCoords(&x1,&y1,&x2,&y2);
+    if(y1 > _ymax3 || y2 < _ymin3){
+        _ymin3 = std::min(1.5*y2,_ymin3);
+        _ymax3 = std::max(1.5*y1,_ymax3);
+        _volumePlot->setAxisScale(QwtPlot::yLeft,_ymin3,_ymax3);
+    }
+    _energyCurve->boundingRect().getCoords(&x1,&y1,&x2,&y2);
     if(y1 > _ymax2 || y2 < _ymin2){
         _ymin2 = std::min(1.5*y2,_ymin2);
         _ymax2 = std::max(1.5*y1,_ymax2);
-        _bottomPlot->setAxisScale(QwtPlot::yLeft,_ymin2,_ymax2);
+        _energyPlot->setAxisScale(QwtPlot::yLeft,_ymin2,_ymax2);
     }
     // Finally update the plot
-    _topPlot->replot();
-    _bottomPlot->replot();
+    _angleDeficitPlot->replot();
+    _energyPlot->replot();
+    _volumePlot->replot();
     //}
     // Update time step
     _timeStepValLbl->setText(QString::number(s));
@@ -189,10 +230,12 @@ void LiveSimulationWindow::resetVTKSceneAndPlots(){
     _startStopBtn->setText(QString("Start"));
     _xmin = 0;
     _xmax = 5000;
-    _topPlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
-    _bottomPlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
-    _topPlot->replot();
-    _bottomPlot->replot();
+    _angleDeficitPlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
+    _energyPlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
+    _volumePlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
+    _angleDeficitPlot->replot();
+    _energyPlot->replot();
+    _volumePlot->replot();
 }
 
 void LiveSimulationWindow::on__startStopBtn_clicked(){
@@ -200,7 +243,8 @@ void LiveSimulationWindow::on__startStopBtn_clicked(){
     if(QString::compare(_startStopBtn->text(),txt) == 0){
         _startStopBtn->setText(QString("Stop"));
         _rmsAd = _worker->GetRmsAd();
-        _opsEn = _worker->GetOpsEn();
+        _totEn = _worker->GetOpsEn();
+        _vol = _worker->GetVolume();
         emit startRunning();
     }
     else{
@@ -217,14 +261,36 @@ void LiveSimulationWindow::on__gammaSlider_valueChanged(double value){
     emit gammaChanged(value);
 }
 
+void LiveSimulationWindow::on__pressureSlider_valueChanged(double value){
+    emit pressureChanged(value);
+}
+
 void LiveSimulationWindow::updateZeroOpsEnMarker(double o){
-    _bottomMarker->setYValue(o);
-    _bottomPlot->replot();
+    _enMarker->setYValue(o);
+    _energyPlot->replot();
 }
 
 void LiveSimulationWindow::updateZeroRmsAdMarker(double r){
-    _topMarker->setYValue(r);
-    _topPlot->replot();
+    _adMarker->setYValue(r);
+    _angleDeficitPlot->replot();
+}
+
+void LiveSimulationWindow::updateZeroVolumeMarker(double r){
+    _volMarker->setYValue(r);
+    _volumePlot->replot();
+}
+
+void LiveSimulationWindow::on_checkBox_clicked(bool checked)
+{
+    if(checked){
+        _pressureSlider->setEnabled(true);
+        emit pressureChanged(_pressureSlider->value());
+    }
+    else{
+        _pressureSlider->setEnabled(false);
+        _pressureValLbl->setText(QString::number(0));
+        emit pressureChanged(0.0);
+    }
 }
 
 }

@@ -167,9 +167,9 @@ void OPSBody::compute(){
 
         for(auto j=0; j < _neighbors[i]->GetNumberOfIds(); j++){
             double_t r, n_dot_rij, exp_2, exp_1;
-            double_t morseEn, Ker, Phi_n, Phi_c;
+            double_t morseEn, Phi_n, Phi_c;
             Vector3d vj, xj, q, m, n, rij;
-            Vector3d dMorseXi, dMorseXj, dKerXi, dKerXj;
+            Vector3d dMorseXi, dMorseXj;
             Vector3d dPhi_nVi, dPhi_nVj;
             Vector3d dPhi_cVi, dPhi_cVj;
             Vector3d dPhi_cXi, dPhi_cXj;

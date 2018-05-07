@@ -33,7 +33,7 @@
 namespace OPS{
 
 class LiveSimulationWindow : public QMainWindow, public Ui::GUI{
-Q_OBJECT
+    Q_OBJECT
 public:
     typedef boost::circular_buffer<double_t> circ_buff;
     explicit LiveSimulationWindow(QWidget *parent=0);
@@ -44,6 +44,7 @@ signals:
     void stopRunning();
     void betaChanged(double);
     void gammaChanged(double);
+    void pressureChanged(double);
     void resetRequested();
 public slots:
     void refreshVTKSceneAndPlots(int);
@@ -51,11 +52,14 @@ public slots:
     void resetVTKSceneAndPlots();
     void updateZeroOpsEnMarker(double);
     void updateZeroRmsAdMarker(double);
+    void updateZeroVolumeMarker(double);
 private slots:
     void on__initBtn_clicked();
     void on__startStopBtn_clicked();
     void on__tempSlider_valueChanged(double value);
     void on__gammaSlider_valueChanged(double value);
+    void on__pressureSlider_valueChanged(double value);
+    void on_checkBox_clicked(bool checked);
 
 private:
     vtkSmartPointer<vtkPolyData> _poly;
@@ -63,12 +67,14 @@ private:
     LiveSimulation* _worker;
     QThread* _thread;
     std::mutex _mutex;
-    QwtPlotGrid *_topGrid, *_bottomGrid;
-    QwtPlotCurve *_topCurve, *_bottomCurve;
-    QwtPlotCurve *_topZeroTemp, *_bottomZeroTemp;
-    QwtCircBuffSeriesData *_rmsAd, *_opsEn;
-    double_t _xmin, _xmax, _ymin1, _ymin2, _ymax1, _ymax2;
-    QwtPlotMarker *_topMarker, *_bottomMarker;
+    QwtPlotGrid *_adGrid, *_enGrid, *_volGrid;
+    QwtPlotCurve *_angleDeficitCurve, *_energyCurve, *_volCurve;
+    QwtPlotCurve *_zeroTempAngleDeficit, *_zeroTempEnergy,
+    *_zeroTempVolume;
+    QwtCircBuffSeriesData *_rmsAd, *_totEn, *_vol;
+    double_t _xmin, _xmax, _ymin1, _ymin2, _ymin3, _ymax1,
+    _ymax2, _ymax3;
+    QwtPlotMarker *_adMarker, *_enMarker, *_volMarker;
 };
 
 }

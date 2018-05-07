@@ -23,6 +23,7 @@
 #include "Model.h"
 #include "OPSMesh.h"
 #include "ViscosityBody.h"
+#include "Pressure.h"
 
 namespace OPS{
 
@@ -88,6 +89,7 @@ public:
     void ReadFvKAreaData(std::string);
     double_t GetZeroOpsEn(){return _zeroOpsEnVal;}
     double_t GetZeroRmsAd(){return _zeroRmsAdVal;}
+    double_t GetZeroVolume(){return _zeroVolVal;}
 
 public slots:
     void Initialize();
@@ -95,9 +97,11 @@ public slots:
     void StopRunning(){_keepRunning = false;}
     void UpdateBeta(double b);
     void UpdateGamma(double g);
+    void UpdatePressure(double p);
     vtkSmartPointer<vtkPolyData> GetPolyData();
     QwtCircBuffSeriesData* GetRmsAd(){return _rmsAD;}
     QwtCircBuffSeriesData* GetOpsEn(){return _opsEn;}
+    QwtCircBuffSeriesData* GetVolume(){return _vol;}
     void SolveOneStep();
     void Reset();
 
@@ -108,27 +112,31 @@ signals:
     void resetCompeleted();
     void updateZeroOpsEn(double);
     void updateZeroRmsAd(double);
+    void updateZeroVolume(double);
+
 private:
     bool _keepRunning = true;
     size_t _step = 0, _N;
     double_t _alpha = 2.5e5;
     double_t _beta = 10;
     double_t _gamma = 0.01;
-    double_t _zeroRmsAdVal, _zeroOpsEnVal;
+    double_t _pressure = 0.0;
+    double_t _zeroRmsAdVal, _zeroOpsEnVal, _zeroVolVal;
     double_t _f = 0.0;
     std::vector<double_t> _gammaDat, _areaDat,
-    _rmsAdDat, _opsEnDat;
+    _rmsAdDat, _opsEnDat, _volDat;
     std::string _dataOutputFile;
     OPSMesh* _ops;
     ViscosityBody* _visco;
     BrownianBody* _brown;
+    InternalPressure* _pressureBody;
     ExactAreaConstraint* _constraint;
     Model* _model;
     LBFGSBWrapper* _solver;
     ofstream _detailedOP;
     VectorXd _x, _g, _prevX, _initialX;
     std::mutex _mut;
-    QwtCircBuffSeriesData *_rmsAD, *_opsEn;
+    QwtCircBuffSeriesData *_rmsAD, *_opsEn, *_vol;
 };
 
 }

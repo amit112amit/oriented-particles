@@ -6,6 +6,7 @@ void LiveSimulation::Initialize(){
     // Initialize circular buffer with capacity 50000
     _rmsAD = new QwtCircBuffSeriesData(5000);
     _opsEn = new QwtCircBuffSeriesData(5000);
+    _vol = new QwtCircBuffSeriesData(5000);
 
     // ***************** Read Input VTK File *****************//
     std::string inputFileName = "T7.vtk";
@@ -27,6 +28,7 @@ void LiveSimulation::Initialize(){
     ReadFvKAreaData("T7_OPS_Asphericity.dat");
     _zeroOpsEnVal = GetInterpolatedValue(_gamma,_opsEnDat);
     _zeroRmsAdVal = GetInterpolatedValue(_gamma,_rmsAdDat);
+    _zeroVolVal = GetInterpolatedValue(_gamma,_volDat);
 
     // **********************************************************//
 
@@ -67,6 +69,9 @@ void LiveSimulation::Initialize(){
     _ops->setMorseDistance(re);
     _ops->setMorseWellWidth(s);
 
+    // Create InternalPressure body
+    _pressureBody = new InternalPressure(_N,_f,xpos,prevPos,posGrad,_ops->getPolyData());
+
     // Create Brownian and Viscosity bodies
     Eigen::Map<Eigen::VectorXd> thermalX(_x.data(),3*_N,1);
     Eigen::Map<Eigen::VectorXd> thermalG(_g.data(),3*_N,1);
@@ -84,6 +89,7 @@ void LiveSimulation::Initialize(){
     _model->addBody(_brown);
     _model->addBody(_visco);
     _model->addBody(_constraint);
+    _model->addBody(_pressureBody);
     // ****************************************************************//
 
     // ***************** Prepare Output Data files *********************//
@@ -107,6 +113,7 @@ void LiveSimulation::Initialize(){
                     << "CircEn"  <<"\t"
                     << "BrownEn"  <<"\t"
                     << "ViscoEn"  <<"\t"
+                    << "PressureWork" <<"\t"
                     << "MSD" << "\t"
                     << "RMSAngleDeficit"
                     << std::endl;
@@ -175,9 +182,10 @@ double_t LiveSimulation::GetInterpolatedValue(double_t x,
 void LiveSimulation::ReadFvKAreaData(std::string s){
     ifstream inputFile(s.c_str());
     std::string line;
-    double_t gamma, area, rmsAd, opsEn, ignore;
+    double_t gamma, area, volume, rmsAd, opsEn, ignore;
     //Clean the existing vectors
     _gammaDat.clear();
+    _volDat.clear();
     _areaDat.clear();
     _opsEnDat.clear();
     _rmsAdDat.clear();
@@ -185,16 +193,18 @@ void LiveSimulation::ReadFvKAreaData(std::string s){
     std::getline(inputFile, line);
     while (std::getline(inputFile, line)){
         std::istringstream ss(line);
-        ss >> gamma >> ignore >> ignore >> ignore
+        ss >> gamma >> ignore >> ignore >> volume
                         >> area >> ignore >> ignore >> ignore
                         >> opsEn >> rmsAd;
         _gammaDat.push_back(gamma);
+        _volDat.push_back(volume);
         _areaDat.push_back(area);
         _opsEnDat.push_back(opsEn);
         _rmsAdDat.push_back(rmsAd);
     }
     //Reverse the vectors so that gamma values are increasing
     std::reverse(_gammaDat.begin(),_gammaDat.end());
+    std::reverse(_volDat.begin(),_volDat.end());
     std::reverse(_areaDat.begin(),_areaDat.end());
     std::reverse(_opsEnDat.begin(),_opsEnDat.end());
     std::reverse(_rmsAdDat.begin(),_rmsAdDat.end());
@@ -207,6 +217,13 @@ void LiveSimulation::UpdateGamma(double g){
     _constraint->setConstraint(GetInterpolatedValue(g,_areaDat));
     emit updateZeroOpsEn(GetInterpolatedValue(_gamma,_opsEnDat));
     emit updateZeroRmsAd(GetInterpolatedValue(_gamma,_rmsAdDat));
+    emit updateZeroVolume(GetInterpolatedValue(_gamma,_volDat));
+}
+
+// Update pressure value
+void LiveSimulation::UpdatePressure(double p){
+    _pressure = p;
+    _pressureBody->setPressure(p);
 }
 
 // Update beta and viscosity and brownian coefficients
@@ -229,12 +246,14 @@ void LiveSimulation::SolveOneStep(){
             // Relax at zero temperature once
             _brown->setCoefficient(0.0);
             _visco->setViscosity(0.0);
+            _pressureBody->setPressure(0.0);
             _solver->solve();
             _prevX = _x.head(3*_N);
             _ops->updatePolyData();
             _ops->updateNeighbors();
             _brown->setCoefficient(std::sqrt(2*_alpha/_beta));
             _visco->setViscosity(_alpha);
+            _pressureBody->setPressure(_pressure);
         }
 
         // Generate Brownian Kicks
@@ -278,6 +297,7 @@ void LiveSimulation::SolveOneStep(){
         double_t normEn = _ops->getNormalityEnergy();
         double_t circEn = _ops->getCircularityEnergy();
         double_t rmsAd = _ops->getRMSAngleDeficit();
+        double_t volume = _ops->getVolume();
         _detailedOP
                         << _alpha << "\t"
                         << _beta << "\t"
@@ -288,6 +308,7 @@ void LiveSimulation::SolveOneStep(){
                         << circEn << "\t"
                         << _brown->getBrownianEnergy() << "\t"
                         << _visco->getViscosityEnergy() << "\t"
+                        << _pressureBody->getPressureWork() <<"\t"
                         << msds[0] << "\t"
                         << rmsAd
                         << std::endl;
@@ -295,6 +316,7 @@ void LiveSimulation::SolveOneStep(){
         {
             //std::lock_guard<std::mutex> lock(_mut);
             _rmsAD->push_back(_step,rmsAd);
+            _vol->push_back(_step,volume);
             _opsEn->push_back(_step,(morseEn+normEn+circEn));
         }
 
@@ -324,6 +346,7 @@ void LiveSimulation::Reset(){
     // Clear the plot data
     _rmsAD->clear();
     _opsEn->clear();
+    _vol->clear();
     // Reopen the output file discarding old content
     _detailedOP.close();
     _detailedOP.open(_dataOutputFile.c_str(), std::ofstream::out);
@@ -337,6 +360,7 @@ void LiveSimulation::Reset(){
                     << "CircEn"  <<"\t"
                     << "BrownEn"  <<"\t"
                     << "ViscoEn"  <<"\t"
+                    << "PressureWork" <<"\t"
                     << "MSD" << "\t"
                     << "RMSAngleDeficit"
                     << std::endl;

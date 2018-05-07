@@ -6,6 +6,7 @@
 #include "OPSMesh.h"
 #include "ViscosityBody.h"
 #include "ALConstraint.h"
+#include "Pressure.h"
 
 using namespace OPS;
 
@@ -54,6 +55,10 @@ int main(int argc, char* argv[]){
     OPSMesh ops(N,f,pos,rot,posGrad,rotGrad,prevPos);
     ops.updateNeighbors();
 
+    // Create a pressure body
+    InternalPressure pBody(N,f,pos,prevPos,posGrad,ops.getPolyData());
+    pBody.setPressure(100.0);
+
     // Create Brownian and Viscosity bodies
     Eigen::Map<Eigen::VectorXd> thermalX(x.data(),3*N,1);
     Eigen::Map<Eigen::VectorXd> thermalG(g.data(),3*N,1);
@@ -72,12 +77,14 @@ int main(int argc, char* argv[]){
     model.addBody(&brown);
     model.addBody(&visco);
     model.addBody(&constraint);
+    model.addBody(&pBody);
 
     // Generate Brownian Kicks
     brown.generateParallelKicks();
 
     // Create new x data
-    x.setRandom(x.size());
+    //x.setRandom(x.size());
+    x -= 0.2*x;
 
     // Turn off some bodies
     //brown.setCoefficient(0.0);
