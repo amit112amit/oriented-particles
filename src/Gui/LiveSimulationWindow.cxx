@@ -13,13 +13,13 @@ LiveSimulationWindow::LiveSimulationWindow(QWidget *parent){
     _gammaSlider->setPageSteps( 10 );
     _gammaSlider->setScaleMaxMinor( 9 );
     // Settings for the Pressure Slider
-    _pressureSlider->setScaleEngine( new QwtLogScaleEngine );
-    _pressureSlider->setStepAlignment( false );
-    _pressureSlider->setBorderWidth( 1 );
-    _pressureSlider->setScale( 1.0, 1.0e5 );
-    _pressureSlider->setTotalSteps( 200 );
-    _pressureSlider->setPageSteps( 10 );
-    _pressureSlider->setScaleMaxMinor( 9 );
+    //_pressureSlider->setScaleEngine( new QwtLogScaleEngine );
+    //_pressureSlider->setStepAlignment( false );
+    //_pressureSlider->setBorderWidth( 1 );
+    //_pressureSlider->setScale( 1.0, 1.0e5 );
+    //_pressureSlider->setTotalSteps( 200 );
+    //_pressureSlider->setPageSteps( 10 );
+    //_pressureSlider->setScaleMaxMinor( 9 );
     // Settings for temperature slider
     _tempSlider->setTotalSteps( 200 );
     _tempSlider->setValue(0.10);
@@ -284,11 +284,13 @@ void LiveSimulationWindow::on_checkBox_clicked(bool checked)
 {
     if(checked){
         _pressureSlider->setEnabled(true);
+        _pressureValLbl->setText(
+                    QString::number(_pressureSlider->value()));
         emit pressureChanged(_pressureSlider->value());
     }
     else{
         _pressureSlider->setEnabled(false);
-        _pressureValLbl->setText(QString::number(0));
+        _pressureValLbl->setText(QString::number(0.0));
         emit pressureChanged(0.0);
     }
 }

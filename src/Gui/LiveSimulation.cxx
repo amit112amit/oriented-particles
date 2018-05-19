@@ -108,11 +108,12 @@ void LiveSimulation::Initialize(){
                     << "Beta" << "\t"
                     << "Gamma" << "\t"
                     << "Asphericity" << "\t"
-                    << "MorseEn"  <<"\t"
-                    << "NormEn"  <<"\t"
-                    << "CircEn"  <<"\t"
-                    << "BrownEn"  <<"\t"
-                    << "ViscoEn"  <<"\t"
+                    //<< "MorseEn"  <<"\t"
+                    //<< "NormEn"  <<"\t"
+                    //<< "CircEn"  <<"\t"
+                    //<< "BrownEn"  <<"\t"
+                    //<< "ViscoEn"  <<"\t"
+		    << "TotalEnergy" <<"\t"
                     << "PressureWork" <<"\t"
                     << "MSD" << "\t"
                     << "RMSAngleDeficit"
@@ -298,16 +299,18 @@ void LiveSimulation::SolveOneStep(){
         double_t circEn = _ops->getCircularityEnergy();
         double_t rmsAd = _ops->getRMSAngleDeficit();
         double_t volume = _ops->getVolume();
+        double_t totalEn = morseEn + normEn + circEn;
         _detailedOP
                         << _alpha << "\t"
                         << _beta << "\t"
                         << _gamma << "\t"
                         << _ops->getAsphericity() << "\t"
-                        << morseEn << "\t"
-                        << normEn << "\t"
-                        << circEn << "\t"
-                        << _brown->getBrownianEnergy() << "\t"
-                        << _visco->getViscosityEnergy() << "\t"
+                        //<< morseEn << "\t"
+                        //<< normEn << "\t"
+                        //<< circEn << "\t"
+                        //<< _brown->getBrownianEnergy() << "\t"
+                        //<< _visco->getViscosityEnergy() << "\t"
+                        << totalEn <<"\t"
                         << _pressureBody->getPressureWork() <<"\t"
                         << msds[0] << "\t"
                         << rmsAd

@@ -207,11 +207,12 @@ int main(int argc, char* argv[]){
                << "Radius"  <<"\t"
                << "Volume"  <<"\t"
                << "Area"  <<"\t"
-               << "MorseEn"  <<"\t"
-               << "NormEn"  <<"\t"
-               << "CircEn"  <<"\t"
-               << "BrownEn"  <<"\t"
-               << "ViscoEn"  <<"\t"
+	       << "TotalEnergy" << "\t"
+               //<< "MorseEn"  <<"\t"
+               //<< "NormEn"  <<"\t"
+               //<< "CircEn"  <<"\t"
+               //<< "BrownEn"  <<"\t"
+               //<< "ViscoEn"  <<"\t"
                << "MSD" << "\t"
                << "RMSAngleDeficit"
                << std::endl;
@@ -332,6 +333,7 @@ int main(int argc, char* argv[]){
             double_t morseEn = ops.getMorseEnergy();
             double_t normEn = ops.getNormalityEnergy();
             double_t circEn = ops.getCircularityEnergy();
+	    double_t totalEn = morseEn + circEn + totalEn;
 
             // Write output to data file
             detailedOP << step << "\t"
@@ -341,11 +343,12 @@ int main(int argc, char* argv[]){
                        << ops.getAverageRadius() << "\t"
                        << volume << "\t"
                        << ops.getArea() << "\t"
-                       << morseEn << "\t"
-                       << normEn << "\t"
-                       << circEn << "\t"
-                       << brown.getBrownianEnergy() << "\t"
-                       << visco.getViscosityEnergy() << "\t"
+                       << totalEn << "\t"
+                       //<< morseEn << "\t"
+                       //<< normEn << "\t"
+                       //<< circEn << "\t"
+                       //<< brown.getBrownianEnergy() << "\t"
+                       //<< visco.getViscosityEnergy() << "\t"
                        << msds[0] << "\t"
                        << ops.getRMSAngleDeficit()
                        << std::endl;

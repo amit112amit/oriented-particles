@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1095</width>
-    <height>818</height>
+    <width>1050</width>
+    <height>802</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -81,6 +81,12 @@
          <widget class="QwtSlider" name="_pressureSlider">
           <property name="enabled">
            <bool>false</bool>
+          </property>
+          <property name="lowerBound">
+           <double>-100.000000000000000</double>
+          </property>
+          <property name="totalSteps">
+           <UInt>500</UInt>
           </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -270,7 +276,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1095</width>
+     <width>1050</width>
      <height>28</height>
     </rect>
    </property>
