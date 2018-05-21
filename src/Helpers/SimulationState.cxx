@@ -4,6 +4,7 @@ namespace OPS{
 
 SimulationState SimulationState::readFromFile(std::string file){
     size_t n, ns, s;
+    double_t g, b;
     ifstream f( file );
     std::string line;
     // Read number of particles
@@ -19,6 +20,14 @@ SimulationState SimulationState::readFromFile(std::string file){
     std::getline( f, line );
     std::getline( f, line );
     s = std::stod(line);
+    // Read gamma or the FvK number
+    std::getline( f, line );
+    std::getline( f, line );
+    g = std::stod(line);
+    // Read beta or 1/temperature
+    std::getline( f, line );
+    std::getline( f, line );
+    b = std::stod(line);
     // Read random engine state
     std::getline( f, line );
     std::getline( f, line );
@@ -80,7 +89,7 @@ SimulationState SimulationState::readFromFile(std::string file){
     }
 
     f.close();
-    SimulationState sims(n,ns,s,xv,pX,ip,l,en,rg);
+    SimulationState sims(n,ns,s,g,b,xv,pX,ip,l,en,rg);
     return sims;
 }
 
@@ -94,6 +103,10 @@ void SimulationState::writeToFile(std::string file){
       << nameSuffix << std::endl
       << "# Number of time steps completed" << std::endl
       << step << std::endl
+      << "# Gamma or the FvK number" << std::endl
+      << gamma << std::endl
+      << "# Beta or 1/Temperature" << std::endl
+      << beta << std::endl
       << "# State of the random number engine" << std::endl
       << engine << std::endl
       << "# State of the random number generator" << std::endl

@@ -55,6 +55,8 @@ int main(int argc, char* argv[]){
         nameSuffix = nameSuffix > 0? nameSuffix + 1: 0;
         step = state.getStep() + 1;
         N = state.getN();
+	gamma = state.getGamma();
+	beta = state.getBeta();
         engine = state.getRandomEngine();
         rng = state.getRandomGenerator();
         // Resize matrices and vectors
@@ -311,7 +313,7 @@ int main(int argc, char* argv[]){
             if( step % saveFreq == (saveFreq - 1) ){
                 engine = brown.getRandomEngine();
                 rng = brown.getRandomGenerator();
-                state = SimulationState(N,nameSuffix,step,x,prevX,
+                state = SimulationState(N,nameSuffix,step,gamma,beta,x,prevX,
                                         initPos,neighbors,engine,rng);
                 state.writeToFile("SimulationState.dat");
             }

@@ -32,15 +32,17 @@ class SimulationState{
 public:
     SimulationState():N(0),nameSuffix(0),step(0),x(1),
         prevX(1),initPos(3,1),rng(0.,1.){}
-    SimulationState(size_t n, size_t ns, size_t s, Vec xi, Vec pi,
-                    M3X ip, IdList l, Engine e, NormD r): N(n),
+    SimulationState(size_t n, size_t ns, size_t s, double_t g, double_t b,
+	    Vec xi, Vec pi, M3X ip, IdList l, Engine e, NormD r): N(n),
         nameSuffix(ns), step(s), x(6*n), prevX(3*n), initPos(3,n),
-        engine(e), rng(r){
+        engine(e), rng(r), gamma(g), beta(b){
         nn = l; x = xi; prevX = pi; initPos = ip;
     }
     size_t getN(){return N;}
     size_t getNameSuffix(){return nameSuffix;}
     size_t getStep(){return step;}
+    double_t getGamma(){return gamma;}
+    double_t getBeta(){return beta;}
     Vec getX(){return x;}
     Vec getPrevX(){return prevX;}
     M3X getInitPos(){return initPos;}
@@ -53,6 +55,7 @@ private:
     size_t N;
     size_t nameSuffix;
     size_t step;
+    double_t gamma = 0.01, beta = 10.0;
     static const size_t numsPerLine = 9;
     IdList nn;
     Vec x, prevX;
