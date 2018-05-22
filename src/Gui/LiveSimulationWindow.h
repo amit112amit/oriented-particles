@@ -10,6 +10,7 @@
 #include <QToolBar>
 #include <QStatusBar>
 #include <QThread>
+#include <QFileDialog>
 #include <QVTKOpenGLWidget.h>
 #include <vtkOpenGLRenderer.h>
 #include <vtkGenericOpenGLRenderWindow.h>
@@ -46,6 +47,7 @@ signals:
     void gammaChanged(double);
     void pressureChanged(double);
     void resetRequested();
+    void loadStateFile(QString);
 public slots:
     void refreshVTKSceneAndPlots(int);
     void setUpVTKPipeAndPlotData();
@@ -53,6 +55,7 @@ public slots:
     void updateZeroOpsEnMarker(double);
     void updateZeroRmsAdMarker(double);
     void updateZeroVolumeMarker(double);
+    void updatePlotXAxis(int);
 private slots:
     void on__initBtn_clicked();
     void on__startStopBtn_clicked();
@@ -60,8 +63,10 @@ private slots:
     void on__gammaSlider_valueChanged(double value);
     void on__pressureSlider_valueChanged(double value);
     void on_checkBox_clicked(bool checked);
+    void on_actionLoadState_triggered();
 
 private:
+    bool _isInitialized = false;
     vtkSmartPointer<vtkPolyData> _poly;
     vtkSmartPointer<vtkSphereSource> _glyphSource;
     LiveSimulation* _worker;

@@ -9,7 +9,7 @@ void LiveSimulation::Initialize(){
     _vol = new QwtCircBuffSeriesData(5000);
 
     // ***************** Read Input VTK File *****************//
-    std::string inputFileName = "T7.vtk";
+    std::string inputFileName = _inputVTK;
 
     auto reader = vtkSmartPointer<vtkPolyDataReader>::New();
     vtkSmartPointer<vtkPolyData> mesh;
@@ -25,7 +25,7 @@ void LiveSimulation::Initialize(){
     double_t percentStrain = 15;
     double_t s = (100 / (re*percentStrain))*log(2.0);
     double_t brownCoeff = 1.0, viscosity = 1.0;
-    ReadFvKAreaData("T7_OPS_Asphericity.dat");
+    ReadFvKAreaData(_inputZeroData);
     _zeroOpsEnVal = GetInterpolatedValue(_gamma,_opsEnDat);
     _zeroRmsAdVal = GetInterpolatedValue(_gamma,_rmsAdDat);
     _zeroVolVal = GetInterpolatedValue(_gamma,_volDat);
@@ -44,9 +44,8 @@ void LiveSimulation::Initialize(){
         coords.col(i) = cp;
     }
 
-    // Generate initial rotation vectors either from starting point coordinates
-    Eigen::Matrix3Xd rotVecs(3,_N);
     // Generate rotation vectors from input point coordinates
+    Eigen::Matrix3Xd rotVecs(3,_N);
     OPSBody::initialRotationVector(coords, rotVecs);
 
     // Prepare memory for energy, force
@@ -94,7 +93,7 @@ void LiveSimulation::Initialize(){
 
     // ***************** Prepare Output Data files *********************//
     // Identify the Input structure name
-    std::string fname = "T7";
+    std::string fname = inputFileName.substr(0,inputFileName.length() - 4);
     std::stringstream sstm;
 
     // Detailed output data file
@@ -108,12 +107,7 @@ void LiveSimulation::Initialize(){
                     << "Beta" << "\t"
                     << "Gamma" << "\t"
                     << "Asphericity" << "\t"
-                    //<< "MorseEn"  <<"\t"
-                    //<< "NormEn"  <<"\t"
-                    //<< "CircEn"  <<"\t"
-                    //<< "BrownEn"  <<"\t"
-                    //<< "ViscoEn"  <<"\t"
-		    << "TotalEnergy" <<"\t"
+                    << "TotalEnergy" <<"\t"
                     << "PressureWork" <<"\t"
                     << "MSD" << "\t"
                     << "RMSAngleDeficit"
@@ -160,7 +154,125 @@ void LiveSimulation::Initialize(){
     emit simulationReady();
 }
 
-// Interpolation of area
+//! Load simulation state from a SimulationState object
+void LiveSimulation::LoadState( QString st ){
+    // Delete existing objects assigned using new
+    delete _ops, _brown, _visco, _constraint, _pressureBody, _model, _solver;
+
+    // Read the state file
+    SimulationState state = SimulationState::readFromFile(st.toStdString());
+    _N = state.getN();
+    _step = state.getStep() + 1;
+    _resetStepVal = _step;
+    _gamma = state.getGamma();
+    _beta = state.getBeta();
+    _alpha = 2.5e5;
+    std::vector<vtkIdType> neighbors(_N);
+    neighbors = state.getNeighbors();
+
+    // Reset the circular buffers
+    _rmsAD->clear();
+    _opsEn->clear();
+    _vol->clear();
+
+    // ******************* Simulation Parameters *********//
+    double_t re=1.0;
+    double_t percentStrain = 15;
+    double_t s = (100 / (re*percentStrain))*log(2.0);
+    double_t brownCoeff = std::sqrt( 2*_alpha/_beta );
+    double_t viscosity = _alpha;
+    _zeroOpsEnVal = GetInterpolatedValue(_gamma,_opsEnDat);
+    _zeroRmsAdVal = GetInterpolatedValue(_gamma,_rmsAdDat);
+    _zeroVolVal = GetInterpolatedValue(_gamma,_volDat);
+    // **********************************************************//
+
+    // ***************** Create Bodies and Model ****************//
+    // Resize matrices and vectors
+    _x = Eigen::VectorXd(6*_N);
+    _g = Eigen::VectorXd(6*_N);
+    _prevX = Eigen::VectorXd(3*_N);
+    _initialX = Eigen::VectorXd(6*_N);
+    _x = state.getX();
+    _prevX = state.getPrevX();
+    _initialX = _x;
+
+    // Fill coordinates and rotation vectors and prepare gradient vectors
+    Eigen::Map<Eigen::Matrix3Xd> xpos(_x.data(),3,_N), xrot(&(_x(3*_N)),3,_N),
+            prevPos(_prevX.data(),3,_N);
+    Eigen::Map<Eigen::Matrix3Xd> posGrad(_g.data(),3,_N), rotGrad(&_g(3*_N),3,_N);
+
+    // Create OPSBody
+    _ops = new OPSMesh(_N,_f,xpos,xrot,posGrad,rotGrad,prevPos);
+    _ops->setFVK(_gamma);
+    _ops->setMorseDistance(re);
+    _ops->setMorseWellWidth(s);
+    _ops->setInitialNeighbors(neighbors);
+    _ops->setInitialPositions( state.getInitPos() );
+    _ops->updateNeighbors();
+    vtkSmartPointer<vtkPolyData> poly = _ops->getPolyData();
+
+    // Create InternalPressure body
+    _pressureBody = new InternalPressure(_N,_f,xpos,prevPos,posGrad,poly);
+
+    // Create Brownian body
+    Eigen::Map<Eigen::VectorXd> thermalX(_x.data(),3*_N,1);
+    Eigen::Map<Eigen::VectorXd> thermalG(_g.data(),3*_N,1);
+    _brown = new BrownianBody(3*_N,brownCoeff,_f,thermalX,thermalG,_prevX);
+    _brown->setRandomEngine( state.getRandomEngine() );
+    _brown->setRandomGenerator( state.getRandomGenerator() );
+
+    // Create viscosity body
+    _visco = new ViscosityBody(3*_N,viscosity,_f,thermalX,thermalG,_prevX);
+
+    // Create area constraint
+    _constraint = new ExactAreaConstraint(_N, _f, xpos, posGrad, poly);
+    _constraint->setConstraint( GetInterpolatedValue(_gamma,_areaDat) );
+
+    // Create Model
+    _model = new Model(6*_N,_f,_g);
+    _model->addBody(_ops);
+    _model->addBody(_brown);
+    _model->addBody(_visco);
+    _model->addBody(_constraint);
+    _model->addBody(_pressureBody);
+    // ****************************************************************//
+
+    // ***************** Prepare Output Data files *********************//
+    // Identify the Input structure name
+    std::string fname = _inputVTK.substr(0,_inputVTK.length() - 4);
+    std::stringstream sstm;
+
+    // Detailed output data file
+    sstm << fname << "-DetailedOutput.dat";
+    _dataOutputFile = sstm.str();
+    sstm.str("");
+    sstm.clear();
+    _detailedOP.open(_dataOutputFile.c_str(), std::ofstream::out);
+    _detailedOP
+                    << "Alpha" << "\t"
+                    << "Beta" << "\t"
+                    << "Gamma" << "\t"
+                    << "Asphericity" << "\t"
+                    << "TotalEnergy" <<"\t"
+                    << "PressureWork" <<"\t"
+                    << "MSD" << "\t"
+                    << "RMSAngleDeficit"
+                    << std::endl;
+
+    // ************************* Create Solver ************************  //
+    size_t m = 5, iprint = 1000, maxIter = 1e5;
+    double_t factr = 10.0, pgtol = 1e-8;
+    LBFGSBParams solverParams(m,iprint,maxIter,factr,pgtol);
+    _solver = new LBFGSBWrapper(solverParams, *(_model), _f, _x, _g);
+    _solver->turnOffLogging();
+    // *****************************************************************//
+
+    // Send signals to update the GUI
+    emit updatePlotXAxis(_step);
+    emit simulationReady();
+}
+
+//! Interpolation of area
 double_t LiveSimulation::GetInterpolatedValue(double_t x,
                                               std::vector<double_t> &y){
     int size = _gammaDat.size();
@@ -339,7 +451,7 @@ void LiveSimulation::Reset(){
     // Stop the simulation
     _keepRunning = false;
     // Set number of steps to 0
-    _step = 0;
+    _step = _resetStepVal;
     // Set positions and normals to starting value
     _x = _initialX;
     _prevX = _x.head(3*_N);
@@ -367,6 +479,7 @@ void LiveSimulation::Reset(){
                     << "MSD" << "\t"
                     << "RMSAngleDeficit"
                     << std::endl;
+    emit updatePlotXAxis(_step);
     emit resetCompeleted();
 }
 

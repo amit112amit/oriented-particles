@@ -113,6 +113,7 @@ LiveSimulationWindow::LiveSimulationWindow(QWidget *parent){
     connect(_worker, SIGNAL(updateZeroOpsEn(double)), this, SLOT(updateZeroOpsEnMarker(double)));
     connect(_worker, SIGNAL(updateZeroRmsAd(double)), this, SLOT(updateZeroRmsAdMarker(double)));
     connect(_worker, SIGNAL(updateZeroVolume(double)), this, SLOT(updateZeroVolumeMarker(double)));
+    connect(_worker, SIGNAL(updatePlotXAxis(int)), this, SLOT(updatePlotXAxis(int)));
     connect(this, SIGNAL(sceneRefreshed()), _worker, SLOT(SolveOneStep()));
     connect(this, SIGNAL(resetRequested()), _worker, SLOT(Reset()));
     connect(_thread, SIGNAL(finished()), _thread, SLOT(deleteLater()));
@@ -122,18 +123,40 @@ LiveSimulationWindow::LiveSimulationWindow(QWidget *parent){
     connect(this, SIGNAL(betaChanged(double)), _worker, SLOT(UpdateBeta(double)));
     connect(this, SIGNAL(gammaChanged(double)), _worker, SLOT(UpdateGamma(double)));
     connect(this, SIGNAL(pressureChanged(double)), _worker, SLOT(UpdatePressure(double)));
+    connect(this, SIGNAL(loadStateFile(QString)), _worker, SLOT(LoadState(QString)));
 }
 
 void LiveSimulationWindow::on__initBtn_clicked(){
-    QString txt = "Initialize";
-    if(QString::compare(_initBtn->text(),txt) == 0){
+    if(!_isInitialized){
+        QString inputVTK = QFileDialog::getOpenFileName(this,
+                                                        tr("Input VTK File"),"",tr("Legacy VTK (*.vtk)"));
+        if(inputVTK.isEmpty())
+            return;
+        QString inputZeroData = QFileDialog::getOpenFileName(this,
+                                                             tr("Input Zero Temperature Data File"),"",tr("DAT File(*.dat)"));
+        if(inputZeroData.isEmpty())
+            return;
+        _worker->setInputVTKFile(inputVTK.toStdString());
+        _worker->setInputZeroData(inputZeroData.toStdString());
         _initBtn->setText(QString("Reset"));
+        _isInitialized = true;
         if(_thread)
             _thread->start();
     }
     else{
         emit resetRequested();
     }
+}
+
+void LiveSimulationWindow::updatePlotXAxis(int i){
+    _xmin = i;
+    _xmax = _xmin + 5000;
+    _angleDeficitPlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
+    _energyPlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
+    _volumePlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
+    _angleDeficitPlot->replot();
+    _energyPlot->replot();
+    _volumePlot->replot();
 }
 
 void LiveSimulationWindow::setUpVTKPipeAndPlotData(){
@@ -176,6 +199,9 @@ void LiveSimulationWindow::setUpVTKPipeAndPlotData(){
     _adMarker->setYValue(_worker->GetZeroRmsAd());
     _volMarker->setYValue(_worker->GetZeroVolume());
     _enMarker->setYValue(_worker->GetZeroOpsEn());
+    _volumePlot->replot();
+    _angleDeficitPlot->replot();
+    _energyPlot->replot();
 }
 
 void LiveSimulationWindow::refreshVTKSceneAndPlots(int s){
@@ -196,19 +222,19 @@ void LiveSimulationWindow::refreshVTKSceneAndPlots(int s){
         _volumePlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
     }
     if(y1 > _ymax1 || y2 < _ymin1){
-        _ymin1 = std::min(1.5*y2,_ymin1);
+        _ymin1 = std::min(0.75*y2,_ymin1);
         _ymax1 = std::max(1.5*y1,_ymax1);
         _angleDeficitPlot->setAxisScale(QwtPlot::yLeft,_ymin1,_ymax1);
     }
     _volCurve->boundingRect().getCoords(&x1,&y1,&x2,&y2);
     if(y1 > _ymax3 || y2 < _ymin3){
-        _ymin3 = std::min(1.5*y2,_ymin3);
+        _ymin3 = std::min(0.75*y2,_ymin3);
         _ymax3 = std::max(1.5*y1,_ymax3);
         _volumePlot->setAxisScale(QwtPlot::yLeft,_ymin3,_ymax3);
     }
     _energyCurve->boundingRect().getCoords(&x1,&y1,&x2,&y2);
     if(y1 > _ymax2 || y2 < _ymin2){
-        _ymin2 = std::min(1.5*y2,_ymin2);
+        _ymin2 = std::min(0.75*y2,_ymin2);
         _ymax2 = std::max(1.5*y1,_ymax2);
         _energyPlot->setAxisScale(QwtPlot::yLeft,_ymin2,_ymax2);
     }
@@ -226,16 +252,8 @@ void LiveSimulationWindow::resetVTKSceneAndPlots(){
     _poly->DeepCopy(_worker->GetPolyData());
     _poly->Modified();
     _qVTK->GetRenderWindow()->Render();
-    _timeStepValLbl->setText(QString::number(0));
+    _timeStepValLbl->setText(QString::number(int(_xmin)));
     _startStopBtn->setText(QString("Start"));
-    _xmin = 0;
-    _xmax = 5000;
-    _angleDeficitPlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
-    _energyPlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
-    _volumePlot->setAxisScale(QwtPlot::xBottom,_xmin,_xmax);
-    _angleDeficitPlot->replot();
-    _energyPlot->replot();
-    _volumePlot->replot();
 }
 
 void LiveSimulationWindow::on__startStopBtn_clicked(){
@@ -285,13 +303,34 @@ void LiveSimulationWindow::on_checkBox_clicked(bool checked)
     if(checked){
         _pressureSlider->setEnabled(true);
         _pressureValLbl->setText(
-                    QString::number(_pressureSlider->value()));
+                                QString::number(_pressureSlider->value()));
         emit pressureChanged(_pressureSlider->value());
     }
     else{
         _pressureSlider->setEnabled(false);
         _pressureValLbl->setText(QString::number(0.0));
         emit pressureChanged(0.0);
+    }
+}
+
+void LiveSimulationWindow::on_actionLoadState_triggered(){
+    if(!_isInitialized)
+        on__initBtn_clicked();
+    if(_isInitialized){
+        QString fileName = QFileDialog::getOpenFileName(this,
+        tr("Open Simulation State File"), "", tr("DAT File (*.dat)"));
+        if( !fileName.isEmpty() ){
+            SimulationState state = SimulationState::readFromFile(
+                                    fileName.toStdString() );
+            double_t g = state.getGamma();
+            double_t t = 1.0/state.getBeta();
+            _gammaSlider->setValue( g );
+            _fvkValLbl->setText( QString::number(g) );
+            _tempSlider->setValue( t );
+            _tempValLbl->setText( QString::number(t) );
+            _timeStepValLbl->setText( QString::number( state.getStep() + 1 ) );
+            emit loadStateFile(fileName);
+        }
     }
 }
 

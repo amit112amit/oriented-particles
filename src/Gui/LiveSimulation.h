@@ -90,6 +90,8 @@ public:
     double_t GetZeroOpsEn(){return _zeroOpsEnVal;}
     double_t GetZeroRmsAd(){return _zeroRmsAdVal;}
     double_t GetZeroVolume(){return _zeroVolVal;}
+    void setInputVTKFile(std::string s){_inputVTK = s;}
+    void setInputZeroData(std::string s){_inputZeroData = s;}
 
 public slots:
     void Initialize();
@@ -104,6 +106,7 @@ public slots:
     QwtCircBuffSeriesData* GetVolume(){return _vol;}
     void SolveOneStep();
     void Reset();
+    void LoadState( QString s );
 
 signals:
     void simulationReady();
@@ -113,10 +116,11 @@ signals:
     void updateZeroOpsEn(double);
     void updateZeroRmsAd(double);
     void updateZeroVolume(double);
+    void updatePlotXAxis(int);
 
 private:
     bool _keepRunning = true;
-    size_t _step = 0, _N;
+    size_t _step = 0, _N, _resetStepVal = 0;
     double_t _alpha = 2.5e5;
     double_t _beta = 10;
     double_t _gamma = 0.01;
@@ -126,6 +130,8 @@ private:
     std::vector<double_t> _gammaDat, _areaDat,
     _rmsAdDat, _opsEnDat, _volDat;
     std::string _dataOutputFile;
+    std::string _inputVTK = "T7.vtk";
+    std::string _inputZeroData = "T7_OPS_Asphericity.dat";
     OPSMesh* _ops;
     ViscosityBody* _visco;
     BrownianBody* _brown;
