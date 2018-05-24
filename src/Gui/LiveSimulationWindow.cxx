@@ -124,6 +124,7 @@ LiveSimulationWindow::LiveSimulationWindow(QWidget *parent){
     connect(this, SIGNAL(gammaChanged(double)), _worker, SLOT(UpdateGamma(double)));
     connect(this, SIGNAL(pressureChanged(double)), _worker, SLOT(UpdatePressure(double)));
     connect(this, SIGNAL(loadStateFile(QString)), _worker, SLOT(LoadState(QString)));
+    connect(this, SIGNAL(saveStateFile(QString)), _worker, SLOT(SaveState(QString)));
 }
 
 void LiveSimulationWindow::on__initBtn_clicked(){
@@ -318,7 +319,7 @@ void LiveSimulationWindow::on_actionLoadState_triggered(){
         on__initBtn_clicked();
     if(_isInitialized){
         QString fileName = QFileDialog::getOpenFileName(this,
-        tr("Open Simulation State File"), "", tr("DAT File (*.dat)"));
+                                                        tr("Open Simulation State File"), "", tr("DAT File (*.dat)"));
         if( !fileName.isEmpty() ){
             SimulationState state = SimulationState::readFromFile(
                                     fileName.toStdString() );
@@ -331,6 +332,29 @@ void LiveSimulationWindow::on_actionLoadState_triggered(){
             _timeStepValLbl->setText( QString::number( state.getStep() + 1 ) );
             emit loadStateFile(fileName);
         }
+    }
+}
+
+void LiveSimulationWindow::on_actionSaveState_triggered()
+{
+    if(_isInitialized){
+        _startStopBtn->setText(QString("Start"));
+        emit stopRunning();
+        QString saveFileName =
+                        QFileDialog::getSaveFileName(this,
+                                                     tr("Save Simulation State"),
+                                                     "",tr("DAT File (*.dat)"));
+        if(!saveFileName.isEmpty()){
+            QString ext = ".dat";
+            if(!saveFileName.endsWith(ext))
+                saveFileName.append(ext);
+            emit saveStateFile(saveFileName);
+        }
+    }
+    else{
+        QMessageBox messageBox;
+        messageBox.critical(0,"Error","Simulation has not been started!");
+        messageBox.setFixedSize(500,200);
     }
 }
 

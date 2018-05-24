@@ -11,6 +11,7 @@
 #include <QStatusBar>
 #include <QThread>
 #include <QFileDialog>
+#include <QMessageBox>
 #include <QVTKOpenGLWidget.h>
 #include <vtkOpenGLRenderer.h>
 #include <vtkGenericOpenGLRenderWindow.h>
@@ -48,6 +49,7 @@ signals:
     void pressureChanged(double);
     void resetRequested();
     void loadStateFile(QString);
+    void saveStateFile(QString);
 public slots:
     void refreshVTKSceneAndPlots(int);
     void setUpVTKPipeAndPlotData();
@@ -64,6 +66,7 @@ private slots:
     void on__pressureSlider_valueChanged(double value);
     void on_checkBox_clicked(bool checked);
     void on_actionLoadState_triggered();
+    void on_actionSaveState_triggered();
 
 private:
     bool _isInitialized = false;

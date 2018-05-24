@@ -56,7 +56,7 @@ void LiveSimulation::Initialize(){
 
     // Fill _x with coords and rotVecs
     Eigen::Map<Eigen::Matrix3Xd> xpos(_x.data(),3,_N), xrot(&(_x(3*_N)),3,_N),
-            prevPos(_prevX.data(),3,_N);
+                    prevPos(_prevX.data(),3,_N);
     xpos = coords;
     xrot = rotVecs;
     _prevX = _x.head(3*_N);
@@ -198,7 +198,7 @@ void LiveSimulation::LoadState( QString st ){
 
     // Fill coordinates and rotation vectors and prepare gradient vectors
     Eigen::Map<Eigen::Matrix3Xd> xpos(_x.data(),3,_N), xrot(&(_x(3*_N)),3,_N),
-            prevPos(_prevX.data(),3,_N);
+                    prevPos(_prevX.data(),3,_N);
     Eigen::Map<Eigen::Matrix3Xd> posGrad(_g.data(),3,_N), rotGrad(&_g(3*_N),3,_N);
 
     // Create OPSBody
@@ -270,6 +270,19 @@ void LiveSimulation::LoadState( QString st ){
     // Send signals to update the GUI
     emit updatePlotXAxis(_step);
     emit simulationReady();
+}
+
+//! Save Simulation State
+void LiveSimulation::SaveState(QString s){
+    Engine engine = _brown->getRandomEngine();
+    NormD rng = _brown->getRandomGenerator();
+    Eigen::Matrix3Xd initPos(3,_N);
+    _ops->getInitialPositions(initPos);
+    std::vector<vtkIdType> neighbors = _ops->getInitialNeighbors();
+    SimulationState state = SimulationState(_N,0,_step,_gamma,_beta,
+                                            _x,_prevX,initPos,neighbors,
+                                            engine,rng);
+    state.writeToFile(s.toStdString());
 }
 
 //! Interpolation of area
@@ -417,11 +430,11 @@ void LiveSimulation::SolveOneStep(){
                         << _beta << "\t"
                         << _gamma << "\t"
                         << _ops->getAsphericity() << "\t"
-                        //<< morseEn << "\t"
-                        //<< normEn << "\t"
-                        //<< circEn << "\t"
-                        //<< _brown->getBrownianEnergy() << "\t"
-                        //<< _visco->getViscosityEnergy() << "\t"
+                           //<< morseEn << "\t"
+                           //<< normEn << "\t"
+                           //<< circEn << "\t"
+                           //<< _brown->getBrownianEnergy() << "\t"
+                           //<< _visco->getViscosityEnergy() << "\t"
                         << totalEn <<"\t"
                         << _pressureBody->getPressureWork() <<"\t"
                         << msds[0] << "\t"

@@ -3,6 +3,7 @@
 
 #include <limits>
 #include <mutex>
+#include <random>
 #include <stdio.h>
 #include <string>
 #include <vector>
@@ -24,6 +25,7 @@
 #include "OPSMesh.h"
 #include "ViscosityBody.h"
 #include "Pressure.h"
+#include "HelperFunctions.h"
 
 namespace OPS{
 
@@ -83,6 +85,8 @@ class LiveSimulation: public QObject{
 public:
     typedef Eigen::VectorXd VectorXd;
     typedef Eigen::Vector3d Vector3d;
+    typedef std::mt19937 Engine;
+    typedef std::normal_distribution<double_t> NormD;
     explicit LiveSimulation(){}
     ~LiveSimulation(){}
     double_t GetInterpolatedValue(double_t, std::vector<double_t>&);
@@ -107,6 +111,7 @@ public slots:
     void SolveOneStep();
     void Reset();
     void LoadState( QString s );
+    void SaveState( QString s );
 
 signals:
     void simulationReady();

@@ -226,7 +226,7 @@
       <item>
        <widget class="QTabWidget" name="_topPlotTab">
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="_angleDeficitTab">
          <attribute name="title">
@@ -285,6 +285,7 @@
      <string>&amp;File</string>
     </property>
     <addaction name="actionLoadState"/>
+    <addaction name="actionSaveState"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -298,6 +299,11 @@
    </property>
    <property name="toolTip">
     <string>Load simulation state file</string>
+   </property>
+  </action>
+  <action name="actionSaveState">
+   <property name="text">
+    <string>&amp;Save simulation state</string>
    </property>
   </action>
  </widget>
