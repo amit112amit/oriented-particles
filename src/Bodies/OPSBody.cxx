@@ -167,9 +167,9 @@ void OPSBody::compute(){
 
         for(auto j=0; j < _neighbors[i]->GetNumberOfIds(); j++){
             double_t r, n_dot_rij, exp_2, exp_1;
-            double_t morseEn, Ker, Phi_n, Phi_c;
+            double_t morseEn, Phi_n, Phi_c;
             Vector3d vj, xj, q, m, n, rij;
-            Vector3d dMorseXi, dMorseXj, dKerXi, dKerXj;
+            Vector3d dMorseXi, dMorseXj;
             Vector3d dPhi_nVi, dPhi_nVj;
             Vector3d dPhi_cVi, dPhi_cVj;
             Vector3d dPhi_cXi, dPhi_cXj;
@@ -238,41 +238,26 @@ void OPSBody::diffNormalRotVec(){
         // Read the rotation vector
         Vector3d vi = _rotationVectors.col(i);
 
-        double_t v0 = vi[0], v1 = vi[1], v2 = vi[2], v = vi.norm();
+        double_t v = vi.norm();
         double_t s = sin(0.5*v), s_v = s/v, s_v3 = s/(v*v*v);
         double_t c_v2 = 0.5*cos(0.5*v)/(v*v), f = c_v2 - s_v3;
 
         Quaterniond q( AngleAxisd(v, vi.normalized()) );
         double_t q0 = q.w(), q1 = q.x(), q2 = q.y(), q3 = q.z();
-        Matrix3x4d dpdq;
+        Matrix4x3d dpdq;
 
-        dpdq << q2, q3, q0, q1,
-                        -q1, -q0, q3, q2,
-                        q0, -q1, -q2, q3;
+        dpdq << q2, -q1, q0,
+	     q3, -q0, -q1,
+	     q0, q3, -q2,
+	     q1, q2, q3;
         dpdq = 2 * dpdq;
 
-        Matrix4x3d dqdv;
-        Matrix3d V2;
-        Vector3d Sc, V2xSc;
+        Matrix3x4d dqdv;
+        dqdv.leftCols(1) = -0.5*s_v*vi;
+        dqdv.rightCols(3) = s_v*Eigen::Matrix3d::Identity() +
+	    f*vi*vi.transpose();
 
-        double_t v02 = v0*v0, v12 = v1*v1, v22 = v2*v2;
-        double_t v0v1 = v0*v1, v0v2 = v0*v2, v1v2 = v1*v2;
-
-        dqdv.topRows(1) = -0.5*s_v*(vi.transpose());
-
-        V2 << 1, v02, v02,
-                        1, v12, v12,
-                        1, v22, v22;
-        Sc << s_v,
-                        -s_v3,
-                        c_v2;
-        V2xSc = V2*Sc;
-
-        dqdv.bottomRows(3) << V2xSc(0), v0v1*f, v0v2*f,
-                        v0v1*f, V2xSc(1), v1v2*f,
-                        v0v2*f, v1v2*f, V2xSc(2);
-
-        _diffNormalRV[i] = (dpdq*dqdv).transpose();
+        _diffNormalRV[i] = dqdv*dpdq;
     }
 }
 
