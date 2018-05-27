@@ -87,8 +87,8 @@ void OPSMesh::compute(){
 		// Evaluate morse derivatives
 		exp_1 = exp( -_a*(r - _re) );
 		exp_2 = exp_1*exp_1;
-		morseEn =  exp_2 - 2*exp_1;
-		dMdr = (2*_a/r)*( exp_1 - exp_2 )*rij;
+		morseEn =  exp_2 - 2*exp_1;		
+		dMdr = 2*_a*( exp_1 - exp_2 )*rn;
 
 		//Evaluate co-normality derivatives
 		Phi_n = m.squaredNorm();
