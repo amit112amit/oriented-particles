@@ -28,9 +28,9 @@ using std::scientific;
 
 namespace OPS{
 //! Constructor
-LBFGSBWrapper::LBFGSBWrapper(LBFGSBParams &p, Model &m, double_t &f,
-                             RefV x, RefV g): _model(m), _f(f), _x(x.data(), x.size(),1),
-    _g(g.data(),g.size(),1){
+LBFGSBWrapper::LBFGSBWrapper(LBFGSBParams &p, ModelPtr m, double_t &f,
+                             RefV x, RefV g): _model(std::move(m)), _f(f),
+    _x(x.data(), x.size(),1), _g(g.data(),g.size(),1){
     assert( _x.size() == _g.size());
     _n = _x.size();
     _m = p.getNumHessianCorrections();
@@ -124,7 +124,7 @@ void LBFGSBWrapper::solve() {
 
     int iprint=-1;
 
-    _model.compute();
+    _model->compute();
 
     // ------- the beginning of the loop ----------
     while(true) {
@@ -138,7 +138,7 @@ void LBFGSBWrapper::solve() {
             // The minimization routine has returned to request the
             // function f and gradient g values at the current x.
 
-            _model.compute();
+            _model->compute();
 
             // Go back to the minimization routine.
             continue;
@@ -164,13 +164,13 @@ void LBFGSBWrapper::solve() {
         }
 
         else if( strncmp(task,"CONV",4)==0 ) {
-            _model.compute();
+            _model->compute();
             PRINT_CHAR_ARR(task,49);
             break;
         }
 
         else if( strncmp(task,"ABNORM",6)==0 ) {
-            _model.compute();
+            _model->compute();
             PRINT_CHAR_ARR(task,49);
             break;
         }
@@ -198,6 +198,6 @@ void LBFGSBWrapper::solve() {
     _projg = dsave[12];
     _iterNo = isave[29];
 
-    _model.compute();
+    _model->compute();
 }
 }
