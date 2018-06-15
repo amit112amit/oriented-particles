@@ -20,15 +20,23 @@ public:
 
     BrownianBody(size_t N, double_t coefficient,
                  double_t &f, RefVXd x, RefVXd g, RefVXd prevX);
-    void compute();
-    void generateParallelKicks();
-    std::mt19937 getRandomEngine(){return _e2;}
-    NormD getRandomGenerator(){return _rng;}
-    double_t getBrownianEnergy(){return _brownEn;}
+    inline void compute(){
+        _brownEn = -1.0*_coeff*(_xi.dot(_x - _prevX));
+        _f += _brownEn;
+        _g += -1.0*_coeff*_xi;
+    }
+    inline void generateParallelKicks(){
+        for(auto i=0; i < _N; i++){
+        _xi(i) = _rng(_e2);
+        }
+    }
+    inline std::mt19937 getRandomEngine(){return _e2;}
+    inline NormD getRandomGenerator(){return _rng;}
+    inline double_t getBrownianEnergy(){return _brownEn;}
     void printVTKFile(const std::string fName);
-    void setCoefficient(double_t C);
-    void setRandomEngine( std::mt19937 e ){_e2 = e;}
-    void setRandomGenerator( NormD r ){_rng = r;}
+    inline void setCoefficient(double_t C){_coeff = C;}
+    inline void setRandomEngine( std::mt19937 e ){_e2 = e;}
+    inline void setRandomGenerator( NormD r ){_rng = r;}
 
 private:
     size_t _N;

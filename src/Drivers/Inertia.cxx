@@ -57,8 +57,6 @@ int main(int argc, char* argv[]){
     constraintType = miscInp["constraintType"];
     baseFileName = miscInp["baseFileName"];
 
-    s = (100 / (re*percentStrain))*log(2.0);
-
     //Validate constraint type
     Constraint type;
     if(constraintType.compare("AverageArea") == 0){
@@ -153,33 +151,38 @@ int main(int argc, char* argv[]){
     ViscosityBody visco(3*N,viscosity,f,thermalX,thermalG,prevX);
 
     // Create the Augmented Lagrangian volume constraint body
-    ALConstraint* constraint;
+    std::shared_ptr<ALConstraint> constraint;
     if(type == AvgArea){
-        constraint = new AvgAreaConstraint(N, f, xpos, posGrad);
+        constraint = std::make_shared<AvgAreaConstraint>(
+                    AvgAreaConstraint(N, f, xpos, posGrad));
     }
     else if(type == AvgVol){
-        constraint = new AvgVolConstraint(N, f, xpos, posGrad);
+        constraint = std::make_shared<AvgVolConstraint>(
+                    AvgVolConstraint(N, f, xpos, posGrad));
     }
     else if(type == ExactArea){
         vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
-        constraint = new ExactAreaConstraint(N, f, xpos, posGrad, poly);
-    }
-    else if(type == ExactVol){
+        constraint = std::make_shared<ExactAreaConstraint>(
+                    ExactAreaConstraint(N, f, xpos, posGrad, poly));
+        }
+        else if(type == ExactVol){
         vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
-        constraint = new ExactVolConstraint(N, f, xpos, posGrad, poly);
-    }
-    else if(type == ExactAreaAndVolume){
+        constraint = std::make_shared<ExactVolConstraint>(
+                    ExactVolConstraint(N, f, xpos, posGrad, poly));
+        }
+        else if(type == ExactAreaAndVolume){
         vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
-        constraint = new ExactAreaVolConstraint(N, f, xpos, posGrad, poly);
+        constraint = std::make_shared<ExactAreaVolConstraint>(
+                    ExactAreaVolConstraint(N, f, xpos, posGrad, poly));
         constraint->setTolerance(1e-8);
     }
 
     // Create Model
-    Model model(6*N,f,g);
-    model.addBody(&ops);
-    model.addBody(&brown);
-    model.addBody(&visco);
-    model.addBody(constraint);
+    auto model = std::make_unique<Model>(6*N,f,g);
+    model->addBody(std::make_shared<OPSMesh>(ops));
+    model->addBody(std::make_shared<BrownianBody>(brown));
+    model->addBody(std::make_shared<ViscosityBody>(visco));
+    model->addBody(constraint);
     // ****************************************************************//
 
     // ***************** Prepare Output Data files *********************//
@@ -215,7 +218,7 @@ int main(int argc, char* argv[]){
     size_t m = 5, iprint = 1000, maxIter = 1e5;
     double_t factr = 10.0, pgtol = 1e-8;
     LBFGSBParams solverParams(m,iprint,maxIter,factr,pgtol);
-    LBFGSBWrapper solver(solverParams, model, f, x, g);
+    LBFGSBWrapper solver(solverParams, std::move(model), f, x, g);
     solver.turnOffLogging();
     // *****************************************************************//
 
@@ -244,7 +247,6 @@ int main(int argc, char* argv[]){
     //Create an eigenvalue solver for inertia tensor
     Eigen::SelfAdjointEigenSolver< Matrix3d > saes;
 
-    t3 = clock();
     // ************************ OUTER SOLUTION LOOP **********************//
     size_t printStep;
     for(int z=0; z < coolVec.size(); z++){
@@ -403,6 +405,5 @@ int main(int argc, char* argv[]){
     float diff((float)t2 - (float)t1);
     std::cout << "Solution loop execution time: " << diff / CLOCKS_PER_SEC
               << " seconds" << std::endl;
-    delete constraint;
     return 1;
 }

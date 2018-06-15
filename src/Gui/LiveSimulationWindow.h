@@ -50,6 +50,7 @@ signals:
     void resetRequested();
     void loadStateFile(QString);
     void saveStateFile(QString);
+    void saveVTKFile(QString);
 public slots:
     void refreshVTKSceneAndPlots(int);
     void setUpVTKPipeAndPlotData();
@@ -67,6 +68,7 @@ private slots:
     void on_checkBox_clicked(bool checked);
     void on_actionLoadState_triggered();
     void on_actionSaveState_triggered();
+    void on_actionExportScene_triggered();
 
 private:
     bool _isInitialized = false;
@@ -79,10 +81,10 @@ private:
     QwtPlotCurve *_angleDeficitCurve, *_energyCurve, *_volCurve;
     QwtPlotCurve *_zeroTempAngleDeficit, *_zeroTempEnergy,
     *_zeroTempVolume;
+    QwtPlotMarker *_adMarker, *_enMarker, *_volMarker;
     QwtCircBuffSeriesData *_rmsAd, *_totEn, *_vol;
     double_t _xmin, _xmax, _ymin1, _ymin2, _ymin3, _ymax1,
     _ymax2, _ymax3;
-    QwtPlotMarker *_adMarker, *_enMarker, *_volMarker;
 };
 
 }
