@@ -1,9 +1,11 @@
+#include <ctime>
 #include <stdio.h>
 #include <vtkPolyDataReader.h>
 #include "BrownianBody.h"
 #include "LBFGSBWrapper.h"
 #include "Model.h"
 #include "OPSMesh.h"
+#include "OPSModel.h"
 #include "ViscosityBody.h"
 #include "ALConstraint.h"
 #include "Pressure.h"
@@ -14,26 +16,12 @@ int main(int argc, char* argv[]){
 
     // ***************** Read Input VTK File *****************//
     std::string inputFileName = argv[1];
-
-    auto reader = vtkSmartPointer<vtkPolyDataReader>::New();
-    vtkSmartPointer<vtkPolyData> mesh;
-
+    vtkNew<vtkPolyDataReader> reader;
     reader->SetFileName(inputFileName.c_str());
     reader->Update();
-    mesh = reader->GetOutput();
-    // ********************************************************//
-    // Set number of OPS particles
+    auto mesh = reader->GetOutput();
     size_t N = mesh->GetNumberOfPoints();
-
-    // Generate Rotation Vectors from input point coordinates
-    Eigen::Matrix3Xd coords(3,N);
-    for(auto i = 0; i < N; ++i){
-        Eigen::Vector3d cp = Eigen::Vector3d::Zero();
-        mesh->GetPoint(i, &(cp(0)));
-        coords.col(i) = cp;
-    }
-    Eigen::Matrix3Xd rotVecs(3,N);
-    OPSBody::initialRotationVector(coords, rotVecs);
+    // ********************************************************//
 
     // Prepare memory for energy and force
     double_t f;
@@ -41,50 +29,57 @@ int main(int argc, char* argv[]){
     g.setZero(g.size());
     x.setZero(x.size());
 
-    // Fill x with coords and rotVecs and copy coords in prevX
-    Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N),
-            prevPos(prevX.data(),3,N);
-    xpos = coords;
-    xrot = rotVecs;
+    // Fill arrays
+    Eigen::Map<Eigen::Matrix3Xd> pos(x.data(),3,N), rot(&x(3*N),3,N),
+            posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);
+    for(auto i = 0; i < N; ++i)
+        mesh->GetPoint(i, &pos(0,i));
     prevX = x.head(3*N);
+    OPSBody::initialRotationVector(pos, rot);
 
-    // Create OPSBody
-    Eigen::Map<Eigen::Matrix3Xd> pos(x.data(),3,N),
-            rot(&x(3*N),3,N), posGrad(g.data(),3,N),
-            rotGrad(&g(3*N),3,N);    
-    OPSMesh ops(N,f,pos,rot,posGrad,rotGrad,prevPos);
-    ops.updateNeighbors();
+    // OPS Bodies
+    //OPSMesh ops(N,f,pos,rot,posGrad,rotGrad,prevX);
+    //ops.updateNeighbors();
 
     // Create a pressure body
-    PressureBody pBody(N,f,pos,prevPos,posGrad,ops.getPolyData());
-    pBody.setPressure(100.0);
+    //PressureBody pBody(N,f,pos,prevPos,posGrad,ops.getPolyData());
+    //pBody.setPressure(100.0);
 
     // Create Brownian and Viscosity bodies
-    Eigen::Map<Eigen::VectorXd> thermalX(x.data(),3*N,1);
-    Eigen::Map<Eigen::VectorXd> thermalG(g.data(),3*N,1);
-    BrownianBody brown(3*N,1.0,f,thermalX,thermalG,prevX);
-    ViscosityBody visco(3*N,1.0,f,thermalX,thermalG,prevX);
+    //Eigen::Map<Eigen::VectorXd> thermalX(x.data(),3*N,1);
+    //Eigen::Map<Eigen::VectorXd> thermalG(g.data(),3*N,1);
+    //BrownianBody brown(3*N,1.0,f,thermalX,thermalG,prevX);
+    //ViscosityBody visco(3*N,1.0,f,thermalX,thermalG,prevX);
 
     // Create an Augmented Lagrangian Volume and Area constraint
-    vtkSmartPointer<vtkPolyData> poly = ops.getPolyData();
-    ExactAreaConstraint constraint
-            = ExactAreaConstraint(N,f,pos,posGrad,poly);
-    constraint.setConstraint(1.0);
+    //auto poly = ops.getPolyData();
+    //auto constraint = ExactAreaConstraint(N,f,pos,posGrad,poly);
+    //constraint.setConstraint(1.0);
 
     // Create Model
-    Model model(6*N,f,g);
-    model.addBody(std::make_shared<OPSMesh>(ops));
-    model.addBody(std::make_shared<BrownianBody>(brown));
-    model.addBody(std::make_shared<ViscosityBody>(visco));
-    model.addBody(std::make_shared<ExactAreaConstraint>(constraint));
-    model.addBody(std::make_shared<PressureBody>(pBody));
+    //Model model(6*N,f,g);
+    //model.addBody(std::make_shared<OPSMesh>(ops));
+    //model.addBody(std::make_shared<ExactAreaConstraint>(constraint));
+    //model.addBody(std::make_shared<PressureBody>(pBody));
+    //model.addBody(std::make_shared<BrownianBody>(brown));
+    //model.addBody(std::make_shared<ViscosityBody>(visco));
+
+    Model model2(6*N,f,g);
+    OPSModel opsM(N,f,x,g,prevX);
+    opsM.setConstraint(1.0);
+    opsM.setLagrangeCoeff(0.0);
+    opsM.setPenaltyCoeff(0.0);
+    opsM.setViscosity(1.0);
+    opsM.setBrownCoeff(1.0);
+    model2.addBody(std::make_shared<OPSModel>(opsM));
 
     // Generate Brownian Kicks
-    brown.generateParallelKicks();
+    //brown.generateParallelKicks();
+    opsM.generateParallelKicks();
 
     // Create new x data
-    //x.setRandom(x.size());
-    x -= 0.2*x;
+    x.setRandom(x.size());
+    //x -= 0.2*x;
 
     // Turn off some bodies
     //brown.setCoefficient(0.0);
@@ -97,18 +92,19 @@ int main(int argc, char* argv[]){
     //Generate log-spaced values
     int hSize = 50;
     double_t start = -12;
-    double_t end = -3;
-    Eigen::VectorXd hvec(hSize), err(hSize);
+    double_t end = -1;
+    Eigen::VectorXd hvec(hSize);
 
     for(auto i=0; i < hSize; ++i){
         double_t currPow = start + i*(end - start)/hSize;
         hvec(i) = std::pow(10,currPow);
     }
+    clock_t t = clock();
     // Calculate analytical derivative
     Eigen::VectorXd gAna(g.size());
-    model.compute();
-
-    gAna = g; /*!< Copies the derivative */
+    //model2.compute();
+    opsM(x,g);
+    gAna = g;
 
     // Calculate the error
     for(auto i=0; i < hSize; ++i){
@@ -119,16 +115,22 @@ int main(int argc, char* argv[]){
         for(auto j=0; j < x.size(); ++j){
             double_t fp, fm;
             x(j) += h;
-            model.compute();
-            fp = f;
+            //model2.compute();
+            //fp = f;
+            fp = opsM(x,g);
             x(j) += -2*h;
-            model.compute();
-            fm = f;
+            //model2.compute();
+            //fm = f;
+            fm = opsM(x,g);
             gNum(j) += (fp-fm)/(2*h);
             x(j) += h;
         }
-        err(i) = (gAna - gNum).array().abs().maxCoeff();
-        std::cout<< hvec(i) <<" , " << err(i) << std::endl;
+        std::cout<< hvec(i) <<" , "
+                 //<< (gAna - gNum).array().abs().maxCoeff() << std::endl;
+                 << (gAna - gNum)<< std::endl;
     }
+    std::cout<< "Time elapsed = "
+             << ((float)clock() - (float)t)/CLOCKS_PER_SEC
+             << " seconds" << std::endl;
     return 1;
 }

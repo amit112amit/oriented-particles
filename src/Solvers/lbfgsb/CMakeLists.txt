@@ -1,4 +1,4 @@
-project(lbfgsb)
+project(lbfgsb Fortran)
 
 IF(WIN32 AND MSVC)
 	IF(NOT ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel"))

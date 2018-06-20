@@ -76,7 +76,7 @@ public:
     void getInitialPositions(Matrix3Xd &v){ v = _initialPositions;}
     double_t getMeanSquaredDisplacement();
     std::vector<double_t> getMSD();
-    std::vector<vtkIdType> getInitialNeighbors(){
+    std::vector<size_t> getInitialNeighbors(){
         return _initialNearestNeighbor;
     }
     double_t getMorseEnergy(){return _morseEn;}
@@ -89,7 +89,7 @@ public:
     void printVTKFile(const std::string name);
     void resetToInitialPositions();
     void saveInitialPosition(){ _initialPositions = _positions;}
-    void setInitialNeighbors(std::vector<vtkIdType> &x){_initialNearestNeighbor = x;}
+    void setInitialNeighbors(std::vector<size_t> &x){_initialNearestNeighbor = x;}
     void setInitialPositions(M3X p){_initialPositions = p;}
     void setMorseDistance(double_t r){_re = r;}
     void setMorseWellWidth(double_t a){_a = a;}
@@ -110,7 +110,7 @@ protected:
     Matrix3Xd _normals, _initialPositions;
     std::vector< Matrix3d, Eigen::aligned_allocator<Matrix3d> > _diffNormalRV;
     std::vector< vtkSmartPointer<vtkIdList> > _neighbors;
-    std::vector< vtkIdType > _initialNearestNeighbor;
+    std::vector<size_t> _initialNearestNeighbor;
     vtkSmartPointer< vtkPolyData > _polyData;
     vtkSmartPointer< vtkOctreePointLocator > _octree;
     void updateRotationVectors();

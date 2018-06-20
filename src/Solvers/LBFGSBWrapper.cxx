@@ -70,7 +70,7 @@ void LBFGSBWrapper::resize(size_t n){
     _iwa.resize(3*_n);
     _wa.resize(2*_m*_n+4*_n+12*_m*_m+12*_m);
     _iwa = IntVector_t::Zero(3*_n);
-    _wa = Vector_t::Zero(2*_m*_n+4*_n+12*_m*_m+12*_m);
+    _wa = Vector_t::Zero(2*_m*_n + 5*_n + 11*_m*_m + 8*_m);
     _nbd.resize(_n);
     _l.resize(_n);
     _u.resize(_n);

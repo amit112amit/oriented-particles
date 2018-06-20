@@ -3,11 +3,10 @@
 #include <string>
 #include <vector>
 #include <vtkPolyDataReader.h>
-#include "ALConstraint.h"
 #include "BrownianBody.h"
 #include "LBFGSBWrapper.h"
 #include "Model.h"
-#include "OPSMesh.h"
+#include "OPSBody.h"
 #include "OPSModel.h"
 #include "ViscosityBody.h"
 #include "HelperFunctions.h"
@@ -118,19 +117,16 @@ int main(int argc, char* argv[]){
     // ***************** Create Bodies and Model ****************//
 
     // Fill x with coords and rotVecs
-    Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N),
-                    prevPos(prevX.data(),3,N);
+    Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N);
     xpos = coords;
     xrot = rotVecs;
 
-    // Create OPSBody
+    // Create OPSModel
     g.setZero(g.size());
-    Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);
-    OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad,prevPos);
+    OPSModel ops(N,f,x,g,prevX);
     ops.setMorseDistance(re);
     ops.setMorseWellWidth(s);
-    ops.updatePolyData();
-    ops.updateNeighbors();
+    ops.updateTriangles();
 
     // Create Brownian and Viscosity bodies
     Eigen::Map<Eigen::VectorXd> thermalX(x.data(),3*N,1);
@@ -153,15 +149,11 @@ int main(int argc, char* argv[]){
     // Prepare memory for energy, force
     ViscosityBody visco(3*N,viscosity,f,thermalX,thermalG,prevX);
 
-    // Create the Augmented Lagrangian volume constraint body
-    ExactAreaConstraint constraint(N, f, xpos, posGrad, ops.getPolyData());
-
     // Create Model
     auto model = std::make_unique<Model>(6*N,f,g);
-    model->addBody(std::make_shared<OPSMesh>(ops));
+    model->addBody(std::make_shared<OPSModel>(ops));
     model->addBody(std::make_shared<BrownianBody>(brown));
     model->addBody(std::make_shared<ViscosityBody>(visco));
-    model->addBody(std::make_shared<ExactAreaConstraint>(constraint));
     // ****************************************************************//
 
     // ******************** Read parameter schedule ********************//
@@ -254,7 +246,7 @@ int main(int argc, char* argv[]){
         ops.setMorseWellWidth(s);
 
         // Set up the constraint value as the zero temperature value
-        constraint.setConstraint(constrainedVal);
+        ops.setConstraint(constrainedVal);
 
         // For the very first iteration solve at zero temperature first
         if( z == 0 && colId == 0){
@@ -281,8 +273,8 @@ int main(int argc, char* argv[]){
 
             // Set the starting guess for Lambda and K for
             // Augmented Lagrangian
-            constraint.setLagrangeCoeff(10.0);
-            constraint.setPenaltyCoeff(1000.0);
+            ops.setLagrangeCoeff(10.0);
+            ops.setPenaltyCoeff(1000.0);
 
             // *************** Augmented Lagrangian Loop ************** //
             bool constraintMet = false;
@@ -294,11 +286,11 @@ int main(int argc, char* argv[]){
                 solver.solve();
 
                 //Uzawa update
-                constraint.uzawaUpdate();
+                ops.uzawaUpdate();
 
                 // Update termination check quantities
                 alIter++;
-                constraintMet = constraint.constraintSatisfied();
+                constraintMet = ops.constraintSatisfied();
             }
             // *********************************************************//
 
@@ -306,8 +298,7 @@ int main(int argc, char* argv[]){
             ops.applyKabschAlgorithm();
 
             // Update kdTree, polyData and neighbors
-            ops.updatePolyData();
-            ops.updateNeighbors();
+            ops.updateTriangles();
 
             // Check step and save state if needed
             if( step % saveFreq == (saveFreq - 1) ){
@@ -328,7 +319,6 @@ int main(int argc, char* argv[]){
                 sstm.clear();
             }
 
-            auto msds = ops.getMSD();
             double_t volume = ops.getVolume();
             double_t morseEn = ops.getMorseEnergy();
             double_t normEn = ops.getNormalityEnergy();
@@ -349,7 +339,7 @@ int main(int argc, char* argv[]){
                        << circEn << "\t"
                        << brown.getBrownianEnergy() << "\t"
                        << visco.getViscosityEnergy() << "\t"
-                       << msds[0] << "\t"
+                       << ops.getMSD() << "\t"
                        << ops.getRMSAngleDeficit()
                        << std::endl;
 

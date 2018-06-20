@@ -65,7 +65,6 @@ void delaunay3DSurf(vtkSmartPointer<vtkPolyData> poly, std::string fi){
 }
 
 Delaunay delaunayStereo(Eigen::Ref<Eigen::Matrix3Xd> points){
-    std::cout<< "Address of points = " << &points << std::endl;
     // Make stereographic projections
     Eigen::Matrix3Xd proj = stereographicProjection(points);
 
@@ -90,15 +89,13 @@ double_t getPointCloudAvgEdgeLen(std::string file){
             GetData()->GetVoidPointer(0));
     Eigen::Map<Eigen::Matrix3Xd> positions(arrPointer,3,N);
 
-    std::cout<< "Address of points in getPointCloudAvgEdgeLen() = "
-             << &positions << std::endl;
     // Get a triangulation mesh
     Delaunay dt = delaunayStereo(positions);
 
     // Now calculate average edge length
     std::vector<double_t> edgeLengths;
     for(auto fei = dt.finite_edges_begin(); fei != dt.finite_edges_end(); ++fei){
-        unsigned edgeVert1, edgeVert2;
+        unsigned edgeVert1 = 0, edgeVert2 = 0;
         auto fh = fei->first;
         switch(fei->second){
         case 0:
@@ -118,7 +115,7 @@ double_t getPointCloudAvgEdgeLen(std::string file){
                                 (positions.col(edgeVert1) -
                                  positions.col(edgeVert2)).norm());
     }
-    auto avgEdgeLen = std::accumulate(edgeLengths.begin(),
+    auto avgEdgeLen = 1.2*std::accumulate(edgeLengths.begin(),
                                     edgeLengths.end(),
                                     0.0)/edgeLengths.size();
 

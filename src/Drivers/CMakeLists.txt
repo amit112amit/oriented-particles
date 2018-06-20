@@ -6,15 +6,18 @@ set(INCLD Bodies Model Solvers Helpers)
 #Add a new add_executable for each driver
 add_executable(opsConsistency TestOPSConsistency.cxx)
 add_executable(heatOPS BrownDynOPS.cxx)
+add_executable(heatOPS2 BrownDynOPS2.cxx)
+add_executable(heatOPS3 BrownDynOPS3.cxx)
 add_executable(asphericity Asphericity.cxx)
 add_executable(inertia Inertia.cxx)
 add_executable(plate PlateMelting.cxx)
+add_executable(timer Test.cxx)
 
 # Add HDF5 libraries and headers
 #find_package(HDF5 REQUIRED COMPONENTS CXX)
 
 #Add name of your executable target to the DRIVERS variable
-set(DRIVERS opsConsistency asphericity heatOPS inertia plate)
+set(DRIVERS opsConsistency asphericity heatOPS heatOPS2 heatOPS3 inertia plate timer)
 
 #For each driver link libraries and set the include paths
 foreach(DRIVER ${DRIVERS})

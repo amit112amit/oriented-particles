@@ -169,7 +169,7 @@ void LiveSimulation::LoadState( QString st ){
     _gamma = state.getGamma();
     _beta = state.getBeta();
     _alpha = 2.5e5;
-    std::vector<vtkIdType> neighbors(_N);
+    std::vector<size_t> neighbors(_N);
     neighbors = state.getNeighbors();
 
     // Reset the circular buffers
@@ -281,7 +281,7 @@ void LiveSimulation::SaveState(QString s){
     NormD rng = _brown->getRandomGenerator();
     Eigen::Matrix3Xd initPos(3,_N);
     _ops->getInitialPositions(initPos);
-    std::vector<vtkIdType> neighbors = _ops->getInitialNeighbors();
+    std::vector<size_t> neighbors = _ops->getInitialNeighbors();
     SimulationState state = SimulationState(_N,0,_step,_gamma,_beta,
                                             _x,_prevX,initPos,neighbors,
                                             engine,rng);

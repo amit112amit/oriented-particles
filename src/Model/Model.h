@@ -15,7 +15,7 @@ public:
 
     Model(size_t N, double_t &f, RefVXd g);
     void addBody(const std::shared_ptr<Body>& b);
-    virtual void compute();
+    void compute();
     void zeroOutData();
 private:
     size_t _N;

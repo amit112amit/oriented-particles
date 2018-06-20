@@ -2,7 +2,7 @@ project(Bodies)
 
 # Append name of the source file to SRCS
 set(SRCS OPSBody.cxx BrownianBody.cxx ViscosityBody.cxx ALConstraint.cxx
-        OPSMesh.cxx Morse2D.cxx Pressure.cxx)
+        OPSMesh.cxx Morse2D.cxx Pressure.cxx OPSModel.cxx)
 
 add_library(Bodies ${SRCS})
 target_link_libraries(Bodies PUBLIC ${CGAL_LIBRARIES} ${VTK_LIBRARIES})

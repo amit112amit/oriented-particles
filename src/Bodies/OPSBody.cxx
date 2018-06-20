@@ -21,11 +21,11 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
 
     //Extract point coordinates for _polyData from x
     void *coords = (void*) _positions.data();
-    auto pointCoords = vtkSmartPointer< vtkDoubleArray >::New();
+    vtkNew<vtkDoubleArray> pointCoords;
     pointCoords->SetVoidArray( coords, 3*_N, 1);
     pointCoords->SetNumberOfComponents(3);
 
-    auto points = vtkSmartPointer<vtkPoints>::New();
+    vtkNew<vtkPoints> points;
     points->SetData( pointCoords );
 
     //Convert rotation vectors to point normals
@@ -260,23 +260,25 @@ void OPSBody::diffNormalRotVec(){
     for(auto i=0; i < _N; ++i){
         // Read the rotation vector
         Vector3d vi = _rotationVectors.col(i);
-        double_t s = sin(0.5*vi.norm()), c = cos(0.5*vi.norm());
 
-        Quaterniond q( AngleAxisd(vi.norm(), vi.normalized()) );
+        double_t v = vi.norm();
+        double_t s = sin(0.5*v), s_v = s/v, s_v3 = s/(v*v*v);
+        double_t c_v2 = 0.5*cos(0.5*v)/(v*v), f = c_v2 - s_v3;
+
+        Quaterniond q( AngleAxisd(v, vi.normalized()) );
         double_t q0 = q.w(), q1 = q.x(), q2 = q.y(), q3 = q.z();
         Matrix4x3d dpdq;
 
         dpdq << q2, -q1, q0,
-                        q3, -q0, -q1,
-                        q0, q3, -q2,
-                        q1, q2, q3;
+	     q3, -q0, -q1,
+	     q0, q3, -q2,
+	     q1, q2, q3;
         dpdq = 2 * dpdq;
 
         Matrix3x4d dqdv;
-        dqdv.leftCols(1) = -0.5*s*vi.normalized();
-        dqdv.rightCols(3) = (s*Eigen::Matrix3d::Identity() +
-                        (0.5*c - s/vi.norm())*vi.normalized()*
-                vi.normalized().transpose())/vi.norm();
+        dqdv.leftCols(1) = -0.5*s_v*vi;
+        dqdv.rightCols(3) = s_v*Eigen::Matrix3d::Identity() +
+        f*vi*vi.transpose();
 
         _diffNormalRV[i] = dqdv*dpdq;
     }
@@ -629,7 +631,7 @@ double_t OPSBody::determineSearchRadius(){
     Delaunay dt = stereoDelaunay();
     std::vector<double_t> edgeLengths;
     for(auto fei = dt.finite_edges_begin(); fei != dt.finite_edges_end(); ++fei){
-        unsigned edgeVert1, edgeVert2;
+        unsigned edgeVert1 = 0, edgeVert2 = 0;
         auto fh = fei->first;
         switch(fei->second){
         case 0:
@@ -649,7 +651,7 @@ double_t OPSBody::determineSearchRadius(){
                     (_positions.col(edgeVert1) -
                      _positions.col(edgeVert2)).norm());
     }
-    _searchRadius = std::accumulate(edgeLengths.begin(),
+    _searchRadius = 1.2*std::accumulate(edgeLengths.begin(),
                                     edgeLengths.end(),
                                     0.0)/edgeLengths.size();
 

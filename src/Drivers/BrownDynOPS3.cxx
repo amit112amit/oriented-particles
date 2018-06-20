@@ -3,11 +3,10 @@
 #include <string>
 #include <vector>
 #include <vtkPolyDataReader.h>
-#include "ALConstraint.h"
 #include "BrownianBody.h"
-#include "LBFGSBWrapper.h"
+#include "LBFGS.h"
 #include "Model.h"
-#include "OPSMesh.h"
+#include "OPSBody.h"
 #include "OPSModel.h"
 #include "ViscosityBody.h"
 #include "HelperFunctions.h"
@@ -27,15 +26,12 @@ int main(int argc, char* argv[]){
     //******************** Create variables ********************//
     std::string inFile = argv[1];
     std::string baseFileName = inFile.substr(0,inFile.length() - 4);
-
     double_t alpha=1.0, beta=1.0, gamma=1.0, re=1.0, f = 0,
                     percentStrain = 15,
                     s=(100/(re*percentStrain))*log(2.0);
-
     size_t viterMax, nameSuffix=0, step=0, N=10, saveFreq = 100000;
-
     Eigen::VectorXd x(6*N), prevX(3*N), g(6*N);
-    Eigen::Matrix3Xd coords(3,N), rotVecs(3,N), initPos(3,N);
+    Eigen::Matrix3Xd initPos(3,N);
     std::vector<size_t> neighbors(N);
     std::mt19937 engine;
     auto rng = std::normal_distribution<double_t>(0.0,1.0);
@@ -56,8 +52,6 @@ int main(int argc, char* argv[]){
         nameSuffix = nameSuffix > 0? nameSuffix + 1: 0;
         step = state.getStep() + 1;
         N = state.getN();
-        //gamma = state.getGamma();
-        //beta = state.getBeta();
         engine = state.getRandomEngine();
         rng = state.getRandomGenerator();
         // Resize matrices and vectors
@@ -65,103 +59,62 @@ int main(int argc, char* argv[]){
         g.resize(6*N);
         prevX.resize(3*N);
         initPos.resize(3,N);
-        coords.resize(3,N);
-        rotVecs.resize(3,N);
         neighbors.resize(N);
         // Read the vectors into local variables
         x = state.getX();
         prevX = state.getPrevX();
         neighbors = state.getNeighbors();
         initPos = state.getInitPos();
-        // Copy position and rotation vectors into coords, rotVecs
-        for( auto i=0; i < N; ++i ){
-            size_t si = 3*i;
-            coords.col(i) << x(si), x(si+1), x(si+2);
-        }
-        for( auto i=0; i < N; ++i ){
-            size_t si = 3*(N+i);
-            rotVecs.col(i) << x(si), x(si+1), x(si+2);
-        }
     }
     else{
         // No state file found. So we need to start a new simulation
-        vtkSmartPointer<vtkPolyData> mesh;
-        auto reader = vtkSmartPointer<vtkPolyDataReader>::New();
+        vtkNew<vtkPolyDataReader> reader;
         reader->SetFileName(inFile.c_str());
         reader->ReadAllVectorsOn();
         reader->Update();
-        mesh = reader->GetOutput();
+        auto mesh = reader->GetOutput();
         N = mesh->GetNumberOfPoints();
         // Resize matrices and vectors
         x.resize(6*N);
         g.resize(6*N);
         prevX.resize(3*N);
-        initPos.resize(3,N);
-        coords.resize(3,N);
-        rotVecs.resize(3,N);
         neighbors.resize(N);
         // Read point coordinates from input mesh
-        for(auto i = 0; i < N; ++i){
-            Eigen::Vector3d cp = Eigen::Vector3d::Zero();
-            mesh->GetPoint(i, &(cp(0)));
-            coords.col(i) = cp;
-        }
+        for(auto i = 0; i < N; ++i)
+            mesh->GetPoint(i, &x(3*i));
         // Renormalize by the average edge length
         double_t avgEdgeLen = getPointCloudAvgEdgeLen(inFile);
-        coords /= avgEdgeLen;
-
+        x /= avgEdgeLen;
         // Generate rotation vectors from input point coordinates
-        OPSBody::initialRotationVector(coords, rotVecs);
+        Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&x(3*N),3,N);
+        OPSBody::initialRotationVector(xpos, xrot);
     }
     // ****************************************************************//
 
     // ***************** Create Bodies and Model ****************//
 
-    // Fill x with coords and rotVecs
-    Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(),3,N), xrot(&(x(3*N)),3,N),
-                    prevPos(prevX.data(),3,N);
-    xpos = coords;
-    xrot = rotVecs;
-
-    // Create OPSBody
+    // Create OPSModel
     g.setZero(g.size());
-    Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);
-    OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad,prevPos);
+    OPSModel ops(N,f,x,g,prevX);
     ops.setMorseDistance(re);
     ops.setMorseWellWidth(s);
-    ops.updatePolyData();
-    ops.updateNeighbors();
-
-    // Create Brownian and Viscosity bodies
-    Eigen::Map<Eigen::VectorXd> thermalX(x.data(),3*N,1);
-    Eigen::Map<Eigen::VectorXd> thermalG(g.data(),3*N,1);
-    double_t brownCoeff = 1.0, viscosity = 1.0;
-    BrownianBody brown(3*N,brownCoeff,f,thermalX,thermalG,prevX);
+    ops.updateTriangles();
 
     // Set ops history variables
     if( stateFile.good() ){
         ops.setInitialNeighbors(neighbors);
         ops.setInitialPositions(initPos);
-        brown.setRandomEngine(engine);
-        brown.setRandomGenerator(rng);
+        ops.setRandomEngine(engine);
+        ops.setRandomGenerator(rng);
     }
     else{
         prevX = x.head(3*N);
         neighbors = ops.getInitialNeighbors();
     }
 
-    // Prepare memory for energy, force
-    ViscosityBody visco(3*N,viscosity,f,thermalX,thermalG,prevX);
-
-    // Create the Augmented Lagrangian volume constraint body
-    ExactAreaConstraint constraint(N, f, xpos, posGrad, ops.getPolyData());
-
     // Create Model
     auto model = std::make_unique<Model>(6*N,f,g);
-    model->addBody(std::make_shared<OPSMesh>(ops));
-    model->addBody(std::make_shared<BrownianBody>(brown));
-    model->addBody(std::make_shared<ViscosityBody>(visco));
-    model->addBody(std::make_shared<ExactAreaConstraint>(constraint));
+    model->addBody(std::make_shared<OPSModel>(ops));
     // ****************************************************************//
 
     // ******************** Read parameter schedule ********************//
@@ -220,11 +173,11 @@ int main(int argc, char* argv[]){
                << std::endl;
 
     // ************************* Create Solver ************************  //
-    size_t m = 5, iprint = 1000, maxIter = 1e5;
-    double_t factr = 10.0, pgtol = 1e-8;
-    LBFGSBParams solverParams(m,iprint,maxIter,factr,pgtol);
-    LBFGSBWrapper solver(solverParams, std::move(model), f, x, g);
-    solver.turnOffLogging();
+    LBFGSpp::LBFGSParam<double_t> param;
+    param.epsilon = 1e-8;
+    param.max_iterations = 1e5;
+    param.m = 5;
+    LBFGSpp::LBFGSSolver<double_t> solver(param);
     // *****************************************************************//
 
     // ************************ OUTER SOLUTION LOOP **********************//
@@ -254,13 +207,13 @@ int main(int argc, char* argv[]){
         ops.setMorseWellWidth(s);
 
         // Set up the constraint value as the zero temperature value
-        constraint.setConstraint(constrainedVal);
+        ops.setConstraint(constrainedVal);
 
         // For the very first iteration solve at zero temperature first
         if( z == 0 && colId == 0){
-            brown.setCoefficient(0.0);
-            visco.setViscosity(0.0);
-            solver.solve();
+            ops.setBrownCoeff(0.0);
+            ops.setViscosity(0.0);
+            solver.minimize(ops,x,f);
             ops.saveInitialPosition();
             ops.getInitialPositions( initPos );
         }
@@ -269,20 +222,20 @@ int main(int argc, char* argv[]){
         prevX = x.head(3*N);
 
         // Set the viscosity and Brownian coefficient
-        viscosity = alpha;
-        brownCoeff = std::sqrt( 2*alpha/beta );
-        brown.setCoefficient(brownCoeff);
-        visco.setViscosity(viscosity);
+        double_t viscosity = alpha;
+        double_t brownCoeff = std::sqrt( 2*alpha/beta );
+        ops.setBrownCoeff(brownCoeff);
+        ops.setViscosity(viscosity);
 
         //**************  INNER SOLUTION LOOP ******************//
         for (auto viter = colId; viter < viterMax; ++viter) {
             // Generate Brownian Kicks
-            brown.generateParallelKicks();
+            ops.generateParallelKicks();
 
             // Set the starting guess for Lambda and K for
             // Augmented Lagrangian
-            constraint.setLagrangeCoeff(10.0);
-            constraint.setPenaltyCoeff(1000.0);
+            ops.setLagrangeCoeff(10.0);
+            ops.setPenaltyCoeff(1000.0);
 
             // *************** Augmented Lagrangian Loop ************** //
             bool constraintMet = false;
@@ -291,14 +244,14 @@ int main(int argc, char* argv[]){
             while( !constraintMet && (alIter < alMaxIter)){
 
                 // Solve the unconstrained minimization
-                solver.solve();
+                solver.minimize(ops,x,f);
 
                 //Uzawa update
-                constraint.uzawaUpdate();
+                ops.uzawaUpdate();
 
                 // Update termination check quantities
                 alIter++;
-                constraintMet = constraint.constraintSatisfied();
+                constraintMet = ops.constraintSatisfied();
             }
             // *********************************************************//
 
@@ -306,13 +259,12 @@ int main(int argc, char* argv[]){
             ops.applyKabschAlgorithm();
 
             // Update kdTree, polyData and neighbors
-            ops.updatePolyData();
-            ops.updateNeighbors();
+            ops.updateTriangles();
 
             // Check step and save state if needed
             if( step % saveFreq == (saveFreq - 1) ){
-                engine = brown.getRandomEngine();
-                rng = brown.getRandomGenerator();
+                engine = ops.getRandomEngine();
+                rng = ops.getRandomGenerator();
                 state = SimulationState(N,nameSuffix,step,gamma,beta,x,prevX,
                                         initPos,neighbors,engine,rng);
                 state.writeToFile("SimulationState.dat");
@@ -328,8 +280,6 @@ int main(int argc, char* argv[]){
                 sstm.clear();
             }
 
-            auto msds = ops.getMSD();
-            double_t volume = ops.getVolume();
             double_t morseEn = ops.getMorseEnergy();
             double_t normEn = ops.getNormalityEnergy();
             double_t circEn = ops.getCircularityEnergy();
@@ -341,15 +291,15 @@ int main(int argc, char* argv[]){
                        << gamma << "\t"
                        << ops.getAsphericity() << "\t"
                        << ops.getAverageRadius() << "\t"
-                       << volume << "\t"
+                       << ops.getVolume() << "\t"
                        << ops.getArea() << "\t"
                        << totalEn << "\t"
                        << morseEn << "\t"
                        << normEn << "\t"
                        << circEn << "\t"
-                       << brown.getBrownianEnergy() << "\t"
-                       << visco.getViscosityEnergy() << "\t"
-                       << msds[0] << "\t"
+                       << ops.getBrownianEnergy() << "\t"
+                       << ops.getViscosityEnergy() << "\t"
+                       << ops.getMSD() << "\t"
                        << ops.getRMSAngleDeficit()
                        << std::endl;
 
