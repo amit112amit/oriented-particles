@@ -46,6 +46,7 @@ int main(int argc, char* argv[]){
 
     InputParameters miscInp = OPS::readKeyValueInput( "miscInp.dat" );
     re = std::stod( miscInp["re"] );
+    s = (100 / (re*percentStrain))*log(2.0);
     baseFileName = miscInp["baseFileName"];
     searchR = std::stod(miscInp["searchRadius"]);
     boxFactor = std::stod(miscInp["boxFactor"]);
@@ -100,7 +101,7 @@ int main(int argc, char* argv[]){
     prevX.setZero(x.size());
 
     // Fill x with coords and rotVecs
-    Eigen::Map<Eigen::Matrix2Xd> xpos(x.data(),2,N);
+    Eigen::Map<Eigen::Matrix2Xd> xpos(x.data(),2,N), prevPos(prevX.data(),2,N);
     xpos = coords;
     prevX = x.head(2*N);
 
@@ -119,10 +120,10 @@ int main(int argc, char* argv[]){
     ViscosityBody visco(2*N,viscosity,f,thermalX,thermalG,prevX);
 
     // Create Model
-    auto model = std::make_unique<Model>(2*N,f,g);
-    model->addBody(std::make_shared<Morse2D>(morseBody));
-    model->addBody(std::make_shared<BrownianBody>(brown));
-    model->addBody(std::make_shared<ViscosityBody>(visco));
+    Model model(2*N,f,g);
+    model.addBody(&morseBody);
+    model.addBody(&brown);
+    model.addBody(&visco);
     // ****************************************************************//
 
     // ***************** Prepare Output Data files *********************//
@@ -150,7 +151,7 @@ int main(int argc, char* argv[]){
     size_t m = 5, iprint = 1000, maxIter = 1e5;
     double_t factr = 10.0, pgtol = 1e-8;
     LBFGSBParams solverParams(m,iprint,maxIter,factr,pgtol);
-    LBFGSBWrapper solver(solverParams, std::move(model), f, x, g);
+    LBFGSBWrapper solver(solverParams, model, f, x, g);
     solver.turnOffLogging();
     // *****************************************************************//
 
@@ -160,6 +161,7 @@ int main(int argc, char* argv[]){
     morseBody.saveInitialPosition(); /*!< For Mean Squared Displacement */
     // ******************************************************************//
 
+    t3 = clock();
     // ************************ OUTER SOLUTION LOOP **********************//
     size_t printStep;
     double_t alpha, beta;

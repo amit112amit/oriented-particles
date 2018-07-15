@@ -9,7 +9,7 @@
 #include "Body.h"
 
 namespace OPS{
-class PressureBody: public Body{
+class InternalPressure: public Body{
 public:
     typedef Eigen::Vector3d Vector3d;
     typedef Eigen::Matrix3Xd Matrix3Xd;
@@ -17,7 +17,7 @@ public:
     typedef Eigen::Ref<Matrix3Xd> RefM3Xd;
     typedef vtkSmartPointer<vtkPolyData> PolyData;
 
-    PressureBody(size_t N, double_t &f, RefM3Xd x,
+    InternalPressure(size_t N, double_t &f, RefM3Xd x,
                      RefM3Xd px, RefM3Xd g, PolyData p);
     void compute();
     double_t getPressureWork(){return _pvWork;}

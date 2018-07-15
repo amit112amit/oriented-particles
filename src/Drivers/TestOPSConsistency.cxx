@@ -56,7 +56,7 @@ int main(int argc, char* argv[]){
     ops.updateNeighbors();
 
     // Create a pressure body
-    PressureBody pBody(N,f,pos,prevPos,posGrad,ops.getPolyData());
+    InternalPressure pBody(N,f,pos,prevPos,posGrad,ops.getPolyData());
     pBody.setPressure(100.0);
 
     // Create Brownian and Viscosity bodies
@@ -73,11 +73,11 @@ int main(int argc, char* argv[]){
 
     // Create Model
     Model model(6*N,f,g);
-    model.addBody(std::make_shared<OPSMesh>(ops));
-    model.addBody(std::make_shared<BrownianBody>(brown));
-    model.addBody(std::make_shared<ViscosityBody>(visco));
-    model.addBody(std::make_shared<ExactAreaConstraint>(constraint));
-    model.addBody(std::make_shared<PressureBody>(pBody));
+    model.addBody(&ops);
+    model.addBody(&brown);
+    model.addBody(&visco);
+    model.addBody(&constraint);
+    model.addBody(&pBody);
 
     // Generate Brownian Kicks
     brown.generateParallelKicks();

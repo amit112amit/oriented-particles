@@ -6,6 +6,12 @@ ALConstraint::ALConstraint(size_t N, double_t &f, RefM3Xd x,
                            RefM3Xd g):_N(N),_f(f),_xPos(x.data(),3,N),
     _xGrad(g.data(),3,N){}
 
+//! Uzawa update common to all Augmented Lagrangian constraint subclasses
+void ALConstraint::uzawaUpdate(){
+    _Lambda_i = _Lambda_i - _K_i*(_value - _constrainedValue);
+    _K_i *= 10;
+}
+
 //! Calculates average area constraint and derivatives
 void AvgAreaConstraint::compute(){
     Eigen::VectorXd R(_N);

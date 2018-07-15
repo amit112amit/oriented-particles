@@ -19,9 +19,6 @@
 #include <vtkSmartPointer.h>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Delaunay_triangulation_2.h>
-#include <CGAL/Triangulation_vertex_base_with_info_2.h>
 
 namespace OPS{
 typedef std::map< std::string, std::string > InputParameters;
@@ -30,12 +27,6 @@ typedef Eigen::Matrix3Xd M3X;
 typedef std::vector<vtkIdType> IdList;
 typedef std::mt19937 Engine;
 typedef std::normal_distribution<double_t> NormD;
-typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef K::Point_2 Point;
-typedef CGAL::Triangulation_vertex_base_with_info_2<unsigned,K> Vb;
-typedef CGAL::Triangulation_data_structure_2<Vb> Tds;
-typedef CGAL::Delaunay_triangulation_2<K,Tds> Delaunay;
-typedef Delaunay::Face_circulator Face_circulator;
 
 class SimulationState{
 public:
@@ -80,9 +71,6 @@ Eigen::Affine3d find3DAffineTransform(Eigen::Ref<Eigen::Matrix3Xd> in,
 //! Generates a mesh for a topologically spherical point cloud
 void delaunay3DSurf(vtkSmartPointer<vtkPolyData> poly, std::string fileName);
 
-//! Generates a mesh for a topologically spherical point cloud
-Delaunay delaunayStereo(Eigen::Ref<Eigen::Matrix3Xd> p);
-
 //! Calculate average edge length from a spherical point cloud
 double_t getPointCloudAvgEdgeLen(std::string f);
 
@@ -105,9 +93,6 @@ std::vector<double_t> GetInterpolatedValue(double_t x,
                                            std::vector<double_t> &y,
                                            std::vector<double_t> &z,
                                            std::vector<double_t> &w);
-
-//! Return the stereographic projections of points
-Eigen::Matrix3Xd stereographicProjection(const Eigen::Matrix3Xd &p);
 
 void TestFind2DAffineTransform();
 void TestFind3DAffineTransform();

@@ -125,7 +125,6 @@ LiveSimulationWindow::LiveSimulationWindow(QWidget *parent){
     connect(this, SIGNAL(pressureChanged(double)), _worker, SLOT(UpdatePressure(double)));
     connect(this, SIGNAL(loadStateFile(QString)), _worker, SLOT(LoadState(QString)));
     connect(this, SIGNAL(saveStateFile(QString)), _worker, SLOT(SaveState(QString)));
-    connect(this, SIGNAL(saveVTKFile(QString)), _worker, SLOT(SaveScene(QString)));
 }
 
 void LiveSimulationWindow::on__initBtn_clicked(){
@@ -357,21 +356,6 @@ void LiveSimulationWindow::on_actionSaveState_triggered()
         messageBox.critical(0,"Error","Simulation has not been started!");
         messageBox.setFixedSize(500,200);
     }
-}
-
-void LiveSimulationWindow::on_actionExportScene_triggered()
-{
-    QString saveFileName =
-                    QFileDialog::getSaveFileName(this,
-                                                 tr("Export to VTK file"),
-                                                 "",tr("VTK File (*.vtk)"));
-    if(!saveFileName.isEmpty()){
-        QString ext = ".vtk";
-        if(!saveFileName.endsWith(ext))
-            saveFileName.append(ext);
-        emit saveVTKFile(saveFileName);
-    }
-
 }
 
 }

@@ -13,10 +13,27 @@ BrownianBody::BrownianBody(size_t N, double_t coeff, double_t &f,
     _xi = VectorXd::Zero(N);
 }
 
+void BrownianBody::generateParallelKicks(){
+    for(auto i=0; i < _N; i++){
+        _xi(i) = _rng(_e2);
+    }
+}
+
+void BrownianBody::setCoefficient(double_t C){
+    _coeff = C;
+}
+
+void BrownianBody::compute(){
+    _brownEn = -1.0*_coeff*(_xi.dot(_x - _prevX));
+    _f += _brownEn;
+    _g += -1.0*_coeff*_xi;
+}
+
 void BrownianBody::printVTKFile(const std::string fName){
+    void *posPtr = (void*)_x.data();
     auto pts = vtkSmartPointer<vtkPoints>::New();
     auto ptsData = vtkSmartPointer<vtkDoubleArray>::New();
-    ptsData->SetVoidArray((void*)_x.data(),_N,1);
+    ptsData->SetVoidArray(posPtr,_N,1);
     ptsData->SetNumberOfComponents(3);
     pts->SetData(ptsData);
 

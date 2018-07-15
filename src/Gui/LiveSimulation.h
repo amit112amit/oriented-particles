@@ -1,7 +1,6 @@
 #ifndef _LIVESIMULATION_H_
 #define _LIVESIMULATION_H_
 
-#include <memory>
 #include <limits>
 #include <mutex>
 #include <random>
@@ -33,16 +32,16 @@ namespace OPS{
 // A QwtSeriesData subclass with circular buffer
 class QwtCircBuffSeriesData: public QwtSeriesData<QPointF>{
 public:
-    typedef boost::circular_buffer<qreal> CircBuff;
-    // Default constructor
     QwtCircBuffSeriesData(size_t N){
-        _x = new CircBuff(N);
-        _y = new CircBuff(N);
+        _x = new boost::circular_buffer<qreal>(N);
+        _y = new boost::circular_buffer<qreal>(N);
         _capacity = N;
         _ymax = _limits.min();
         _ymin = _limits.max();
     }
-    ~QwtCircBuffSeriesData(){ delete _x, _y;}
+    ~QwtCircBuffSeriesData(){
+        delete _x, _y;
+    }
     size_t size() const{
         return _x->size();
     }
@@ -72,10 +71,9 @@ public:
     size_t capacity(){
         return _capacity;
     }
-
 private:
-    CircBuff *_x;
-    CircBuff *_y;
+    boost::circular_buffer<qreal> *_x;
+    boost::circular_buffer<qreal> *_y;
     size_t _capacity;
     qreal _ymax = 0, _xmax = 0;
     qreal _ymin = 1e15;
@@ -90,7 +88,7 @@ public:
     typedef std::mt19937 Engine;
     typedef std::normal_distribution<double_t> NormD;
     explicit LiveSimulation(){}
-    ~LiveSimulation(){delete _rmsAD, _opsEn, _vol;}
+    ~LiveSimulation(){}
     double_t GetInterpolatedValue(double_t, std::vector<double_t>&);
     void ReadFvKAreaData(std::string);
     double_t GetZeroOpsEn(){return _zeroOpsEnVal;}
@@ -114,7 +112,6 @@ public slots:
     void Reset();
     void LoadState( QString s );
     void SaveState( QString s );
-    void SaveScene( QString s );
 
 signals:
     void simulationReady();
@@ -140,13 +137,13 @@ private:
     std::string _dataOutputFile;
     std::string _inputVTK = "T7.vtk";
     std::string _inputZeroData = "T7_OPS_Asphericity.dat";
-    std::shared_ptr<OPSMesh> _ops;
-    std::shared_ptr<ViscosityBody> _visco;
-    std::shared_ptr<BrownianBody> _brown;
-    std::shared_ptr<PressureBody> _pressureBody;
-    std::shared_ptr<ExactAreaConstraint> _constraint;
-    std::unique_ptr<Model> _model;
-    std::unique_ptr<LBFGSBWrapper> _solver;
+    OPSMesh* _ops;
+    ViscosityBody* _visco;
+    BrownianBody* _brown;
+    InternalPressure* _pressureBody;
+    ExactAreaConstraint* _constraint;
+    Model* _model;
+    LBFGSBWrapper* _solver;
     ofstream _detailedOP;
     VectorXd _x, _g, _prevX, _initialX;
     std::mutex _mut;

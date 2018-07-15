@@ -3,14 +3,14 @@
 namespace OPS{
 
 //! Constructor
-PressureBody::PressureBody(size_t N, double_t &f,
+InternalPressure::InternalPressure(size_t N, double_t &f,
                                    RefM3Xd x, RefM3Xd px,
                                    RefM3Xd g, PolyData p):
     _N(N), _f(f), _x(x.data(),3,N),_force(g.data(),3,N),
     _poly(p), _prevX(px.data(),3,N),_localForce(3,N){}
 
 //! Compute the energy and forces
-void PressureBody::compute(){
+void InternalPressure::compute(){
     double_t volume = 0.0, prevVol = 0.0;
     _localForce.setZero(3,_N);
     _pvWork = 0;

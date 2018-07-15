@@ -63,32 +63,27 @@ void LiveSimulation::Initialize(){
 
     // Create OPSBody
     Eigen::Map<Eigen::Matrix3Xd> posGrad(_g.data(),3,_N), rotGrad(&_g(3*_N),3,_N);
-    _ops = std::make_shared<OPSMesh>(
-                OPSMesh(_N,_f,xpos,xrot,posGrad,rotGrad,prevPos));
+    _ops = new OPSMesh(_N,_f,xpos,xrot,posGrad,rotGrad,prevPos);
     _ops->setFVK(_gamma);
     _ops->setMorseDistance(re);
     _ops->setMorseWellWidth(s);
 
     // Create InternalPressure body
-    _pressureBody = std::make_shared<PressureBody>(
-                PressureBody(_N,_f,xpos,prevPos,posGrad,_ops->getPolyData()));
+    _pressureBody = new InternalPressure(_N,_f,xpos,prevPos,posGrad,_ops->getPolyData());
 
     // Create Brownian and Viscosity bodies
     Eigen::Map<Eigen::VectorXd> thermalX(_x.data(),3*_N,1);
     Eigen::Map<Eigen::VectorXd> thermalG(_g.data(),3*_N,1);
-    _brown = std::make_shared<BrownianBody>(
-                BrownianBody(3*_N,brownCoeff,_f,thermalX,thermalG,_prevX));
-    _visco = std::make_shared<ViscosityBody>(
-                ViscosityBody(3*_N,viscosity,_f,thermalX,thermalG,_prevX));
+    _brown = new BrownianBody(3*_N,brownCoeff,_f,thermalX,thermalG,_prevX);
+    _visco = new ViscosityBody(3*_N,viscosity,_f,thermalX,thermalG,_prevX);
 
     // Create area constraint
     vtkSmartPointer<vtkPolyData> poly = _ops->getPolyData();
-    _constraint = std::make_shared<ExactAreaConstraint>(
-                ExactAreaConstraint(_N, _f, xpos, posGrad, poly));
+    _constraint = new ExactAreaConstraint(_N, _f, xpos, posGrad, poly);
     _constraint->setConstraint( GetInterpolatedValue(_gamma,_areaDat) );
 
     // Create Model
-    _model = std::make_unique<Model>(6*_N,_f,_g);
+    _model = new Model(6*_N,_f,_g);
     _model->addBody(_ops);
     _model->addBody(_brown);
     _model->addBody(_visco);
@@ -122,7 +117,7 @@ void LiveSimulation::Initialize(){
     size_t m = 5, iprint = 1000, maxIter = 1e5;
     double_t factr = 10.0, pgtol = 1e-8;
     LBFGSBParams solverParams(m,iprint,maxIter,factr,pgtol);
-    _solver = std::make_unique<LBFGSBWrapper>(solverParams, std::move(_model), _f, _x, _g);
+    _solver = new LBFGSBWrapper(solverParams, *(_model), _f, _x, _g);
     _solver->turnOffLogging();
     // *****************************************************************//
 
@@ -161,6 +156,9 @@ void LiveSimulation::Initialize(){
 
 //! Load simulation state from a SimulationState object
 void LiveSimulation::LoadState( QString st ){
+    // Delete existing objects assigned using new
+    delete _ops, _brown, _visco, _constraint, _pressureBody, _model, _solver;
+
     // Read the state file
     SimulationState state = SimulationState::readFromFile(st.toStdString());
     _N = state.getN();
@@ -204,7 +202,7 @@ void LiveSimulation::LoadState( QString st ){
     Eigen::Map<Eigen::Matrix3Xd> posGrad(_g.data(),3,_N), rotGrad(&_g(3*_N),3,_N);
 
     // Create OPSBody
-    _ops = std::make_unique<OPSMesh>(_N,_f,xpos,xrot,posGrad,rotGrad,prevPos);
+    _ops = new OPSMesh(_N,_f,xpos,xrot,posGrad,rotGrad,prevPos);
     _ops->setFVK(_gamma);
     _ops->setMorseDistance(re);
     _ops->setMorseWellWidth(s);
@@ -214,29 +212,29 @@ void LiveSimulation::LoadState( QString st ){
     vtkSmartPointer<vtkPolyData> poly = _ops->getPolyData();
 
     // Create InternalPressure body
-    _pressureBody = std::make_unique<PressureBody>(_N,_f,xpos,prevPos,posGrad,poly);
+    _pressureBody = new InternalPressure(_N,_f,xpos,prevPos,posGrad,poly);
 
     // Create Brownian body
     Eigen::Map<Eigen::VectorXd> thermalX(_x.data(),3*_N,1);
     Eigen::Map<Eigen::VectorXd> thermalG(_g.data(),3*_N,1);
-    _brown = std::make_unique<BrownianBody>(3*_N,brownCoeff,_f,thermalX,thermalG,_prevX);
+    _brown = new BrownianBody(3*_N,brownCoeff,_f,thermalX,thermalG,_prevX);
     _brown->setRandomEngine( state.getRandomEngine() );
     _brown->setRandomGenerator( state.getRandomGenerator() );
 
     // Create viscosity body
-    _visco = std::make_unique<ViscosityBody>(3*_N,viscosity,_f,thermalX,thermalG,_prevX);
+    _visco = new ViscosityBody(3*_N,viscosity,_f,thermalX,thermalG,_prevX);
 
     // Create area constraint
-    _constraint = std::make_unique<ExactAreaConstraint>(_N, _f, xpos, posGrad, poly);
+    _constraint = new ExactAreaConstraint(_N, _f, xpos, posGrad, poly);
     _constraint->setConstraint( GetInterpolatedValue(_gamma,_areaDat) );
 
     // Create Model
-    auto model = std::make_unique<Model>(6*_N,_f,_g);
-    model->addBody(_ops);
-    model->addBody(_brown);
-    model->addBody(_visco);
-    model->addBody(_constraint);
-    model->addBody(_pressureBody);
+    _model = new Model(6*_N,_f,_g);
+    _model->addBody(_ops);
+    _model->addBody(_brown);
+    _model->addBody(_visco);
+    _model->addBody(_constraint);
+    _model->addBody(_pressureBody);
     // ****************************************************************//
 
     // ***************** Prepare Output Data files *********************//
@@ -265,8 +263,7 @@ void LiveSimulation::LoadState( QString st ){
     size_t m = 5, iprint = 1000, maxIter = 1e5;
     double_t factr = 10.0, pgtol = 1e-8;
     LBFGSBParams solverParams(m,iprint,maxIter,factr,pgtol);
-    _solver = std::make_unique<LBFGSBWrapper>(solverParams, std::move(model),
-                                              _f, _x, _g);
+    _solver = new LBFGSBWrapper(solverParams, *(_model), _f, _x, _g);
     _solver->turnOffLogging();
     // *****************************************************************//
 
@@ -433,7 +430,12 @@ void LiveSimulation::SolveOneStep(){
                         << _beta << "\t"
                         << _gamma << "\t"
                         << _ops->getAsphericity() << "\t"
-                        << totalEn << "\t"
+                           //<< morseEn << "\t"
+                           //<< normEn << "\t"
+                           //<< circEn << "\t"
+                           //<< _brown->getBrownianEnergy() << "\t"
+                           //<< _visco->getViscosityEnergy() << "\t"
+                        << totalEn <<"\t"
                         << _pressureBody->getPressureWork() <<"\t"
                         << msds[0] << "\t"
                         << rmsAd
@@ -492,10 +494,6 @@ void LiveSimulation::Reset(){
                     << std::endl;
     emit updatePlotXAxis(_step);
     emit resetCompeleted();
-}
-
-void LiveSimulation::SaveScene(QString s){
-    _ops->printVTKFile(s.toStdString());
 }
 
 }

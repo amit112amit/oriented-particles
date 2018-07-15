@@ -39,6 +39,8 @@ int main(int argc, char* argv[]){
     initialSearchRad = std::stod( miscInp["initialSearchRad"] );
     finalSearchRad = std::stod( miscInp["finalSearchRad"] );
 
+    s = (100 / (re*percentStrain))*log(2.0);
+
     std::ifstream coolFile("schedule.dat");
     assert(coolFile);
     std::vector<double_t> coolVec;
@@ -86,8 +88,8 @@ int main(int argc, char* argv[]){
     ops.setSearchRadius(initialSearchRad);
 
     // Create Model
-    auto model = std::make_unique<Model>(6*N,f,g);
-    model->addBody(std::make_shared<OPSMesh>(ops));
+    Model model(6*N,f,g);
+    model.addBody(&ops);
     // ****************************************************************//
 
     // ***************** Prepare Output Data file *********************//
@@ -120,7 +122,7 @@ int main(int argc, char* argv[]){
     size_t m = 5, iprint = 1000, maxIter = 1e7;
     double_t factr = 10.0, pgtol = 1e-8;
     LBFGSBParams solverParams(m,iprint,maxIter,factr,pgtol);
-    LBFGSBWrapper solver(solverParams, std::move(model), f, x, g);
+    LBFGSBWrapper solver(solverParams, model, f, x, g);
     // *****************************************************************//
 
     // ********************* Prepare data for simulation ****************//

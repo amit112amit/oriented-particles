@@ -64,9 +64,8 @@ public:
     typedef Eigen::VectorXi IntVector_t;
     typedef Eigen::Ref<IntVector_t> RefI;
     typedef Eigen::Ref<const IntVector_t> RefCI;
-    typedef std::unique_ptr<Model> ModelPtr;
 
-    LBFGSBWrapper(LBFGSBParams &p, ModelPtr s, double_t &f, RefV x, RefV g);
+    LBFGSBWrapper(LBFGSBParams &p, Model &s, double_t &f, RefV x, RefV g);
     void setBounds(const RefCI nbd, const RefCV l, const RefCV u);
     void setNumHessianCorrections(size_t m){ _m=m; }
     void setPrintCode(size_t p){ _iprint=p; }
@@ -82,7 +81,7 @@ private:
     double_t &_f;
     MapV _x;
     MapV _g;
-    ModelPtr _model;
+    Model &_model;    
     Vector_t _l;
     Vector_t _u;
     Vector_t _wa;

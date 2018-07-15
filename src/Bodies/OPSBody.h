@@ -10,7 +10,6 @@
 #include <string.h>
 #include <math.h>
 #include <random>
-#include <numeric>
 #include <vector>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
@@ -26,9 +25,6 @@
 #include <vtkDataSetSurfaceFilter.h>
 #include <vtkExtractEdges.h>
 #include <vtkMassProperties.h>
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Delaunay_triangulation_2.h>
-#include <CGAL/Triangulation_vertex_base_with_info_2.h>
 #include "Body.h"
 #include "HelperFunctions.h"
 
@@ -53,13 +49,6 @@ public:
     typedef Eigen::Matrix<double_t, 4, 3> Matrix4x3d;
     typedef Eigen::Quaterniond Quaterniond;
     typedef Eigen::AngleAxisd AngleAxisd;
-    typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-    typedef K::Point_2 Point;
-    typedef CGAL::Triangulation_vertex_base_with_info_2<unsigned,K> Vb;
-    typedef CGAL::Triangulation_data_structure_2<Vb> Tds;
-    typedef CGAL::Delaunay_triangulation_2<K,Tds> Delaunay;
-    typedef Delaunay::Vertex_handle Vertex_handle;
-    typedef Delaunay::Face_circulator Face_circulator;
 
     OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd posGrad,
             RefM3Xd rotGrad, RefM3Xd pX);
@@ -96,7 +85,6 @@ public:
     void setSearchRadius(double_t s){_searchRadius = s;}
     void setFVK(double_t g){_gamma = g;}
     void sphericalDelaunay();
-    Delaunay stereoDelaunay();
     virtual void updateNeighbors();
     void updatePolyData();
 

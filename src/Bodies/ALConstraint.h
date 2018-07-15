@@ -17,21 +17,18 @@ class ALConstraint: public Body{
 		ALConstraint(size_t N, double_t &f, RefM3Xd x, RefM3Xd g);
 		virtual ~ALConstraint(){;}
 		virtual void compute() = 0;
-        virtual inline bool constraintSatisfied(){
+		virtual bool constraintSatisfied(){
 			return (std::abs(_value - _constrainedValue) < _tolerance);
 		}
 		virtual void printCompletion(){
 			std::cout<< " Constraint absolute value = "
 				<< std::abs(_value - _constrainedValue) << std::endl;
 		}
-        inline void setConstraint(double_t V){_constrainedValue = V;}
-        inline void setLagrangeCoeff(double_t L){_Lambda_i = L;}
-        inline void setPenaltyCoeff(double_t K){_K_i = K;}
-        inline void setTolerance(double_t t){_tolerance = t;}
-        inline void uzawaUpdate(){
-            _Lambda_i = _Lambda_i - _K_i*(_value - _constrainedValue);
-            _K_i *= 10;
-        }
+		void setConstraint(double_t V){_constrainedValue = V;}
+		void setLagrangeCoeff(double_t L){_Lambda_i = L;}
+		void setPenaltyCoeff(double_t K){_K_i = K;}
+		void setTolerance(double_t t){_tolerance = t;}
+		void uzawaUpdate();
 
 	protected:
 		double_t _constrainedValue = 0.0;

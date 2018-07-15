@@ -14,14 +14,10 @@ public:
 
     ViscosityBody(size_t N, double_t viscosity,
                   double_t &f, RefVXd x, RefVXd g, RefVXd p);
-    inline void compute(){
-        _viscoEn = 0.5*_viscosity*((_x-_prevX).dot(_x-_prevX));
-        _f += _viscoEn;
-        _g += _viscosity*(_x - _prevX);
-    }
-    inline double_t getViscosityEnergy(){return _viscoEn;}
-    inline VectorXd getPreviousX(){return _prevX;}
-    inline void setViscosity(double_t v){_viscosity = v;}
+    void compute();
+    double_t getViscosityEnergy(){return _viscoEn;}
+    VectorXd getPreviousX(){return _prevX;}
+    void setViscosity(double_t v);
 
 private:
     size_t _N;
