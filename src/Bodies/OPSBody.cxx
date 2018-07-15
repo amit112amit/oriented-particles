@@ -21,11 +21,11 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
 
     //Extract point coordinates for _polyData from x
     void *coords = (void*) _positions.data();
-    auto pointCoords = vtkSmartPointer< vtkDoubleArray >::New();
+    vtkNew<vtkDoubleArray> pointCoords;
     pointCoords->SetVoidArray( coords, 3*_N, 1);
     pointCoords->SetNumberOfComponents(3);
 
-    auto points = vtkSmartPointer<vtkPoints>::New();
+    vtkNew<vtkPoints> points;
     points->SetData( pointCoords );
 
     //Convert rotation vectors to point normals
@@ -274,9 +274,9 @@ void OPSBody::diffNormalRotVec(){
 
         Matrix3x4d dqdv;
         dqdv.leftCols(1) = -0.5*s*vi.normalized();
-        dqdv.rightCols(3) = (s*Eigen::Matrix3d::Identity() +
-                        (0.5*c - s/vi.norm())*vi.normalized()*
-                vi.normalized().transpose())/vi.norm();
+        dqdv.rightCols(3) = s*Eigen::Matrix3d::Identity()/vi.norm() +
+                             (0.5*c - s/vi.norm())*vi.normalized()*
+                             vi.normalized().transpose();
 
         _diffNormalRV[i] = dqdv*dpdq;
     }
@@ -629,7 +629,7 @@ double_t OPSBody::determineSearchRadius(){
     Delaunay dt = stereoDelaunay();
     std::vector<double_t> edgeLengths;
     for(auto fei = dt.finite_edges_begin(); fei != dt.finite_edges_end(); ++fei){
-        unsigned edgeVert1, edgeVert2;
+        unsigned edgeVert1 = 0, edgeVert2 = 0;
         auto fh = fei->first;
         switch(fei->second){
         case 0:
@@ -646,12 +646,12 @@ double_t OPSBody::determineSearchRadius(){
             break;
         }
         edgeLengths.push_back(
-                    (_positions.col(edgeVert1) -
-                     _positions.col(edgeVert2)).norm());
+                                (_positions.col(edgeVert1) -
+                                 _positions.col(edgeVert2)).norm());
     }
-    _searchRadius = std::accumulate(edgeLengths.begin(),
-                                    edgeLengths.end(),
-                                    0.0)/edgeLengths.size();
+    _searchRadius = 1.2*std::accumulate(edgeLengths.begin(),
+                                        edgeLengths.end(),
+                                        0.0)/edgeLengths.size();
 
     return _searchRadius;
 }

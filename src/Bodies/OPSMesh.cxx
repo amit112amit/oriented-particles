@@ -4,7 +4,6 @@ namespace OPS{
 //! Constructor for OPSMesh
 OPSMesh::OPSMesh(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
                  RefM3Xd rG, RefM3Xd pX):OPSBody(n,f,pos,rot,pG,rG,pX){
-    std::cout<< "Address of pos in OPSMesh() = " << &pos << std::endl;
     _edges = vtkSmartPointer<vtkCellArray>::New();
     _edgePoly = vtkSmartPointer<vtkPolyData>::New();
     _numBonds = (int)((12*5 + (n-12)*6)/2);
