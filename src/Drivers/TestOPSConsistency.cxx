@@ -67,8 +67,8 @@ int main(int argc, char* argv[]){
     Model model2(6*N,f,g);
     OPSModel opsM(N,f,x,g,prevX);
     opsM.setConstraint(1.0);
-    opsM.setLagrangeCoeff(0.0);
-    opsM.setPenaltyCoeff(0.0);
+    opsM.setLagrangeCoeff(1.0);
+    opsM.setPenaltyCoeff(1.0);
     opsM.setViscosity(1.0);
     opsM.setBrownCoeff(1.0);
     model2.addBody(std::make_shared<OPSModel>(opsM));
@@ -126,8 +126,8 @@ int main(int argc, char* argv[]){
             x(j) += h;
         }
         std::cout<< hvec(i) <<" , "
-                 //<< (gAna - gNum).array().abs().maxCoeff() << std::endl;
-                 << (gAna - gNum)<< std::endl;
+                 << (gAna - gNum).array().abs().maxCoeff() << std::endl;
+                 //<< (gAna - gNum)<< std::endl;
     }
     std::cout<< "Time elapsed = "
              << ((float)clock() - (float)t)/CLOCKS_PER_SEC

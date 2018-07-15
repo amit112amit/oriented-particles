@@ -52,7 +52,7 @@ OPSModel::OPSModel(size_t n, double_t &f, RefVXd x, RefVXd g, RefVXd pX):
     std::random_device rd;
     _e2 = std::mt19937(rd());
     _rng = NormD(0.,1.);
-    _xi = VectorXd::Zero(_N);
+    _xi = VectorXd::Zero(3*_N);
 }
 
 //! Function to convert from rotation vectors to normals
@@ -197,7 +197,7 @@ void OPSModel::compute(){
 
     // Brownian body and viscosity body calculations
     _brownEn = -1.0*_brownCoeff*(_xi.dot(_x - _pX));
-    _viscoEn = 0.5*_viscosity*((_x-_prevX).dot(_x-_prevX));
+    _viscoEn = 0.5*_viscosity*((_x - _pX).dot(_x - _pX));
     _f += _brownEn + _viscoEn;
     _g += -1.0*_brownCoeff*_xi + _viscosity*(_x - _pX);
 }
@@ -560,8 +560,8 @@ double_t OPSModel::operator()(const VectorXd &x, VectorXd &g){
 
     for(const auto& e : _edges){
         // Evaluate morse derivatives
-        Vector3d rn = (x.segment<3>(e[1]) - x.segment<3>(e[0])).normalized();
-        double_t r = (x.segment<3>(e[1]) - x.segment<3>(e[0])).norm();
+        Vector3d rn = (x.segment<3>(3*e[1]) - x.segment<3>(3*e[0])).normalized();
+        double_t r = (x.segment<3>(3*e[1]) - x.segment<3>(3*e[0])).norm();
         double_t exp_1 = exp( -_a*(r - _re) );
         double_t exp_2 = exp_1*exp_1;
         double_t morseEn =  exp_2 - 2*exp_1;
@@ -601,8 +601,8 @@ double_t OPSModel::operator()(const VectorXd &x, VectorXd &g){
     grad.setZero(3,_N);
     _value = 0.0;
     for(const auto &t : _triangles){
-        Vector3d p = x.segment<3>(t[1]) - x.segment<3>(t[0]);
-        Vector3d q = x.segment<3>(t[2]) - x.segment<3>(t[0]);
+        Vector3d p = x.segment<3>(3*t[1]) - x.segment<3>(3*t[0]);
+        Vector3d q = x.segment<3>(3*t[2]) - x.segment<3>(3*t[0]);
         double_t S = p.cross(q).norm();
         _value += 0.5*S;
         Vector3d dAdp = ( q.dot(q)*p - p.dot(q)*q )/(2*S);
@@ -616,8 +616,7 @@ double_t OPSModel::operator()(const VectorXd &x, VectorXd &g){
     double_t areaDiff = _value - _constrainedValue;
     posG += (_K_i*areaDiff - _Lambda_i)*grad;
     _brownEn = -1.0*_brownCoeff*(_xi.dot(x.segment(0,3*_N) - _pX));
-    _viscoEn = 0.5*_viscosity*((x.segment(0,3*_N)
-                                -_prevX).dot(x.segment(0,3*_N)-_prevX));
+    _viscoEn = 0.5*_viscosity*((x.segment(0,3*_N) -_pX).dot(x.segment(0,3*_N)-_pX));
     f += (0.5*_K_i*areaDiff - _Lambda_i)*areaDiff + _brownEn + _viscoEn;
     g.head(3*_N) += -1.0*_brownCoeff*_xi + _viscosity*(x.segment(0,3*_N) - _pX);
 
