@@ -62,8 +62,6 @@ int main(int argc, char* argv[]){
     constraintType = miscInp["constraintType"];
     baseFileName = miscInp["baseFileName"];
 
-    s = (100 / (re*percentStrain))*log(2.0);
-
     //Validate constraint type
     Constraint type;
     if(constraintType.compare("AverageArea") == 0){
@@ -247,7 +245,6 @@ int main(int argc, char* argv[]){
     //Create an eigenvalue solver for inertia tensor
     Eigen::SelfAdjointEigenSolver< Matrix3d > saes;
 
-    t3 = clock();
     // ************************ OUTER SOLUTION LOOP **********************//
     size_t printStep;
     for(int z=0; z < coolVec.size(); z++){

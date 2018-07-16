@@ -50,7 +50,6 @@ int main(int argc, char* argv[]){
 
     InputParameters miscInp = OPS::readKeyValueInput( "miscInp.dat" );
     re = std::stod( miscInp["re"] );
-    s = (100 / (re*percentStrain))*log(2.0);
     baseFileName = miscInp["baseFileName"];
     searchR = std::stod(miscInp["searchRadius"]);
     boxFactor = std::stod(miscInp["boxFactor"]);
@@ -169,7 +168,6 @@ int main(int argc, char* argv[]){
     morseBody.saveInitialPosition(); /*!< For Mean Squared Displacement */
     // ******************************************************************//
 
-    t3 = clock();
     // ************************ OUTER SOLUTION LOOP **********************//
     size_t printStep;
     double_t alpha, beta;

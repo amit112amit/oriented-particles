@@ -1,6 +1,8 @@
 # oriented-particles
 Oriented Particle System simulations
 
+[![MainWindow](https://raw.githubusercontent.com/amit112amit/oriented-particles/master/src/Gui/YouTubeLink.png)](https://youtu.be/IOLdgTWHIAM)
+
 Description:
 1. Creates a wrapper to l-BFGS-b Fortran library.
 2. Implements Oriented Particle System (OPS) energy and jacobian for minimization.

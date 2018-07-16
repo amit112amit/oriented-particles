@@ -19,28 +19,39 @@
 #include <vtkSmartPointer.h>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Delaunay_triangulation_2.h>
+#include <CGAL/Triangulation_vertex_base_with_info_2.h>
 
 namespace OPS{
 typedef std::map< std::string, std::string > InputParameters;
 typedef Eigen::VectorXd Vec;
 typedef Eigen::Matrix3Xd M3X;
-typedef std::vector<vtkIdType> IdList;
+typedef std::vector<size_t> IdList;
 typedef std::mt19937 Engine;
 typedef std::normal_distribution<double_t> NormD;
+typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
+typedef K::Point_2 Point;
+typedef CGAL::Triangulation_vertex_base_with_info_2<unsigned,K> Vb;
+typedef CGAL::Triangulation_data_structure_2<Vb> Tds;
+typedef CGAL::Delaunay_triangulation_2<K,Tds> Delaunay;
+typedef Delaunay::Face_circulator Face_circulator;
 
 class SimulationState{
 public:
     SimulationState():N(0),nameSuffix(0),step(0),x(1),
         prevX(1),initPos(3,1),rng(0.,1.){}
-    SimulationState(size_t n, size_t ns, size_t s, Vec xi, Vec pi,
-                    M3X ip, IdList l, Engine e, NormD r): N(n),
+    SimulationState(size_t n, size_t ns, size_t s, double_t g, double_t b,
+	    Vec xi, Vec pi, M3X ip, IdList l, Engine e, NormD r): N(n),
         nameSuffix(ns), step(s), x(6*n), prevX(3*n), initPos(3,n),
-        engine(e), rng(r){
+        engine(e), rng(r), gamma(g), beta(b){
         nn = l; x = xi; prevX = pi; initPos = ip;
     }
     size_t getN(){return N;}
     size_t getNameSuffix(){return nameSuffix;}
     size_t getStep(){return step;}
+    double_t getGamma(){return gamma;}
+    double_t getBeta(){return beta;}
     Vec getX(){return x;}
     Vec getPrevX(){return prevX;}
     M3X getInitPos(){return initPos;}
@@ -53,6 +64,7 @@ private:
     size_t N;
     size_t nameSuffix;
     size_t step;
+    double_t gamma = 0.01, beta = 10.0;
     static const size_t numsPerLine = 9;
     IdList nn;
     Vec x, prevX;
@@ -67,6 +79,9 @@ Eigen::Affine3d find3DAffineTransform(Eigen::Ref<Eigen::Matrix3Xd> in,
 
 //! Generates a mesh for a topologically spherical point cloud
 void delaunay3DSurf(vtkSmartPointer<vtkPolyData> poly, std::string fileName);
+
+//! Generates a mesh for a topologically spherical point cloud
+Delaunay delaunayStereo(Eigen::Ref<Eigen::Matrix3Xd> p);
 
 //! Calculate average edge length from a spherical point cloud
 double_t getPointCloudAvgEdgeLen(std::string f);
@@ -90,6 +105,9 @@ std::vector<double_t> GetInterpolatedValue(double_t x,
                                            std::vector<double_t> &y,
                                            std::vector<double_t> &z,
                                            std::vector<double_t> &w);
+
+//! Return the stereographic projections of points
+Eigen::Matrix3Xd stereographicProjection(const Eigen::Matrix3Xd &p);
 
 void TestFind2DAffineTransform();
 void TestFind3DAffineTransform();

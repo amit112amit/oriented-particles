@@ -68,7 +68,6 @@ void LBFGSBParams::updateProperty(Params p, double_t val){
 void LBFGSBWrapper::resize(size_t n){
     _n = n;
     _iwa = IntVector_t::Zero(3*_n);
-    //_wa = Vector_t::Zero(2*_m*_n + 4*_n + 12*_m*_m + 12*_m);
     _wa = Vector_t::Zero(2*_m*_n + 5*_n + 11*_m*_m + 8*_m);
     _nbd.resize(_n);
     _l.resize(_n);
