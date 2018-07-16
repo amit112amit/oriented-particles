@@ -65,7 +65,6 @@ void delaunay3DSurf(vtkSmartPointer<vtkPolyData> poly, std::string fi){
 }
 
 Delaunay delaunayStereo(Eigen::Ref<Eigen::Matrix3Xd> points){
-    std::cout<< "Address of points = " << &points << std::endl;
     // Make stereographic projections
     Eigen::Matrix3Xd proj = stereographicProjection(points);
 
@@ -90,8 +89,6 @@ double_t getPointCloudAvgEdgeLen(std::string file){
             GetData()->GetVoidPointer(0));
     Eigen::Map<Eigen::Matrix3Xd> positions(arrPointer,3,N);
 
-    std::cout<< "Address of points in getPointCloudAvgEdgeLen() = "
-             << &positions << std::endl;
     // Get a triangulation mesh
     Delaunay dt = delaunayStereo(positions);
 

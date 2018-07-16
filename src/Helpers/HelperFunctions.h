@@ -27,7 +27,7 @@ namespace OPS{
 typedef std::map< std::string, std::string > InputParameters;
 typedef Eigen::VectorXd Vec;
 typedef Eigen::Matrix3Xd M3X;
-typedef std::vector<vtkIdType> IdList;
+typedef std::vector<size_t> IdList;
 typedef std::mt19937 Engine;
 typedef std::normal_distribution<double_t> NormD;
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
