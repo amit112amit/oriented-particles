@@ -7,4 +7,5 @@ IF(WIN32 AND MSVC)
 	ENDIF()
 ENDIF(WIN32 AND MSVC)
 
-add_library(lbfgsb STATIC lbfgsb-routines.f)
+add_library(lbfgsb STATIC lbfgsb-routines.f linpack.f blas.f timer.f)
+#add_library(lbfgsb STATIC lbfgsb-routines.f)
