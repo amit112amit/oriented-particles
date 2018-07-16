@@ -56,7 +56,7 @@ int main(int argc, char* argv[]){
     ops.updateNeighbors();
 
     // Create a pressure body
-    InternalPressure pBody(N,f,pos,prevPos,posGrad,ops.getPolyData());
+    PressureBody pBody(N,f,pos,prevPos,posGrad,ops.getPolyData());
     pBody.setPressure(100.0);
 
     // Create Brownian and Viscosity bodies

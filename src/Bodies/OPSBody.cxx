@@ -17,15 +17,15 @@ OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
 
     // Initialize internal arrays
     _diffNormalRV = std::vector< Matrix3d,
-            Eigen::aligned_allocator<Matrix3d> >(_N, Matrix3d::Zero());
+                    Eigen::aligned_allocator<Matrix3d> >(_N, Matrix3d::Zero());
 
     //Extract point coordinates for _polyData from x
     void *coords = (void*) _positions.data();
-    auto pointCoords = vtkSmartPointer< vtkDoubleArray >::New();
+    vtkNew<vtkDoubleArray> pointCoords;
     pointCoords->SetVoidArray( coords, 3*_N, 1);
     pointCoords->SetNumberOfComponents(3);
 
-    auto points = vtkSmartPointer<vtkPoints>::New();
+    vtkNew<vtkPoints> points;
     points->SetData( pointCoords );
 
     //Convert rotation vectors to point normals
@@ -82,7 +82,30 @@ void OPSBody::computeNormals(){
 //! Updates _polyData with latest deformed node positions and normals
 void OPSBody::updatePolyData() {
     // Generate Mesh from new positions
-    sphericalDelaunay();
+    Delaunay dt = stereoDelaunay();
+
+    // Write the finite faces of the triangulation to a VTK file
+    vtkNew<vtkCellArray> triangles;
+    for( auto ffi = dt.finite_faces_begin(); ffi != dt.finite_faces_end(); ++ffi){
+        triangles->InsertNextCell(3);
+        for(auto j=2; j >= 0; --j)
+            triangles->InsertCellPoint(ffi->vertex(j)->info());
+    }
+
+    // Iterate over infinite faces
+    Face_circulator fc = dt.incident_faces(dt.infinite_vertex()), done(fc);
+    if (fc != 0) {
+        do{
+            triangles->InsertNextCell(3);
+            for(auto j=2; j >= 0; --j){
+                auto vh = fc->vertex(j);
+                auto id = dt.is_infinite(vh)? 0 : vh->info();
+                triangles->InsertCellPoint(id);
+            }
+        }while(++fc != done);
+    }
+    _polyData->SetPolys(triangles);
+
     //Turn on flags to update radius and volume
     _updateRadius = true;
     _updateVolume = true;
@@ -237,25 +260,23 @@ void OPSBody::diffNormalRotVec(){
     for(auto i=0; i < _N; ++i){
         // Read the rotation vector
         Vector3d vi = _rotationVectors.col(i);
+        double_t s = sin(0.5*vi.norm()), c = cos(0.5*vi.norm());
 
-        double_t v = vi.norm();
-        double_t s = sin(0.5*v), s_v = s/v, s_v3 = s/(v*v*v);
-        double_t c_v2 = 0.5*cos(0.5*v)/(v*v), f = c_v2 - s_v3;
-
-        Quaterniond q( AngleAxisd(v, vi.normalized()) );
+        Quaterniond q( AngleAxisd(vi.norm(), vi.normalized()) );
         double_t q0 = q.w(), q1 = q.x(), q2 = q.y(), q3 = q.z();
         Matrix4x3d dpdq;
 
         dpdq << q2, -q1, q0,
-	     q3, -q0, -q1,
-	     q0, q3, -q2,
-	     q1, q2, q3;
+                        q3, -q0, -q1,
+                        q0, q3, -q2,
+                        q1, q2, q3;
         dpdq = 2 * dpdq;
 
         Matrix3x4d dqdv;
-        dqdv.leftCols(1) = -0.5*s_v*vi;
-        dqdv.rightCols(3) = s_v*Eigen::Matrix3d::Identity() +
-	    f*vi*vi.transpose();
+        dqdv.leftCols(1) = -0.5*s*vi.normalized();
+        dqdv.rightCols(3) = s*Eigen::Matrix3d::Identity()/vi.norm() +
+                             (0.5*c - s/vi.norm())*vi.normalized()*
+                             vi.normalized().transpose();
 
         _diffNormalRV[i] = dqdv*dpdq;
     }
@@ -604,30 +625,84 @@ void OPSBody::sphericalDelaunay(){
 }
 
 double_t OPSBody::determineSearchRadius(){
-    // Create the VTK objects
-    auto extract = vtkSmartPointer<vtkExtractEdges>::New();
-    auto linePd = vtkSmartPointer<vtkPolyData>::New();
-    auto edges = vtkSmartPointer<vtkCellArray>::New();
-    auto pts = vtkSmartPointer<vtkIdList>::New();
     //Triangulate the point cloud
-    sphericalDelaunay();
-    // Extract the edges
-    extract->SetInputData(_polyData);
-    extract->Update();
-    linePd = extract->GetOutput();
-    edges = linePd->GetLines();
-    //Calculate average edge length
-    VectorXd edgeLengths(edges->GetNumberOfCells());
-    edges->InitTraversal();
-    size_t i=0;
-    while(edges->GetNextCell(pts)){
-        Vector3d p1, p2;
-        linePd->GetPoint(pts->GetId(0),&p1(0));
-        linePd->GetPoint(pts->GetId(1),&p2(0));
-        edgeLengths(i++) = (p2-p1).norm();
+    Delaunay dt = stereoDelaunay();
+    std::vector<double_t> edgeLengths;
+    for(auto fei = dt.finite_edges_begin(); fei != dt.finite_edges_end(); ++fei){
+        unsigned edgeVert1 = 0, edgeVert2 = 0;
+        auto fh = fei->first;
+        switch(fei->second){
+        case 0:
+            edgeVert1 = fh->vertex(1)->info();
+            edgeVert2 = fh->vertex(2)->info();
+            break;
+        case 1:
+            edgeVert1 = fh->vertex(2)->info();
+            edgeVert2 = fh->vertex(0)->info();
+            break;
+        case 2:
+            edgeVert1 = fh->vertex(0)->info();
+            edgeVert2 = fh->vertex(1)->info();
+            break;
+        }
+        edgeLengths.push_back(
+                                (_positions.col(edgeVert1) -
+                                 _positions.col(edgeVert2)).norm());
     }
-    _searchRadius = edgeLengths.mean()*1.2;
+    _searchRadius = 1.2*std::accumulate(edgeLengths.begin(),
+                                        edgeLengths.end(),
+                                        0.0)/edgeLengths.size();
+
     return _searchRadius;
+}
+
+Delaunay OPSBody::stereoDelaunay(){
+    Matrix3Xd points(3,_N);
+    points = _positions;
+
+    // Project points to unit sphere
+    points.colwise().normalize();
+
+    // Reset the center of the sphere to origin by translating
+    points = points.colwise() - points.rowwise().mean();
+
+    // Rotate all points so that the point in 0th column is along z-axis
+    Eigen::Vector3d c = points.col(0);
+    double_t cos_t = c(2);
+    double_t sin_t = std::sqrt( 1 - cos_t*cos_t );
+    Eigen::Vector3d axis;
+    axis << c(1), -c(0), 0.;
+    Eigen::Matrix3d rotMat, axis_cross, outer;
+    axis_cross << 0. , -axis(2), axis(1),
+                    axis(2), 0., -axis(0),
+                    -axis(1), axis(0), 0.;
+
+    outer.noalias() = axis*axis.transpose();
+
+    rotMat = cos_t*Matrix3d::Identity() + sin_t*axis_cross + (1-cos_t)*outer;
+    Eigen::Matrix3Xd rPts(3,_N);
+    rPts = rotMat*points; // The points on a sphere rotated
+
+    // Calculate the stereographic projections
+    Eigen::Vector3d p0;
+    Eigen::Map<Eigen::Matrix3Xd> l0( &(rPts(0,1)), 3, _N-1 );
+    Eigen::Matrix3Xd l(3,_N-1), proj(3,_N-1);
+    p0 << 0,0,-1;
+    c = rPts.col(0);
+    l = (l0.colwise() - c).colwise().normalized();
+    for( auto j=0; j < _N-1; ++j ){
+        proj.col(j) = ((p0(2) - l0(2,j))/l(2,j))*l.col(j) + l0.col(j);
+    }
+
+    // Insert the projected points in a CGAL vertex_with_info vector
+    std::vector< std::pair< Point, unsigned> > verts;
+    for( auto j=0; j < _N-1; ++j )
+        verts.push_back(std::make_pair(Point(proj(0,j),proj(1,j)),j+1));
+
+    // Reset the triangulation and start over
+    Delaunay dt(verts.begin(),verts.end());
+
+    return dt;
 }
 
 }

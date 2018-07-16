@@ -46,7 +46,6 @@ int main(int argc, char* argv[]){
 
     InputParameters miscInp = OPS::readKeyValueInput( "miscInp.dat" );
     re = std::stod( miscInp["re"] );
-    s = (100 / (re*percentStrain))*log(2.0);
     baseFileName = miscInp["baseFileName"];
     searchR = std::stod(miscInp["searchRadius"]);
     boxFactor = std::stod(miscInp["boxFactor"]);
@@ -101,7 +100,7 @@ int main(int argc, char* argv[]){
     prevX.setZero(x.size());
 
     // Fill x with coords and rotVecs
-    Eigen::Map<Eigen::Matrix2Xd> xpos(x.data(),2,N), prevPos(prevX.data(),2,N);
+    Eigen::Map<Eigen::Matrix2Xd> xpos(x.data(),2,N);
     xpos = coords;
     prevX = x.head(2*N);
 
@@ -161,7 +160,6 @@ int main(int argc, char* argv[]){
     morseBody.saveInitialPosition(); /*!< For Mean Squared Displacement */
     // ******************************************************************//
 
-    t3 = clock();
     // ************************ OUTER SOLUTION LOOP **********************//
     size_t printStep;
     double_t alpha, beta;

@@ -32,16 +32,16 @@ namespace OPS{
 // A QwtSeriesData subclass with circular buffer
 class QwtCircBuffSeriesData: public QwtSeriesData<QPointF>{
 public:
+    typedef boost::circular_buffer<qreal> CircBuff;
+    // Default constructor
     QwtCircBuffSeriesData(size_t N){
-        _x = new boost::circular_buffer<qreal>(N);
-        _y = new boost::circular_buffer<qreal>(N);
+        _x = new CircBuff(N);
+        _y = new CircBuff(N);
         _capacity = N;
         _ymax = _limits.min();
         _ymin = _limits.max();
     }
-    ~QwtCircBuffSeriesData(){
-        delete _x, _y;
-    }
+    ~QwtCircBuffSeriesData(){ delete _x, _y;}
     size_t size() const{
         return _x->size();
     }
@@ -71,9 +71,10 @@ public:
     size_t capacity(){
         return _capacity;
     }
+
 private:
-    boost::circular_buffer<qreal> *_x;
-    boost::circular_buffer<qreal> *_y;
+    CircBuff *_x;
+    CircBuff *_y;
     size_t _capacity;
     qreal _ymax = 0, _xmax = 0;
     qreal _ymin = 1e15;
@@ -88,7 +89,7 @@ public:
     typedef std::mt19937 Engine;
     typedef std::normal_distribution<double_t> NormD;
     explicit LiveSimulation(){}
-    ~LiveSimulation(){}
+    ~LiveSimulation(){delete _rmsAD, _opsEn, _vol;}
     double_t GetInterpolatedValue(double_t, std::vector<double_t>&);
     void ReadFvKAreaData(std::string);
     double_t GetZeroOpsEn(){return _zeroOpsEnVal;}
@@ -112,6 +113,7 @@ public slots:
     void Reset();
     void LoadState( QString s );
     void SaveState( QString s );
+    void SaveScene( QString s );
 
 signals:
     void simulationReady();
@@ -140,7 +142,7 @@ private:
     OPSMesh* _ops;
     ViscosityBody* _visco;
     BrownianBody* _brown;
-    InternalPressure* _pressureBody;
+    PressureBody* _pressureBody;
     ExactAreaConstraint* _constraint;
     Model* _model;
     LBFGSBWrapper* _solver;

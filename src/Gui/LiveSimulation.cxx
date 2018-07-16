@@ -69,7 +69,7 @@ void LiveSimulation::Initialize(){
     _ops->setMorseWellWidth(s);
 
     // Create InternalPressure body
-    _pressureBody = new InternalPressure(_N,_f,xpos,prevPos,posGrad,_ops->getPolyData());
+    _pressureBody = new PressureBody(_N,_f,xpos,prevPos,posGrad,_ops->getPolyData());
 
     // Create Brownian and Viscosity bodies
     Eigen::Map<Eigen::VectorXd> thermalX(_x.data(),3*_N,1);
@@ -212,7 +212,7 @@ void LiveSimulation::LoadState( QString st ){
     vtkSmartPointer<vtkPolyData> poly = _ops->getPolyData();
 
     // Create InternalPressure body
-    _pressureBody = new InternalPressure(_N,_f,xpos,prevPos,posGrad,poly);
+    _pressureBody = new PressureBody(_N,_f,xpos,prevPos,posGrad,poly);
 
     // Create Brownian body
     Eigen::Map<Eigen::VectorXd> thermalX(_x.data(),3*_N,1);
@@ -494,6 +494,10 @@ void LiveSimulation::Reset(){
                     << std::endl;
     emit updatePlotXAxis(_step);
     emit resetCompeleted();
+}
+
+void LiveSimulation::SaveScene(QString s){
+    _ops->printVTKFile(s.toStdString());
 }
 
 }

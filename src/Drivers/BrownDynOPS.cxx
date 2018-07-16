@@ -107,7 +107,7 @@ int main(int argc, char* argv[]){
         }
         // Renormalize by the average edge length
         double_t avgEdgeLen = getPointCloudAvgEdgeLen(inFile);
-	coords /= avgEdgeLen;
+        coords /= avgEdgeLen;
 
         // Generate rotation vectors from input point coordinates
         OPSBody::initialRotationVector(coords, rotVecs);

@@ -39,8 +39,6 @@ int main(int argc, char* argv[]){
     initialSearchRad = std::stod( miscInp["initialSearchRad"] );
     finalSearchRad = std::stod( miscInp["finalSearchRad"] );
 
-    s = (100 / (re*percentStrain))*log(2.0);
-
     std::ifstream coolFile("schedule.dat");
     assert(coolFile);
     std::vector<double_t> coolVec;
