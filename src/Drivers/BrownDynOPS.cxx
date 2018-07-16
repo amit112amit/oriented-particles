@@ -34,7 +34,7 @@ int main(int argc, char* argv[]){
                     percentStrain = 15,
                     s=(100/(re*percentStrain))*log(2.0);
 
-    size_t viterMax, nameSuffix=0, step=0, N=10, saveFreq = 100;
+    size_t viterMax, nameSuffix=0, step=0, N=10, saveFreq = 100000;
 
     Eigen::VectorXd x(6*N), prevX(3*N), g(6*N);
     Eigen::Matrix3Xd coords(3,N), rotVecs(3,N), initPos(3,N);
@@ -213,15 +213,15 @@ int main(int argc, char* argv[]){
     detailedOP << "#Step" <<"\t"
                << "Beta" << "\t"
                << "Gamma" << "\t"
-               << "Asphericity" << "\t"
-               << "Radius"  <<"\t"
+               //<< "Asphericity" << "\t"
+               //<< "Radius"  <<"\t"
                << "Volume"  <<"\t"
-               << "Area"  <<"\t"
-               << "MorseEn"  <<"\t"
-               << "NormEn"  <<"\t"
-               << "CircEn"  <<"\t"
-               << "BrownEn"  <<"\t"
-               << "ViscoEn"  <<"\t"
+               //<< "Area"  <<"\t"
+               //<< "MorseEn"  <<"\t"
+               //<< "NormEn"  <<"\t"
+               //<< "CircEn"  <<"\t"
+               //<< "BrownEn"  <<"\t"
+               //<< "ViscoEn"  <<"\t"
                << "MSD" << "\t"
                << "RMSAngleDeficit"
                << std::endl;
@@ -339,23 +339,23 @@ int main(int argc, char* argv[]){
             msds = ops.getMSD();
 
             double_t volume = ops.getVolume();
-            double_t morseEn = ops.getMorseEnergy();
-            double_t normEn = ops.getNormalityEnergy();
-            double_t circEn = ops.getCircularityEnergy();
+            //double_t morseEn = ops.getMorseEnergy();
+            //double_t normEn = ops.getNormalityEnergy();
+            //double_t circEn = ops.getCircularityEnergy();
 
             // Write output to data file
             detailedOP << step << "\t"
                        << beta << "\t"
                        << gamma << "\t"
-                       << ops.getAsphericity() << "\t"
-                       << ops.getAverageRadius() << "\t"
+                       //<< ops.getAsphericity() << "\t"
+                       //<< ops.getAverageRadius() << "\t"
                        << volume << "\t"
-                       << ops.getArea() << "\t"
-                       << morseEn << "\t"
-                       << normEn << "\t"
-                       << circEn << "\t"
-                       << brown.getBrownianEnergy() << "\t"
-                       << visco.getViscosityEnergy() << "\t"
+                       //<< ops.getArea() << "\t"
+                       //<< morseEn << "\t"
+                       //<< normEn << "\t"
+                       //<< circEn << "\t"
+                       //<< brown.getBrownianEnergy() << "\t"
+                       //<< visco.getViscosityEnergy() << "\t"
                        << msds[0] << "\t"
                        << ops.getRMSAngleDeficit()
                        << std::endl;

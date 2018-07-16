@@ -46,9 +46,9 @@ void OPSMesh::compute(){
 	auto pts = vtkSmartPointer<vtkIdList>::New();
 
 	// Initialize energies and forces to be zero
-	_morseEn = 0.0;
-	_normalEn = 0.0;
-	_circEn = 0.0;
+    //_morseEn = 0.0;
+    //_normalEn = 0.0;
+    //_circEn = 0.0;
 
 	computeNormals();
 	diffNormalRotVec();
@@ -57,9 +57,9 @@ void OPSMesh::compute(){
 	while(_edges->GetNextCell(pts)){
 
 		double_t r, n_dot_rn, exp_1, exp_2,
-			 morseEn, Ker, Phi_n, Phi_c;
+             morseEn, Phi_n, Phi_c;
 		Matrix3d M, N;
-		Vector3d vi, p, vj, q, m, n, rij, rn, dMdr, dKdr, dPhi_nVi,
+        Vector3d vi, p, vj, q, m, n, rij, rn, dMdr, dPhi_nVi,
 			 dPhi_nVj, dPhi_cVi, dPhi_cVj, dCdr, Dxi, Dvi, Dvj;
 		Vector3d xi = Vector3d::Zero();
 		Vector3d xj = Vector3d::Zero();
@@ -107,9 +107,9 @@ void OPSMesh::compute(){
 		Dvj = (dPhi_nVj + dPhi_cVj)/_gamma;
 
 		// Update the energies
-		_morseEn += morseEn;
-		_normalEn += Phi_n/_gamma;
-		_circEn += Phi_c/_gamma;
+        //_morseEn += morseEn;
+        //_normalEn += Phi_n/_gamma;
+        //_circEn += Phi_c/_gamma;
 		_f += morseEn + (Phi_n + Phi_c)/_gamma;
 
 		//Update the derivatives
