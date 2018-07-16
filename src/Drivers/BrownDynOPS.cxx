@@ -107,7 +107,7 @@ int main(int argc, char* argv[]){
         }
         // Renormalize by the average edge length
         double_t avgEdgeLen = getPointCloudAvgEdgeLen(inFile);
-	coords /= avgEdgeLen;
+        coords /= avgEdgeLen;
 
         // Generate rotation vectors from input point coordinates
         OPSBody::initialRotationVector(coords, rotVecs);
@@ -125,6 +125,7 @@ int main(int argc, char* argv[]){
     // Create OPSBody
     g.setZero(g.size());
     Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(),3,N), rotGrad(&g(3*N),3,N);
+    std::cout<< "Address of pos in BrownDynOPS = " << &xpos << std::endl;
     OPSMesh ops(N,f,xpos,xrot,posGrad,rotGrad,prevPos);
     ops.setMorseDistance(re);
     ops.setMorseWellWidth(s);
@@ -156,11 +157,11 @@ int main(int argc, char* argv[]){
     ExactAreaConstraint constraint(N, f, xpos, posGrad, ops.getPolyData());
 
     // Create Model
-    Model model(6*N,f,g);
-    model.addBody(&ops);
-    model.addBody(&brown);
-    model.addBody(&visco);
-    model.addBody(&constraint);
+    auto model = std::make_unique<Model>(6*N,f,g);
+    model->addBody(std::make_shared<OPSMesh>(ops));
+    model->addBody(std::make_shared<BrownianBody>(brown));
+    model->addBody(std::make_shared<ViscosityBody>(visco));
+    model->addBody(std::make_shared<ExactAreaConstraint>(constraint));
     // ****************************************************************//
 
     // ******************** Read parameter schedule ********************//
@@ -209,11 +210,11 @@ int main(int argc, char* argv[]){
                << "Volume"  <<"\t"
                << "Area"  <<"\t"
                << "TotalEnergy" << "\t"
-                  //<< "MorseEn"  <<"\t"
-                  //<< "NormEn"  <<"\t"
-                  //<< "CircEn"  <<"\t"
-                  //<< "BrownEn"  <<"\t"
-                  //<< "ViscoEn"  <<"\t"
+               << "MorseEn"  <<"\t"
+               << "NormEn"  <<"\t"
+               << "CircEn"  <<"\t"
+               << "BrownEn"  <<"\t"
+               << "ViscoEn"  <<"\t"
                << "MSD" << "\t"
                << "RMSAngleDeficit"
                << std::endl;
@@ -222,7 +223,7 @@ int main(int argc, char* argv[]){
     size_t m = 5, iprint = 1000, maxIter = 1e5;
     double_t factr = 10.0, pgtol = 1e-8;
     LBFGSBParams solverParams(m,iprint,maxIter,factr,pgtol);
-    LBFGSBWrapper solver(solverParams, model, f, x, g);
+    LBFGSBWrapper solver(solverParams, std::move(model), f, x, g);
     solver.turnOffLogging();
     // *****************************************************************//
 
@@ -345,11 +346,11 @@ int main(int argc, char* argv[]){
                        << volume << "\t"
                        << ops.getArea() << "\t"
                        << totalEn << "\t"
-                          //<< morseEn << "\t"
-                          //<< normEn << "\t"
-                          //<< circEn << "\t"
-                          //<< brown.getBrownianEnergy() << "\t"
-                          //<< visco.getViscosityEnergy() << "\t"
+                       << morseEn << "\t"
+                       << normEn << "\t"
+                       << circEn << "\t"
+                       << brown.getBrownianEnergy() << "\t"
+                       << visco.getViscosityEnergy() << "\t"
                        << msds[0] << "\t"
                        << ops.getRMSAngleDeficit()
                        << std::endl;

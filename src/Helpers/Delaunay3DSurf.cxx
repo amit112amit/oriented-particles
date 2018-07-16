@@ -62,32 +62,67 @@ void delaunay3DSurf(vtkSmartPointer<vtkPolyData> poly, std::string fi){
 
     poly->SetPoints(pts);
     poly->SetPolys(finalCells);
-    return;
+}
+
+Delaunay delaunayStereo(Eigen::Ref<Eigen::Matrix3Xd> points){
+    std::cout<< "Address of points = " << &points << std::endl;
+    // Make stereographic projections
+    Eigen::Matrix3Xd proj = stereographicProjection(points);
+
+    // Insert the projected points in a CGAL vertex_with_info vector
+    std::vector< std::pair< Point, unsigned> > verts;
+    for( auto j=0; j < proj.cols(); ++j )
+        verts.push_back(std::make_pair(Point(proj(0,j),proj(1,j)),j+1));
+
+    // CGAL Delauany 2d triangulation
+    Delaunay dt( verts.begin(), verts.end() );
+    return dt;
 }
 
 //! Calculate average edge length for a polydata
 double_t getPointCloudAvgEdgeLen(std::string file){
-    // Get a polydata mesh
-    auto pd = vtkSmartPointer<vtkPolyData>::New();
-    delaunay3DSurf(pd,file);
+    // Read the vtk file
+    vtkNew<vtkPolyDataReader> reader;
+    reader->SetFileName(file.c_str());
+    reader->Update();
+    auto N = reader->GetOutput()->GetNumberOfPoints();
+    auto *arrPointer = (double_t*)(reader->GetOutput()->GetPoints()->
+            GetData()->GetVoidPointer(0));
+    Eigen::Map<Eigen::Matrix3Xd> positions(arrPointer,3,N);
+
+    std::cout<< "Address of points in getPointCloudAvgEdgeLen() = "
+             << &positions << std::endl;
+    // Get a triangulation mesh
+    Delaunay dt = delaunayStereo(positions);
+
     // Now calculate average edge length
-    double_t len = 0;
-    auto extract = vtkSmartPointer<vtkExtractEdges>::New();
-    extract->SetInputData(pd);
-    extract->Update();
-    auto edgePoly = extract->GetOutput();
-    auto ptIds = vtkSmartPointer<vtkIdList>::New();
-    auto lines = edgePoly->GetLines();
-    lines->InitTraversal();
-    Eigen::Vector3d p1 = Eigen::Vector3d::Zero();
-    Eigen::Vector3d p2 = Eigen::Vector3d::Zero();
-    while( lines->GetNextCell(ptIds) ){
-        edgePoly->GetPoint( ptIds->GetId(0), &p1(0) );
-        edgePoly->GetPoint( ptIds->GetId(1), &p2(0) );
-        len += (p1 - p2).norm();
+    std::vector<double_t> edgeLengths;
+    for(auto fei = dt.finite_edges_begin(); fei != dt.finite_edges_end(); ++fei){
+        unsigned edgeVert1, edgeVert2;
+        auto fh = fei->first;
+        switch(fei->second){
+        case 0:
+            edgeVert1 = fh->vertex(1)->info();
+            edgeVert2 = fh->vertex(2)->info();
+            break;
+        case 1:
+            edgeVert1 = fh->vertex(2)->info();
+            edgeVert2 = fh->vertex(0)->info();
+            break;
+        case 2:
+            edgeVert1 = fh->vertex(0)->info();
+            edgeVert2 = fh->vertex(1)->info();
+            break;
+        }
+        edgeLengths.push_back(
+                                (positions.col(edgeVert1) -
+                                 positions.col(edgeVert2)).norm());
     }
-    len /= edgePoly->GetNumberOfLines();
-    return len;
+    auto avgEdgeLen = std::accumulate(edgeLengths.begin(),
+                                    edgeLengths.end(),
+                                    0.0)/edgeLengths.size();
+
+    return avgEdgeLen;
 }
 
 }

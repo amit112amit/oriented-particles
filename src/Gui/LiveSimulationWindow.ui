@@ -286,6 +286,7 @@
     </property>
     <addaction name="actionLoadState"/>
     <addaction name="actionSaveState"/>
+    <addaction name="actionExportScene"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -304,6 +305,11 @@
   <action name="actionSaveState">
    <property name="text">
     <string>&amp;Save simulation state</string>
+   </property>
+  </action>
+  <action name="actionExportScene">
+   <property name="text">
+    <string>&amp;Export scene</string>
    </property>
   </action>
  </widget>
