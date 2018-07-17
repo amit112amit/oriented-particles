@@ -165,9 +165,7 @@ int main(int argc, char* argv[]){
     sstm.str("");
     sstm.clear();
     detailedOP.open(dataOutputFile.c_str(), std::ofstream::out);
-    detailedOP << "#Step" <<"\t"
-               << "Beta" << "\t"
-               << "Gamma" << "\t"
+    detailedOP
                //<< "Asphericity" << "\t"
                //<< "Radius"  <<"\t"
                << "Volume"  <<"\t"
@@ -210,6 +208,9 @@ int main(int argc, char* argv[]){
         double_t constrainedVal = coolVec[z][4];
         viterMax = coolVec[z][5];
         printStep = (int)coolVec[z][6];
+
+        // Write gamma and beta to output file
+        detailedOP << "#Gamma\t" << gamma << "\tBeta\t" << beta << std::endl;
 
         // Update OPS params
         s = (100 / percentStrain)*log(2.0);
@@ -290,16 +291,13 @@ int main(int argc, char* argv[]){
                 sstm.clear();
             }
 
-            //auto msds = ops.getMSD();
             //double_t morseEn = ops.getMorseEnergy();
             //double_t normEn = ops.getNormalityEnergy();
             //double_t circEn = ops.getCircularityEnergy();
             //double_t totalEn = morseEn + circEn + normEn;
 
             // Write output to data file
-            detailedOP << step << "\t"
-                       << beta << "\t"
-                       << gamma << "\t"
+            detailedOP
                        //<< ops.getAsphericity() << "\t"
                        //<< ops.getAverageRadius() << "\t"
                        << ops.getVolume() << "\t"

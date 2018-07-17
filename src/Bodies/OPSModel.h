@@ -107,7 +107,7 @@ public:
     }
     //**************** Brownian Body methods ******************//
     inline void generateParallelKicks(){
-        for(auto i=0; i < _N; i++){
+        for(auto i=0; i < 3*_N; i++){
             _xi(i) = _rng(_e2);
         }
     }
