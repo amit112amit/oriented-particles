@@ -157,14 +157,12 @@ int main(int argc, char* argv[]){
     sstm.str("");
     sstm.clear();
     detailedOP.open( dataOutputFile );
-    detailedOP << "#Step" <<"\t"
-               << "Beta" << "\t"
-               << "Gamma" << "\t"
-               << "Asphericity" << "\t"
-               << "Radius"  <<"\t"
+    detailedOP
+               //<< "Asphericity" << "\t"
+               //<< "Radius"  <<"\t"
                << "Volume"  <<"\t"
-               << "Area"  <<"\t"
-               << "TotalEnergy" << "\t"
+               //<< "Area"  <<"\t"
+               //<< "TotalEnergy" << "\t"
                   //<< "MorseEn"  <<"\t"
                   //<< "NormEn"  <<"\t"
                   //<< "CircEn"  <<"\t"
@@ -202,6 +200,9 @@ int main(int argc, char* argv[]){
         double_t constrainedVal = coolVec[z][4];
         viterMax = coolVec[z][5];
         printStep = (int)coolVec[z][6];
+
+        // Write gamma and beta to output file
+        detailedOP << "#Gamma\t" << gamma << "\tBeta\t" << beta << std::endl;
 
         // Update OPS params
         s = (100 / percentStrain)*log(2.0);
@@ -283,20 +284,18 @@ int main(int argc, char* argv[]){
             }
 
             auto msds = ops.getMSD();
-            double_t morseEn = ops.getMorseEnergy();
-            double_t normEn = ops.getNormalityEnergy();
-            double_t circEn = ops.getCircularityEnergy();
-            double_t totalEn = morseEn + circEn + normEn;
+            //double_t morseEn = ops.getMorseEnergy();
+            //double_t normEn = ops.getNormalityEnergy();
+            //double_t circEn = ops.getCircularityEnergy();
+            //double_t totalEn = morseEn + circEn + normEn;
 
             // Write output to data file
-            detailedOP << step << "\t"
-                       << beta << "\t"
-                       << gamma << "\t"
-                       << ops.getAsphericity() << "\t"
-                       << ops.getAverageRadius() << "\t"
+            detailedOP
+                       //<< ops.getAsphericity() << "\t"
+                       //<< ops.getAverageRadius() << "\t"
                        << ops.getVolume() << "\t"
-                       << ops.getArea() << "\t"
-                       << totalEn << "\t"
+                       //<< ops.getArea() << "\t"
+                       //<< totalEn << "\t"
                           //<< morseEn << "\t"
                           //<< normEn << "\t"
                           //<< circEn << "\t"
