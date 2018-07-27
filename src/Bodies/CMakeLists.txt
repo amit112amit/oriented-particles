@@ -5,6 +5,7 @@ set(SRCS OPSBody.cxx BrownianBody.cxx ViscosityBody.cxx ALConstraint.cxx
         OPSMesh.cxx Morse2D.cxx Pressure.cxx OPSModel.cxx)
 
 add_library(Bodies ${SRCS})
-target_link_libraries(Bodies PUBLIC ${CGAL_LIBRARIES} ${VTK_LIBRARIES})
-target_include_directories(Bodies PUBLIC ${VTK_INCLUDE_DIRS} ${EIGEN_INCLUDE_DIRS} ${CGAL_INCLUDE_DIRS})
+target_link_libraries(Bodies PUBLIC ${CGAL_LIBRARIES} ${VTK_LIBRARIES}
+    Eigen3::Eigen)
+target_include_directories(Bodies PUBLIC ${VTK_INCLUDE_DIRS} ${CGAL_INCLUDE_DIRS})
 target_include_directories(Bodies PUBLIC "${PROJECT_SOURCE_DIR}/../Helpers")

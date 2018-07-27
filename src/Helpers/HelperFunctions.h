@@ -27,6 +27,7 @@ namespace OPS{
 typedef std::map< std::string, std::string > InputParameters;
 typedef Eigen::VectorXd Vec;
 typedef Eigen::Matrix3Xd M3X;
+typedef Eigen::Ref<M3X> RefM3X;
 typedef std::vector<size_t> IdList;
 typedef std::mt19937 Engine;
 typedef std::normal_distribution<double_t> NormD;
@@ -73,6 +74,8 @@ private:
     NormD rng;
 };
 
+//! A struct to hold Alm
+
 //! Rotates a point cloud to get rid of rigid body motions
 Eigen::Affine3d find3DAffineTransform(Eigen::Ref<Eigen::Matrix3Xd> in,
                                       Eigen::Ref<Eigen::Matrix3Xd> out);
@@ -106,8 +109,8 @@ std::vector<double_t> GetInterpolatedValue(double_t x,
                                            std::vector<double_t> &z,
                                            std::vector<double_t> &w);
 
-//! Return the stereographic projections of points
-Eigen::Matrix3Xd stereographicProjection(const Eigen::Matrix3Xd &p);
+//! Stereographic projection approach to mesh shells
+Eigen::Matrix3Xd stereographicProjection(const Eigen::Matrix3Xd& p);
 
 void TestFind2DAffineTransform();
 void TestFind3DAffineTransform();

@@ -12,8 +12,10 @@ Dependencies:
 1. VTK
 2. Eigen
 3. lbfgsb
+4. SHTOOLS
 
 References:
 1. Szeliski, Richard and Tonnesen, D. (1992). Surface Modeling with Oriented Particle Systems. Siggraph ’92, 26(2), 160. https://doi.org/10.1017/CBO9781107415324.004
 2. Liu, D.C. & Nocedal, J. Mathematical Programming (1989) 45: 503. https://doi.org/10.1007/BF01589116
-3. https://github.com/wsklug/voom
+3. SHTOOLS https://shtools.oca.eu/shtools/
+4. https://github.com/wsklug/voom

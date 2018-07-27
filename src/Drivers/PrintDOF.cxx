@@ -39,16 +39,16 @@ int main(int argc, char* argv[]){
     std::mt19937 engine;
     auto rng = std::normal_distribution<double_t>(0.0,1.0);
     //**********************************************************//
-
     taskId << std::getenv("SGE_TASK_ID");
     std::cout<< "SGE_TASK_ID = " << taskId.str() << std::endl;
+
     //******************** Resume or fresh start? ********************//
     // Create a SimulationState
     SimulationState state;
 
     // Check if a state file exists in current directory
     sstm << "SimulationState-" << taskId.str() << ".dat";
-    string stateFileName = sstm.str();
+    std::string stateFileName = sstm.str();
     sstm.str("");
     sstm.clear();
     ifstream stateFile(stateFileName);
@@ -134,11 +134,11 @@ int main(int argc, char* argv[]){
     sstm.clear();
     std::vector<std::vector<double_t> > coolVec;
     double_t currAlpha, currBeta, currGamma, currPercentStrain,
-                    currViterMax, currPrintStep, currArea;
+                    currViterMax, currArea;
     std::string headerline;
     std::getline(coolFile, headerline);// Eat up header line
     while (coolFile >> currAlpha >> currBeta >> currGamma >> currPercentStrain
-                    >> currArea >> currViterMax >> currPrintStep) {
+                    >> currArea >> currViterMax) {
         std::vector<double> currLine;
         currLine.push_back(currAlpha);
         currLine.push_back(currBeta);
@@ -146,7 +146,6 @@ int main(int argc, char* argv[]){
         currLine.push_back(currPercentStrain);
         currLine.push_back(currArea);
         currLine.push_back(currViterMax);
-        currLine.push_back(currPrintStep);
         coolVec.push_back(currLine);
     }
     coolFile.close();
@@ -159,25 +158,12 @@ int main(int argc, char* argv[]){
 
     // Detailed output data file
     ofstream detailedOP;
-    sstm << fname << "-DetailedOutput-" << taskId.str() << ".dat";
+    sstm << fname << "-DOF-" << taskId.str() << ".dat";
     dataOutputFile = sstm.str();
     sstm.str("");
     sstm.clear();
-    detailedOP.open(dataOutputFile.c_str(), std::ofstream::out);
-    detailedOP
-               //<< "Asphericity" << "\t"
-               //<< "Radius"  <<"\t"
-               << "Volume"  <<"\t"
-               //<< "Area"  <<"\t"
-               //<< "TotalEnergy" << "\t"
-                  //<< "MorseEn"  <<"\t"
-                  //<< "NormEn"  <<"\t"
-                  //<< "CircEn"  <<"\t"
-                  //<< "BrownEn"  <<"\t"
-                  //<< "ViscoEn"  <<"\t"
-               << "MSD" << "\t"
-               << "RMSAngleDeficit"
-               << std::endl;
+    detailedOP.open( dataOutputFile.c_str(), std::ofstream::out );
+    detailedOP.precision(5);
 
     // ************************* Create Solver ************************  //
     size_t m = 5, iprint = 1000, maxIter = 1e5;
@@ -198,7 +184,6 @@ int main(int argc, char* argv[]){
     colId = step > 0? coolVec[rowId][5] - (totSteps - step) : 0;
 
     // The outer loop
-    size_t printStep;
     for(auto z=rowId; z < coolVec.size(); ++z){
         alpha = coolVec[z][0];
         beta = coolVec[z][1];
@@ -206,7 +191,6 @@ int main(int argc, char* argv[]){
         percentStrain = coolVec[z][3];
         double_t constrainedVal = coolVec[z][4];
         viterMax = coolVec[z][5];
-        printStep = (int)coolVec[z][6];
 
         // Write gamma and beta to output file
         detailedOP << "#Gamma\t" << gamma << "\tBeta\t" << beta << std::endl;
@@ -280,36 +264,10 @@ int main(int argc, char* argv[]){
                 state.writeToFile(stateFileName);
             }
 
-            // We will print only after every currPrintStep iterations
-            if (viter % printStep == 0 && printStep <= viterMax) {
-                sstm << fname << "-" << taskId.str() << "-relaxed-"
-                     << nameSuffix++ <<".vtk";
-                std::string rName = sstm.str();
-                ops.printVTKFile(rName);
-                sstm.str("");
-                sstm.clear();
-            }
-
-            //double_t morseEn = ops.getMorseEnergy();
-            //double_t normEn = ops.getNormalityEnergy();
-            //double_t circEn = ops.getCircularityEnergy();
-            //double_t totalEn = morseEn + circEn + normEn;
-
-            // Write output to data file
-            detailedOP
-                       //<< ops.getAsphericity() << "\t"
-                       //<< ops.getAverageRadius() << "\t"
-                       << ops.getVolume() << "\t"
-                       //<< ops.getArea() << "\t"
-                       //<< totalEn << "\t"
-                          //<< morseEn << "\t"
-                          //<< normEn << "\t"
-                          //<< circEn << "\t"
-                          //<< brown.getBrownianEnergy() << "\t"
-                          //<< visco.getViscosityEnergy() << "\t"
-                       << ops.getMSD() << "\t"
-                       << ops.getRMSAngleDeficit()
-                       << std::endl;
+            // Write x to data file
+	    for(auto idx = 0; idx < 6*N-1; ++idx)
+		detailedOP << x(idx) <<",";
+	    detailedOP << x(6*N-1) << std::endl;
 
             // Update prevX
             prevX = x.head(3*N);

@@ -11,16 +11,31 @@ set(CMAKE_CXX_STANDARD 14)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(Eigen REQUIRED)
 find_package(VTK REQUIRED)
-find_package(Boost REQUIRED)
+include(${VTK_USE_FILE})
+
 find_package(CGAL REQUIRED)
+include( ${CGAL_USE_FILE} )
+
+find_package(Boost REQUIRED COMPONENTS "filesystem")
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+
+find_library( FFTW3_LIBRARY "fftw3" HINTS ${FFTW3_ROOT} )
+
+find_library( SHTOOLS_LIBRARY "SHTOOLS" HINTS ${SHTOOLS_ROOT} )
+if(${SHTOOLS_LIBRARY} STREQUAL "SHTOOLS-NOTFOUND")
+        message(" SHTOOLS_LIBRARY not found in default locations. Set SHTOOLS_ROOT to specify custom location." )
+endif( ${SHTOOLS_LIBRARY} STREQUAL "SHTOOLS-NOTFOUND" )
+
+find_path( SHTOOLS_INCLUDE_DIR "shtools.mod" PATHS ${SHTOOLS_ROOT} PATH_SUFFIXES "include")
+if(${SHTOOLS_INCLUDE_DIR} STREQUAL "SHTOOLS_INCLUDE_DIR-NOTFOUND")
+        message(" File shtools.mod was not found in default locations. Set SHTOOLS_ROOT to specify custom location." )
+endif( ${SHTOOLS_INCLUDE_DIR} STREQUAL "SHTOOLS_INCLUDE_DIR-NOTFOUND" )
+
 #find_package(OpenMP REQUIRED)
 #if (OPENMP_FOUND)
 #    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 #    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 #endif()
-include(${VTK_USE_FILE})
-include(${CGAL_USE_FILE})
 
 add_subdirectory(src)
