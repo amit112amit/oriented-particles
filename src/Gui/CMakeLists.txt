@@ -25,9 +25,9 @@ set(EXECS opsLive roughness)
 set(INCLD Bodies Model Solvers Helpers)
 foreach(EXE ${EXECS})
         target_link_libraries(${EXE} Qt5::Core Qt5::Gui
-                Qt5::Widgets ${VTK_LIBRARIES} ${QWT_LIBRARIES})
+	    Qt5::Widgets ${VTK_LIBRARIES} ${QWT_LIBRARIES} Eigen3::Eigen)
         target_include_directories(${EXE} PUBLIC ${QWT_INCLUDE_DIRS}
-                ${Boost_INCLUDE_DIRS} ${EIGEN_INCLUDE_DIRS})
+                ${Boost_INCLUDE_DIRS})
         foreach(DIR ${INCLD})
                 target_link_libraries(${EXE} ${DIR})
                 target_include_directories(${EXE} PRIVATE "${PROJECT_SOURCE_DIR}/../${DIR}")
