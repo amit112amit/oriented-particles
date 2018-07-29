@@ -11,12 +11,6 @@ add_executable(asphericity Asphericity.cxx)
 add_executable(inertia Inertia.cxx)
 add_executable(plate PlateMelting.cxx)
 add_executable(printDoF PrintDOF.cxx)
-add_executable(sphHarm SphericalHarmonics.cxx)
-
-add_library( shtoolswrapper STATIC SHTools_Wrapper.f95)
-target_include_directories( shtoolswrapper PRIVATE ${SHTOOLS_INCLUDE_DIR} )
-target_link_libraries( shtoolswrapper PRIVATE ${SHTOOLS_LIBRARY}
-    ${LAPACK_LIBRARIES} ${FFTW3_LIBRARY})
 
 # Add HDF5 libraries and headers
 #find_package(HDF5 REQUIRED COMPONENTS CXX)
@@ -35,8 +29,3 @@ foreach(DRIVER ${DRIVERS})
         target_include_directories(${DRIVER} PRIVATE "${PROJECT_SOURCE_DIR}/../${DIR}")
     endforeach(DIR)
 endforeach(DRIVER)
-
-target_link_libraries( sphHarm Eigen3::Eigen ${CGAL_LIBRARIES} shtoolswrapper)
-target_include_directories( sphHarm PRIVATE ${CGAL_INCLUDE_DIRS} )
-
-add_dependencies( sphHarm shtoolswrapper )

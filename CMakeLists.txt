@@ -17,9 +17,8 @@ include(${VTK_USE_FILE})
 find_package(CGAL REQUIRED)
 include( ${CGAL_USE_FILE} )
 
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED COMPONENTS "filesystem")
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-find_package(LAPACK REQUIRED)
 
 find_library( FFTW3_LIBRARY "fftw3" HINTS ${FFTW3_ROOT} )
 

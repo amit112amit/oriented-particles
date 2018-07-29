@@ -7,7 +7,6 @@
 #include "Model.h"
 #include "OPSBody.h"
 #include "OPSModel.h"
-#include "ViscosityBody.h"
 #include "HelperFunctions.h"
 
 using namespace OPS;

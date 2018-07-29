@@ -1,24 +1,3 @@
-!----------------------------------------------------------------------!
-subroutine SHExpandLSQ_Wrapper(cilm, d, lat, lon, nmax, lmax, chi2)
-    ! This wrapper ensures that the input arrays have
-    ! correct dimensions when calling SHExpandLSQ
-    use SHTOOLS, only: SHExpandLSQ
-
-    implicit none
-    real*8, intent(in) :: d(nmax), lat(nmax), lon(nmax)
-    real*8, intent(out):: cilm(2, lmax + 1, lmax + 1)
-    integer,intent(in) :: nmax, lmax
-    real*8, intent(out):: chi2
-    integer :: norm, csphase, exitstatus
-    norm = 4
-    csphase = 1
-    exitstatus = 0
-
-    call SHExpandLSQ(cilm, d, lat, lon, nmax, lmax, norm, chi2, csphase, &
-        exitstatus)
-
-end subroutine SHExpandLSQ_Wrapper
-
 !---------------------------------------------------------------!
 subroutine MakeGridPoints_Wrapper(cilm, lmax, n, lat, lon, points, dealloc)
     ! This wrapper ensures that the input arrays have
