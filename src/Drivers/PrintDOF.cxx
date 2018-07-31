@@ -185,7 +185,8 @@ int main(int argc, char* argv[]){
         viterMax = coolVec[z][5];
 
         // Write gamma and beta to output file
-        detailedOP << "#Gamma\t" << gamma << "\tBeta\t" << beta << std::endl;
+        detailedOP << "#N "<< N << " Gamma " << gamma << " Beta " << beta
+	    << std::endl;
 
         // Update OPS params
         s = (100 / percentStrain)*log(2.0);
@@ -202,6 +203,10 @@ int main(int argc, char* argv[]){
             solver.solve();
             ops.saveInitialPosition();
             ops.getInitialPositions( initPos );
+            // Write the zero temperature x to data file
+	    for(auto idx = 0; idx < 6*N-1; ++idx)
+		detailedOP << x(idx) <<",";
+	    detailedOP << x(6*N-1) << std::endl;
         }
 
         // Update prevX
