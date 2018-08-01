@@ -58,12 +58,16 @@ int main(int argc, char* argv[]){
 	return 0;
     }
 
-    auto f_path = std::string( argv[2] ) + "/f.dat";
+    auto f_path = std::string( argv[2] ) + "/f0.dat";
     std::ofstream f_file(f_path);
+    auto df2_path = std::string( argv[2] ) + "/df2.dat";
+    std::ofstream df2_file(df2_path);
     auto u_path = std::string( argv[2] ) + "/u2.dat";
     std::ofstream u_file(u_path);
-    auto Alm_path = std::string( argv[2] ) + "/Alm.dat";
-    std::ofstream Alm_file(Alm_path);
+    auto Alm_mean_path = std::string( argv[2] ) + "/Alm_mean.dat";
+    std::ofstream Alm_mean_file(Alm_mean_path);
+    auto Alm_var_path = std::string( argv[2] ) + "/Alm_var.dat";
+    std::ofstream Alm_var_file(Alm_var_path);
     auto spec_path = std::string( argv[2] ) + "/spectrum.dat";
     std::ofstream spec_file(spec_path);
 
@@ -71,19 +75,26 @@ int main(int argc, char* argv[]){
 	std::cout<< "Failed to create output file " << f_path;
 	return 0;
     }
+    if(!df2_file){
+	std::cout<< "Failed to create output file " << df2_path;
+	return 0;
+    }
     if(!u_file){
 	std::cout<< "Failed to create output file " << u_path;
 	return 0;
     }
-    if(!Alm_file){
-	std::cout<< "Failed to create output file " << Alm_path;
+    if(!Alm_mean_file){
+	std::cout<< "Failed to create output file " << Alm_mean_path;
+	return 0;
+    }
+    if(!Alm_var_file){
+	std::cout<< "Failed to create output file " << Alm_var_path;
 	return 0;
     }
     if(!spec_file){
 	std::cout<< "Failed to create output file " << spec_path;
 	return 0;
     }
-
 
     //**********************************************************************//
     // Now read the first( or the header ) line of the data file
@@ -94,11 +105,24 @@ int main(int argc, char* argv[]){
     std::getline( inputfile, line );
     std::istringstream header( line );
     header >> ignore >> N >> ignore >> gamma >> ignore >> beta;
+    int lmax = std::floor( std::sqrt(N) - 1 );
+
+    // Write column names in the output files
+    f_file << "f0" << std::endl;
+    df2_file << "df2" << std::endl;
+    u_file << "mean,variance" << std::endl;
+    for(auto i = 0; i < lmax; ++i){
+	Alm_mean_file<< "l" << i <<",";
+	Alm_var_file<< "l" << i <<",";
+	spec_file<< "l" << i << ",";
+    }
+    Alm_mean_file << "l" << lmax << std::endl;
+    Alm_var_file << "l" << lmax << std::endl;
+    spec_file << "l" << lmax << std::endl;
 
     //**********************************************************************//
     // Create the Gauss-Lengendre grid
     //
-    int lmax = std::floor( std::sqrt(N) - 1 );
     int nlat, nlong;
     Eigen::VectorXd latglq(lmax + 1);
     Eigen::VectorXd longlq(2*lmax + 1);
@@ -306,6 +330,7 @@ int main(int argc, char* argv[]){
 
     //***************************** MAIN LOOP ******************************//
     // Now iterate over the remaining rows
+    auto f0_mean = 0.0;
     auto rowCount = 1;
     while( std::getline(inputfile, line) ){
 
@@ -320,6 +345,8 @@ int main(int argc, char* argv[]){
 	VectorXd finput(N);
 	finput = ((Xt - X0).array()*x0.array()).matrix().colwise().sum();
 	auto f0 = finput.mean();
+	f_file << f0 << std::endl;
+	f0_mean += f0;
 
 	// Calculate tangent fluctuations
 	VectorXd u_squared(N);
@@ -328,6 +355,9 @@ int main(int argc, char* argv[]){
 	    u = x0.col(i).cross( Xt.col(i).cross( x0.col(i) ) );
 	    u_squared(i) = u.squaredNorm();
 	}
+	u_file << u_squared.mean() << "," << (u_squared - 
+		u_squared.mean()*VectorXd::Ones(N)).array().square().mean()
+	    << std::endl;
 
 	// Now calculate f at quadrature points from finput by interpolation
 	gridglq.setZero(numQ);
@@ -343,17 +373,45 @@ int main(int argc, char* argv[]){
 		plx.data());
 
 	// Calculate Alm coefficients and their mean and variance
-	index = 0;
-	VectorXd Alm_vec( (lmax + 1)*(lmax + 1) );
-	for( auto l = 0; l <= lmax; ++l ){
+	for( auto l = 0; l < lmax; ++l ){
+	    std::vector<double_t> Alm_vec;
+	    double_t Alm_mean = 0.0;
 	    for( auto m = -l; m <= l; ++m){
-		Alm_vec(index++) = A_lm(l,m);
+		auto Alm = A_lm(l,m);
+		Alm_mean += Alm;
+		Alm_vec.push_back(Alm);
 	    }
+	    auto n = Alm_vec.size();
+	    Alm_mean /= n;
+	    double_t Alm_var = 0.0;
+	    for( const auto &alm : Alm_vec ){
+		Alm_var += (alm - Alm_mean)*(alm - Alm_mean);
+	    }
+	    Alm_var /= n;
+	    //Write the mean and variance to file
+	    Alm_mean_file << Alm_mean << ",";
+	    Alm_var_file << Alm_var << ",";
 	}
-	Alm_file << Alm_vec.mean() << ","
-	    << (Alm_vec - Alm_vec.mean()*
-		    VectorXd::Ones((lmax + 1)*(lmax + 1)))
-	    .array().square().mean() << std::endl;
+
+	{
+	    std::vector<double_t> Alm_vec;
+	    double_t Alm_mean = 0.0;
+	    for( auto m = -lmax; m <= lmax; ++m ){
+		auto Alm = A_lm(lmax,m);
+		Alm_mean += Alm;
+		Alm_vec.push_back(Alm);
+	    }
+	    auto n = Alm_vec.size();
+	    Alm_mean /= n;
+	    double_t Alm_var = 0.0;
+	    for( const auto &alm : Alm_vec ){
+		Alm_var += (alm - Alm_mean)*(alm - Alm_mean);
+	    }
+	    Alm_var /= n;
+	    //Write the mean and variance to file
+	    Alm_mean_file << Alm_mean << std::endl;
+	    Alm_var_file << Alm_var << std::endl;
+	}
 
 	// Get the power spectrum and write it to file
 	shpowerspectrum_wrapper_( cilm.data(), &lmax, pspectrum.data() );
@@ -361,20 +419,43 @@ int main(int argc, char* argv[]){
 	    spec_file<< pspectrum(l) << ",";
 	spec_file<< pspectrum(lmax) << std::endl;
 
-	// Calculate mean and variance of finput
-	f_file << finput.mean() << ","
-	    << (finput - finput.mean()*
-		    VectorXd::Ones(N))
-	    .array().square().mean() << std::endl;
-
 	rowCount++;
-
     }
-    inputfile.close();
+    // Time average of f0
+    f0_mean /= rowCount;
+
+    // Close all the open files
     spec_file.close();
     f_file.close();
     u_file.close();
-    Alm_file.close();
+    Alm_mean_file.close();
+    Alm_var_file.close();
+
+    // Now we will read the input data file again to calculate variance of
+    // finput over all time steps 
+    inputfile.clear();
+    inputfile.seekg(0, std::ios::beg);
+    std::getline( inputfile, line ); // Eat the header line
+    std::getline( inputfile, line ); // Eat the zero temperature line
+
+    while( std::getline(inputfile, line) ){
+
+	std::istringstream rowStream(line);
+
+	// We will extract 3*N doubles representing particle positions
+	// from the stream and ignore the 3*N rotation vector components
+	Matrix3Xd Xt(3,N);
+	readMatrix3Xd( rowStream, Xt );
+
+	// Calculate finput for all particles
+	VectorXd finput(N);
+	finput = ((Xt - X0).array()*x0.array()).matrix().colwise().sum();
+	df2_file <<(finput - f0_mean*
+		VectorXd::Ones(N)).array().square().mean() << std::endl;
+
+    }
+
+    df2_file.close();
 
     std::cout<< "Time elapsed = " << ((float)(clock() - t))/CLOCKS_PER_SEC
 	<< " seconds." << std::endl;
