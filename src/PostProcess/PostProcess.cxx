@@ -343,6 +343,7 @@ int main(int argc, char* argv[]){
 
 	// Calculate finput for all particles
 	VectorXd finput(N);
+	//VectorXd u_squared(N);
 	finput = ((Xt - X0).array()*x0.array()).matrix().colwise().sum();
 	auto f0 = finput.mean();
 	f_file << f0 << std::endl;
@@ -350,12 +351,8 @@ int main(int argc, char* argv[]){
 
 	// Calculate tangent fluctuations
 	VectorXd u_squared(N);
-	for( auto i = 0; i < N; ++i){
-	    Vector3d u, ft;
-	    u = x0.col(i).cross( Xt.col(i).cross( x0.col(i) ) );
-	    u_squared(i) = u.squaredNorm();
-	}
-	u_file << u_squared.mean() << "," << (u_squared - 
+	u_squared = ((Xt-X0) - x0*finput.asDiagonal()).colwise().squaredNorm();
+	u_file << u_squared.mean() << "," << (u_squared -
 		u_squared.mean()*VectorXd::Ones(N)).array().square().mean()
 	    << std::endl;
 
@@ -432,7 +429,7 @@ int main(int argc, char* argv[]){
     Alm_var_file.close();
 
     // Now we will read the input data file again to calculate variance of
-    // finput over all time steps 
+    // finput over all time steps
     inputfile.clear();
     inputfile.seekg(0, std::ios::beg);
     std::getline( inputfile, line ); // Eat the header line

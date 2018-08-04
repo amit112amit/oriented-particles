@@ -32,7 +32,7 @@ int main(int argc, char* argv[]){
     // 3. Row number to plot -- 0 indexed row number
     // 4. Output VTK file name
     if( argc < 4 ){
-	std::cout<< "Usage: ./postProcess <number_of_particles> <data_file> "
+	std::cout<< "Usage: ./plotRow <number_of_particles> <data_file> "
 	    << "<row_num> <output_vtk_file>" << std::endl;
 	return 0;
     }
