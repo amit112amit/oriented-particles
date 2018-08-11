@@ -72,7 +72,7 @@ public:
     double_t getAverageRadius();
     inline double_t getCircularityEnergy(){return _circEn;}
     inline void getInitialPositions(Matrix3Xd &v){ v = _initialPositions;}
-    double_t getMeanSquaredDisplacement();
+    std::array<double_t,2> getMeanSquaredDisplacement();
     double_t getMSD();
     inline std::vector<size_t> getInitialNeighbors(){
         return _initialNearestNeighbor;
@@ -125,7 +125,7 @@ public:
 protected:
     bool _updateArea = true, _updateRadius = true, _updateVolume = true;
     double_t _area = 0, _radius = 0, _volume = 0, _morseEn, _normalEn,
-    _circEn, _re = 1.0, _a = 4.62098120373, _gamma_inv = 10.0, _msd;
+    _circEn, _re = 1.0, _a = 4.62098120373, _gamma_inv = 10.0, _msd, _msd_tgt;
     int _N;
     MapM3Xd _positions, _posGradient, _rotGradient, _rotationVectors, _prevX;
     MapVXd _x, _g, _pX;

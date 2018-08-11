@@ -325,15 +325,13 @@ void OPSModel::updateRotationVectors(){
     }
 }
 
-//! Calculate mean-squared displacement
-//! The tangential MSD calculation has been commented out
+//! Calculate only the full mean-squared displacement
 double_t OPSModel::getMSD(){
     _msd = 0;
     vtkIdType nn;
-    // We will subtract off the radial displacement.
     for (auto i = 0; i < _N ; ++i) {
-        Vector3d diff, xi_diff, xj_diff;
-        Vector3d xi0, xj0, xi1, xj1;
+        Vector3d xi, xj, diff, xi_diff, xj_diff;
+        Vector3d xi0, xj0, xi1, xj1, ni0, nj0;
 
         nn = _initialNearestNeighbor[i];
 
@@ -348,9 +346,50 @@ double_t OPSModel::getMSD(){
 
         diff = xi_diff - xj_diff;
         _msd += diff.dot(diff);
+
     }
-    _msd /= 2*_N;
+    _msd /= _N;
     return _msd;
+}
+
+//! Calculate tangential and full mean-squared displacement
+std::array<double_t,2> OPSModel::getMeanSquaredDisplacement(){
+    _msd = 0;
+    _msd_tgt = 0;
+    std::array<double_t,2> msdAll;
+    vtkIdType nn;
+    // We will subtract off the radial displacement.
+    for (auto i = 0; i < _N ; ++i) {
+        Vector3d xi, xj, diff, xi_diff, xj_diff;
+        Vector3d xi0, xj0, xi1, xj1, ni0, nj0;
+
+        nn = _initialNearestNeighbor[i];
+
+        xi0 = _initialPositions.col(i);
+        xi1 = _positions.col(i);
+        ni0 = xi0.normalized();
+
+        xj0 = _initialPositions.col(nn);
+        xj1 = _positions.col(nn);
+        nj0 = xj0.normalized();
+
+        xi_diff = (xi1 - xi0);
+        xj_diff = (xj1 - xj0);
+
+        xi = xi_diff - (ni0.dot(xi_diff)*ni0);
+        xj = xj_diff - (nj0.dot(xj_diff)*nj0);
+
+        diff = xi_diff - xj_diff;
+        _msd += diff.dot(diff);
+
+        diff = xi - xj;
+        _msd_tgt += diff.dot(diff);
+    }
+    _msd /= _N;
+    _msd_tgt /= _N;
+    msdAll[0] = _msd;
+    msdAll[1] = _msd_tgt;
+    return msdAll;
 }
 
 //! Calculate asphericity

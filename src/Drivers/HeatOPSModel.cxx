@@ -176,6 +176,7 @@ int main(int argc, char* argv[]){
                   //<< "BrownEn"  <<"\t"
                   //<< "ViscoEn"  <<"\t"
                << "MSD" << "\t"
+               << "MSDT" << "\t"
                << "RMSAngleDeficit"
                << std::endl;
 
@@ -290,6 +291,7 @@ int main(int argc, char* argv[]){
                 sstm.clear();
             }
 
+            auto msds = ops.getMeanSquaredDisplacement();
             //double_t morseEn = ops.getMorseEnergy();
             //double_t normEn = ops.getNormalityEnergy();
             //double_t circEn = ops.getCircularityEnergy();
@@ -307,7 +309,8 @@ int main(int argc, char* argv[]){
                           //<< circEn << "\t"
                           //<< brown.getBrownianEnergy() << "\t"
                           //<< visco.getViscosityEnergy() << "\t"
-                       << ops.getMSD() << "\t"
+                       << msds[0] << "\t"
+                       << msds[1] << "\t"
                        << ops.getRMSAngleDeficit()
                        << std::endl;
 
