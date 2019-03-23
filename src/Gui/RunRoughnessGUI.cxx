@@ -26,6 +26,7 @@
 
 #include "QVTKApplication.h"
 #include "QVTKOpenGLWidget.h"
+#include <QSurfaceFormat>
 #include "RoughnessWidget.h"
 
 int main(int argc, char** argv)
