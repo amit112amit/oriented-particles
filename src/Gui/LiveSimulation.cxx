@@ -338,9 +338,11 @@ void LiveSimulation::ReadFvKAreaData(std::string s){
 
 // Update gamma and area constraint value
 void LiveSimulation::UpdateGamma(double g){
-    _gamma = g;
-    _ops->setFVK(g);
-    _constraint->setConstraint(GetInterpolatedValue(g,_areaDat));
+    //_gamma = g;
+    _gamma = g/254.5627868209322; // To match the values in Thesis
+    //_ops->setFVK(g);
+    _ops->setFVK(_gamma);
+    _constraint->setConstraint(GetInterpolatedValue(_gamma,_areaDat));
     emit updateZeroOpsEn(GetInterpolatedValue(_gamma,_opsEnDat));
     emit updateZeroRmsAd(GetInterpolatedValue(_gamma,_rmsAdDat));
     emit updateZeroVolume(GetInterpolatedValue(_gamma,_volDat));

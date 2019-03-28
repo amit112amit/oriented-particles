@@ -8,7 +8,7 @@ LiveSimulationWindow::LiveSimulationWindow(QWidget *parent){
     _gammaSlider->setScaleEngine( new QwtLogScaleEngine );
     _gammaSlider->setStepAlignment( false );
     _gammaSlider->setBorderWidth( 1 );
-    _gammaSlider->setScale( 1.0e-2, 1.0e4 );
+    _gammaSlider->setScale( 1.0, 1.0e6 );
     _gammaSlider->setTotalSteps( 200 );
     _gammaSlider->setPageSteps( 10 );
     _gammaSlider->setScaleMaxMinor( 9 );

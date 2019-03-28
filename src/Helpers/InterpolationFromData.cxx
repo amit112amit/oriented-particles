@@ -37,6 +37,7 @@ void ReadInterpolationData(string s, vec &gammaDat, vec &volDat,
 }
 
 // Interpolation of area
+// Note: This requires xDat to be sorted in descending order.
 vec GetInterpolatedValue(double_t x, vec &xDat, vec &y,
                          vec &z, vec &w){
     int size = xDat.size();
