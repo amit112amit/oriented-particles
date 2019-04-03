@@ -459,7 +459,84 @@ void LiveSimulation::SolveOneStep(){
 }
 
 vtkSmartPointer<vtkPolyData> LiveSimulation::GetPolyData(){
-    return _ops->getPolyData();
+    if(_computeVoronoi){
+	auto copyOpsPolyData = vtkSmartPointer<vtkPolyData>::New();
+	copyOpsPolyData->DeepCopy(_ops->getPolyData());
+	copyOpsPolyData->BuildLinks();
+	size_t npts = copyOpsPolyData->GetNumberOfPoints();
+	// get vertex positions
+	std::vector< Vector3d > points( npts, Vector3d::Zero() );
+	// Calculate centroid of each triangle while updating points vector
+	auto newPts = vtkSmartPointer<vtkPoints>::New();
+	vtkSmartPointer<vtkCellArray> cells = copyOpsPolyData->GetPolys();
+	auto cellPointIds = vtkSmartPointer<vtkIdList>::New();
+	cells->InitTraversal();
+	while( cells->GetNextCell( cellPointIds ) ){
+	    size_t numCellPoints = cellPointIds->GetNumberOfIds();
+	    Vector3d centroid(0.0,0.0,0.0);
+	    for(size_t i=0; i < numCellPoints; i++){
+		vtkIdType currCellPoint = cellPointIds->GetId(i);
+		copyOpsPolyData->GetPoint( currCellPoint, &points[currCellPoint][0] );
+		centroid += points[currCellPoint];
+	    }
+	    centroid /= numCellPoints;
+	    newPts->InsertNextPoint( &centroid[0] );
+	}
+
+	// Prepare valence Cell Data array
+	auto valence = vtkSmartPointer<vtkIntArray>::New();
+	valence->SetName("Valence");
+	valence->SetNumberOfComponents(1);
+
+	// Prepare new cell array for polygons
+	auto newPolys = vtkSmartPointer<vtkCellArray>::New();
+	for(size_t a=0; a < npts; a++) {
+	    auto currPolyPtIds = vtkSmartPointer<vtkIdList>::New();
+	    std::list< neighbors > currPoly;
+	    Vector3d vec0, vecj, currCross, axis, centroid(0.0,0.0,0.0);
+	    double vec0_norm, vecj_norm, sign, currSin, currCos, currAngle;
+	    copyOpsPolyData->GetPointCells( a, currPolyPtIds );
+	    size_t numCellPoints = currPolyPtIds->GetNumberOfIds();
+	    // Get coordinates of first cell's centroid
+	    vtkIdType currId = currPolyPtIds->GetId(0);
+	    newPts->GetPoint( currId, &centroid[0] );
+	    vec0 = (centroid - points[a]).normalized();
+	    neighbors pt0(currId, 0.0);
+	    currPoly.push_back( pt0 );
+	    // For remaining centroids
+	    for(auto j=1; j < numCellPoints; j++){
+		currId = currPolyPtIds->GetId(j);
+		newPts->GetPoint( currId, &centroid[0] );
+		vecj = (centroid - points[a]).normalized();
+		currSin = (vec0.cross( vecj )).norm();
+		axis = (vec0.cross( vecj )).normalized();
+		sign = axis.dot( points[a] );
+		currSin = (sign > 0.0) ? currSin : -1.0 * currSin;
+		currCos = vec0.dot( vecj );
+		currAngle = (180 / M_PI) * atan2(currSin, currCos);
+		currAngle = (currAngle < 0) ? (360 + currAngle) : currAngle;
+		neighbors ptj(currId, currAngle);
+		currPoly.push_back(ptj);
+	    }
+	    //Sort the list of neigbors and make a polygon
+	    currPoly.sort();
+	    newPolys->InsertNextCell( numCellPoints );
+	    for(auto t = currPoly.begin(); t != currPoly.end(); ++t){
+		neighbors n = *t;
+		newPolys->InsertCellPoint( n._id );
+	    }
+	    valence->InsertNextTuple1( numCellPoints );
+	}
+	//Assign points and polygons to a new polydata and send it out
+	auto newPolyData = vtkSmartPointer<vtkPolyData>::New();
+	newPolyData->SetPoints( newPts );
+	newPolyData->SetPolys( newPolys );
+	newPolyData->GetCellData()->AddArray( valence );
+	return newPolyData;
+
+    }else{
+	return _ops->getPolyData();
+    }
 }
 
 void LiveSimulation::Reset(){

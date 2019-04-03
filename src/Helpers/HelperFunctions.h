@@ -74,7 +74,16 @@ private:
     NormD rng;
 };
 
-//! A struct to hold Alm
+//! A struct to store a vtkIdType and an angle
+struct neighbors{
+    vtkIdType _id;
+    double_t _angle;
+    neighbors(vtkIdType i, double_t a):_id(i), _angle(a){}
+    bool operator <(const neighbors &n) const{
+	return _angle < n._angle;
+    }
+};
+
 
 //! Rotates a point cloud to get rid of rigid body motions
 Eigen::Affine3d find3DAffineTransform(Eigen::Ref<Eigen::Matrix3Xd> in,

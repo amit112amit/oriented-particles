@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <vtkSmartPointer.h>
 #include <vtkPolyDataReader.h>
+#include <vtkCellData.h>
 #include <boost/circular_buffer.hpp>
 #include <Eigen/Eigenvalues>
 #include <QObject>
@@ -114,6 +115,7 @@ public slots:
     void LoadState( QString s );
     void SaveState( QString s );
     void SaveScene( QString s );
+    void ComputeVoronoi( bool b ){ _computeVoronoi = b;};
 
 signals:
     void simulationReady();
@@ -127,6 +129,7 @@ signals:
 
 private:
     bool _keepRunning = true;
+    bool _computeVoronoi = false;
     size_t _step = 0, _N, _resetStepVal = 0;
     double_t _alpha = 2.5e5;
     double_t _beta = 10;

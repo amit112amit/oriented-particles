@@ -24,6 +24,27 @@ LiveSimulationWindow::LiveSimulationWindow(QWidget *parent){
     _tempSlider->setTotalSteps( 200 );
     _tempSlider->setValue(0.10);
     _tempValLbl->setText(QString::number(0.10));
+    // Create VTK actors and mappers
+    _actor = vtkSmartPointer<vtkOpenGLActor>::New();
+    _mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    _gActor = vtkSmartPointer<vtkOpenGLActor>::New();
+    _gMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    // Create a lookup table to map cell data to colors
+    _lookup = vtkSmartPointer<vtkLookupTable>::New();
+    _lookup->SetNumberOfTableValues(10);
+    _lookup->Build();
+
+    // Fill in a few known colors, the rest will be generated if needed
+    _lookup->SetTableValue(0     , 0     , 0     , 0, 1);  //Black
+    _lookup->SetTableValue(1, 0.8900, 0.8100, 0.3400, 1); // Banana
+    _lookup->SetTableValue(2, 1.0000, 0.3882, 0.2784, 1); // Tomato
+    _lookup->SetTableValue(3, 0.9608, 0.8706, 0.7020, 1); // Wheat
+    _lookup->SetTableValue(4, 0.9020, 0.9020, 0.9804, 1); // Lavender
+    _lookup->SetTableValue(5, 1.0000, 0.4900, 0.2500, 1); // Flesh
+    _lookup->SetTableValue(6, 0.5300, 0.1500, 0.3400, 1); // Raspberry
+    _lookup->SetTableValue(7, 0.9804, 0.5020, 0.4471, 1); // Salmon
+    _lookup->SetTableValue(8, 0.7400, 0.9900, 0.7900, 1); // Mint
+    _lookup->SetTableValue(9, 0.2000, 0.6300, 0.7900, 1); // Peacock
 
     // Set up the angle deficit plot
     //_angleDeficitPlot->setTitle("RMS Angle Deficit");
@@ -126,6 +147,7 @@ LiveSimulationWindow::LiveSimulationWindow(QWidget *parent){
     connect(this, SIGNAL(loadStateFile(QString)), _worker, SLOT(LoadState(QString)));
     connect(this, SIGNAL(saveStateFile(QString)), _worker, SLOT(SaveState(QString)));
     connect(this, SIGNAL(saveVTKFile(QString)), _worker, SLOT(SaveScene(QString)));
+    connect(this, SIGNAL(showVoronoi(bool)), _worker, SLOT(ComputeVoronoi(bool)));
 }
 
 void LiveSimulationWindow::on__initBtn_clicked(){
@@ -165,29 +187,38 @@ void LiveSimulationWindow::setUpVTKPipeAndPlotData(){
     // Set up QVTKOpenGLRenderer
     //std::lock_guard<std::mutex> lock(_mutex);
     _poly->DeepCopy(_worker->GetPolyData());
+    _poly->GetCellData()->SetActiveScalars(_colorarray.c_str());
     auto glyph = vtkSmartPointer<vtkGlyph3D>::New();
-    auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    auto gMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    auto actor = vtkSmartPointer<vtkOpenGLActor>::New();
-    auto gActor = vtkSmartPointer<vtkOpenGLActor>::New();
     auto renderer = vtkSmartPointer<vtkOpenGLRenderer>::New();
     // Set the shell mapper and actor
-    mapper->SetInputData(_poly);
-    mapper->ScalarVisibilityOff();
-    actor->SetMapper(mapper);
-    actor->GetProperty()->SetColor(0.6666667,1.,1.);
-    //actor->GetProperty()->EdgeVisibilityOn();
-    //actor->GetProperty()->SetEdgeColor(0.3,1,1);
+    _mapper->SetInputData(_poly);
+    _mapper->SetScalarRange(0, 9);
+    _mapper->SetLookupTable(_lookup);
+    //_actor->GetProperty()->EdgeVisibilityOn();
+    //_actor->GetProperty()->SetEdgeColor(0.3,1,1);
     // Set the glyph mapper and actor
     glyph->SetInputData(_poly);
     glyph->SetSourceConnection(_glyphSource->GetOutputPort());
-    gMapper->SetInputConnection(glyph->GetOutputPort());
-    gMapper->ScalarVisibilityOff();
-    gActor->SetMapper(gMapper);
-    gActor->GetProperty()->SetColor(0.6666667,0.,0.);
+    _gMapper->SetInputConnection(glyph->GetOutputPort());
+    // We need to turn off some actors
+    if(_showVoronoi){
+	_gActor->VisibilityOff();
+	_mapper->ScalarVisibilityOn();
+	_mapper->SetScalarRange(0, 9);
+	_mapper->SetLookupTable(_lookup);
+    }else{
+	_gActor->VisibilityOn();
+	_gMapper->ScalarVisibilityOff();
+	_gActor->GetProperty()->SetColor(0.6666667,0.,0.);
+	_mapper->ScalarVisibilityOff();
+	_actor->GetProperty()->SetColor(0.6666667,1.,1.);
+    }
+    // Set mappers
+    _actor->SetMapper(_mapper);
+    _gActor->SetMapper(_gMapper);
     // Add the two actors to renderer
-    renderer->AddViewProp(actor);
-    renderer->AddViewProp(gActor);
+    renderer->AddViewProp(_actor);
+    renderer->AddViewProp(_gActor);
     renderer->SetBackground(0.318,0.341,0.431);
     _qVTK->GetRenderWindow()->AddRenderer(renderer);
     _qVTK->GetRenderWindow()->Render();
@@ -211,7 +242,20 @@ void LiveSimulationWindow::refreshVTKSceneAndPlots(int s){
     // Update the VTK scene
     //std::lock_guard<std::mutex> lock(_mutex);
     _poly->DeepCopy(_worker->GetPolyData());
+    _poly->GetCellData()->SetActiveScalars(_colorarray.c_str());
     _poly->Modified();
+    if(_showVoronoi){
+	_gActor->VisibilityOff();
+	_mapper->ScalarVisibilityOn();
+	_mapper->SetScalarRange(0, 9);
+	_mapper->SetLookupTable(_lookup);
+    }else{
+	_gActor->VisibilityOn();
+	_gMapper->ScalarVisibilityOff();
+	_gActor->GetProperty()->SetColor(0.6666667,0.,0.);
+	_mapper->ScalarVisibilityOff();
+	_actor->GetProperty()->SetColor(0.6666667,1.,1.);
+    }
     _qVTK->GetRenderWindow()->Render();
     // Update the plots
     qreal x1,y1,x2,y2;
@@ -252,7 +296,20 @@ void LiveSimulationWindow::refreshVTKSceneAndPlots(int s){
 
 void LiveSimulationWindow::resetVTKSceneAndPlots(){
     _poly->DeepCopy(_worker->GetPolyData());
+    _poly->GetCellData()->SetActiveScalars(_colorarray.c_str());
     _poly->Modified();
+    if(_showVoronoi){
+	_gActor->VisibilityOff();
+	_mapper->ScalarVisibilityOn();
+	_mapper->SetScalarRange(0, 9);
+	_mapper->SetLookupTable(_lookup);
+    }else{
+	_gActor->VisibilityOn();
+	_gMapper->ScalarVisibilityOff();
+	_gActor->GetProperty()->SetColor(0.6666667,0.,0.);
+	_mapper->ScalarVisibilityOff();
+	_actor->GetProperty()->SetColor(0.6666667,1.,1.);
+    }
     _qVTK->GetRenderWindow()->Render();
     _timeStepValLbl->setText(QString::number(int(_xmin)));
     _startStopBtn->setText(QString("Start"));
@@ -300,7 +357,7 @@ void LiveSimulationWindow::updateZeroVolumeMarker(double r){
     _volumePlot->replot();
 }
 
-void LiveSimulationWindow::on_checkBox_clicked(bool checked)
+void LiveSimulationWindow::on_pressureCheckBox_clicked(bool checked)
 {
     if(checked){
         _pressureSlider->setEnabled(true);
@@ -313,6 +370,12 @@ void LiveSimulationWindow::on_checkBox_clicked(bool checked)
         _pressureValLbl->setText(QString::number(0.0));
         emit pressureChanged(0.0);
     }
+}
+
+void LiveSimulationWindow::on_voronoiCheckBox_clicked(bool checked)
+{
+    	_showVoronoi = checked;
+        emit showVoronoi(checked);
 }
 
 void LiveSimulationWindow::on_actionLoadState_triggered(){

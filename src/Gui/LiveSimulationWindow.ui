@@ -77,6 +77,13 @@
           </property>
          </widget>
         </item>
+        <item row="5" column="0">
+         <widget class="QwtTextLabel" name="Pressure">
+          <property name="plainText">
+           <string>Pressure</string>
+          </property>
+         </widget>
+        </item>
         <item row="5" column="1">
          <widget class="QwtSlider" name="_pressureSlider">
           <property name="enabled">
@@ -93,17 +100,17 @@
           </property>
          </widget>
         </item>
-        <item row="5" column="0">
-         <widget class="QwtTextLabel" name="Pressure">
-          <property name="plainText">
-           <string>Pressure</string>
+        <item row="6" column="1">
+         <widget class="QCheckBox" name="pressureCheckBox">
+          <property name="text">
+           <string>Turn on pressure</string>
           </property>
          </widget>
         </item>
-        <item row="6" column="1">
-         <widget class="QCheckBox" name="checkBox">
+        <item row="8" column="1">
+         <widget class="QCheckBox" name="voronoiCheckBox">
           <property name="text">
-           <string>Turn on pressure</string>
+           <string>Show Voronoi mesh</string>
           </property>
          </widget>
         </item>
@@ -277,7 +284,7 @@
      <x>0</x>
      <y>0</y>
      <width>1050</width>
-     <height>28</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

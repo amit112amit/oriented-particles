@@ -20,6 +20,7 @@
 #include <vtkOpenGLProperty.h>
 #include <vtkSphereSource.h>
 #include <vtkGlyph3D.h>
+#include <vtkLookupTable.h>
 #include <qwt_slider.h>
 #include <qwt_scale_engine.h>
 #include <qwt_plot.h>
@@ -51,6 +52,7 @@ signals:
     void loadStateFile(QString);
     void saveStateFile(QString);
     void saveVTKFile(QString);
+    void showVoronoi(bool);
 public slots:
     void refreshVTKSceneAndPlots(int);
     void setUpVTKPipeAndPlotData();
@@ -65,15 +67,24 @@ private slots:
     void on__tempSlider_valueChanged(double value);
     void on__gammaSlider_valueChanged(double value);
     void on__pressureSlider_valueChanged(double value);
-    void on_checkBox_clicked(bool checked);
+    void on_pressureCheckBox_clicked(bool checked);
+    void on_voronoiCheckBox_clicked(bool checked);
     void on_actionLoadState_triggered();
     void on_actionSaveState_triggered();
     void on_actionExportScene_triggered();
 
 private:
     bool _isInitialized = false;
+    bool _showVoronoi = false;
     vtkSmartPointer<vtkPolyData> _poly;
     vtkSmartPointer<vtkSphereSource> _glyphSource;
+    vtkSmartPointer<vtkLookupTable> _lookup;
+    // Actor and mapper for the surface
+    vtkSmartPointer<vtkOpenGLActor> _actor;
+    vtkSmartPointer<vtkPolyDataMapper> _mapper;
+    // Actor and mapper for the glyphs
+    vtkSmartPointer<vtkOpenGLActor> _gActor;
+    vtkSmartPointer<vtkPolyDataMapper> _gMapper;
     LiveSimulation* _worker;
     QThread* _thread;
     std::mutex _mutex;
@@ -85,6 +96,7 @@ private:
     QwtCircBuffSeriesData *_rmsAd, *_totEn, *_vol;
     double_t _xmin, _xmax, _ymin1, _ymin2, _ymin3, _ymax1,
     _ymax2, _ymax3;
+    std::string _colorarray = "Valence";
 };
 
 }
