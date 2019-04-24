@@ -11,8 +11,13 @@ set(CMAKE_CXX_STANDARD 14)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(VTK REQUIRED)
-include(${VTK_USE_FILE})
+#find_package(VTK REQUIRED)
+#include(${VTK_USE_FILE})
+find_package(VTK COMPONENTS
+  vtkFiltersExtraction
+  vtkFiltersGeometry
+  vtkIOLegacy
+)
 
 find_package(CGAL REQUIRED)
 include( ${CGAL_USE_FILE} )
