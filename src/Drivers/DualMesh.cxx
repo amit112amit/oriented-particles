@@ -16,12 +16,22 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <omp.h>
-#include "HelperFunctions.h"
+//#include "HelperFunctions.h"
 
 using namespace std;
-using namespace OPS;
+//using namespace OPS;
 
 typedef Eigen::Vector3d Vector3d;
+
+//! A struct to store a vtkIdType and an angle
+struct neighbors{
+    vtkIdType _id;
+    double_t _angle;
+    neighbors(vtkIdType i, double_t a):_id(i), _angle(a){}
+    bool operator <(const neighbors &n) const{
+	return _angle < n._angle;
+    }
+};
 
 int main(int argc, char* argv[])
 {
@@ -160,4 +170,3 @@ int main(int argc, char* argv[])
     }
     return 0;
 }
-
