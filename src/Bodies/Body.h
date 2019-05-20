@@ -1,15 +1,15 @@
 #ifndef BODY_H
 #define BODY_H
 
-#include <stdio.h>
-#include <math.h>
 #include <Eigen/Dense>
+#include <math.h>
+#include <stdio.h>
 
-namespace OPS{
+namespace OPS {
 //! Interface for Body classes
-class Body{
+class Body {
 public:
-    virtual void compute() = 0;
+  virtual void compute() = 0;
 };
-}
+} // namespace OPS
 #endif // BODY_H
