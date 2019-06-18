@@ -24,14 +24,16 @@ typedef Eigen::Map<Matrix3Xd> Map3Xd;
 typedef Eigen::Quaterniond Quaterniond;
 typedef Eigen::AngleAxisd AngleAxisd;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 
   // We expect four command line arguments:
   // 1. Number of particles in the simulation
   // 2. Name of data file from which to read rows
   // 3. Row number to plot -- 0 indexed row number
   // 4. Output VTK file name
-  if (argc < 4) {
+  if (argc < 4)
+  {
     std::cout << "Usage: ./plotRow <number_of_particles> <data_file> "
               << "<row_num> <output_vtk_file>" << std::endl;
     return 0;
@@ -44,7 +46,8 @@ int main(int argc, char *argv[]) {
   size_t row = std::stoi(std::string(argv[3]));
 
   std::ifstream inputfile(argv[2]);
-  if (!inputfile.is_open()) {
+  if (!inputfile.is_open())
+  {
     std::cout << "Unable to open file " << argv[2] << std::endl;
     return 0;
   }
@@ -62,7 +65,8 @@ int main(int argc, char *argv[]) {
 
   // Skip to the required row
   auto rowCount = 0;
-  while (rowCount < row) {
+  while (rowCount < row)
+  {
     std::getline(inputfile, line);
     rowCount++;
     continue;
@@ -77,7 +81,8 @@ int main(int argc, char *argv[]) {
   std::string value;
   size_t valCount = 0;
   Matrix3Xd positions(3, N);
-  while (valCount < 3 * N && rowStream.good()) {
+  while (valCount < 3 * N && rowStream.good())
+  {
     std::getline(rowStream, value, ',');
     positions(valCount % 3, valCount / 3) = std::stod(value);
     valCount++;
@@ -86,7 +91,8 @@ int main(int argc, char *argv[]) {
   // Read the rotation vectors
   Matrix3Xd rotVecs(3, N);
   valCount = 0;
-  while (valCount < 3 * N && rowStream.good()) {
+  while (valCount < 3 * N && rowStream.good())
+  {
     std::getline(rowStream, value, ',');
     rotVecs(valCount % 3, valCount / 3) = std::stod(value);
     valCount++;
@@ -95,7 +101,8 @@ int main(int argc, char *argv[]) {
   // Calculate point normals using the rotation vectors
   Matrix3Xd normals(3, N);
   Quaterniond zaxis(0.0, 0.0, 0.0, 1.0);
-  for (auto i = 0; i < N; ++i) {
+  for (auto i = 0; i < N; ++i)
+  {
     normals.col(i) = (Quaterniond(AngleAxisd(rotVecs.col(i).norm(),
                                              rotVecs.col(i).normalized())) *
                       zaxis *
@@ -139,13 +146,15 @@ int main(int argc, char *argv[]) {
   p0 << 0, 0, -1;
   c = rPts.col(0);
   l = (l0.colwise() - c).colwise().normalized();
-  for (auto j = 0; j < N - 1; ++j) {
+  for (auto j = 0; j < N - 1; ++j)
+  {
     proj.col(j) = ((p0(2) - l0(2, j)) / l(2, j)) * l.col(j) + l0.col(j);
   }
 
   // Insert the projected points in a CGAL vertex_with_info vector
   std::vector<std::pair<Point, unsigned>> verts;
-  for (auto j = 0; j < N - 1; ++j) {
+  for (auto j = 0; j < N - 1; ++j)
+  {
     verts.push_back(std::make_pair(Point(proj(0, j), proj(1, j)), j + 1));
   }
 
@@ -154,9 +163,10 @@ int main(int argc, char *argv[]) {
   dt.insert(verts.begin(), verts.end());
 
   // Write the finite faces of the triangulation to a VTK file
-  vtkNew<vtkCellArray> triangles;
+  auto triangles = vtkSmartPointer<vtkCellArray>::New();
   for (auto ffi = dt.finite_faces_begin(); ffi != dt.finite_faces_end();
-       ++ffi) {
+       ++ffi)
+  {
     triangles->InsertNextCell(3);
     for (auto j = 2; j >= 0; --j)
       triangles->InsertCellPoint(ffi->vertex(j)->info());
@@ -164,10 +174,13 @@ int main(int argc, char *argv[]) {
 
   // Iterate over infinite faces
   Face_circulator fc = dt.incident_faces(dt.infinite_vertex()), done(fc);
-  if (fc != 0) {
-    do {
+  if (fc != 0)
+  {
+    do
+    {
       triangles->InsertNextCell(3);
-      for (auto j = 2; j >= 0; --j) {
+      for (auto j = 2; j >= 0; --j)
+      {
         auto vh = fc->vertex(j);
         auto id = dt.is_infinite(vh) ? 0 : vh->info();
         triangles->InsertCellPoint(id);
@@ -176,19 +189,19 @@ int main(int argc, char *argv[]) {
   }
 
   // Write to vtk file
-  vtkNew<vtkDoubleArray> ptsArr;
+  auto ptsArr = vtkSmartPointer<vtkDoubleArray>::New();
   ptsArr->SetVoidArray((void *)positions.data(), 3 * N, 1);
   ptsArr->SetNumberOfComponents(3);
-  vtkNew<vtkPoints> pts;
+  auto pts = vtkSmartPointer<vtkPoints>::New();
   pts->SetData(ptsArr);
-  vtkNew<vtkPolyData> poly;
+  auto poly = vtkSmartPointer<vtkPolyData>::New();
   poly->SetPoints(pts);
   poly->SetPolys(triangles);
-  vtkNew<vtkDoubleArray> normArr;
+  auto normArr = vtkSmartPointer<vtkDoubleArray>::New();
   normArr->SetVoidArray((void *)normals.data(), 3 * N, 1);
   normArr->SetNumberOfComponents(3);
   poly->GetPointData()->SetNormals(normArr);
-  vtkNew<vtkPolyDataWriter> wr;
+  auto wr = vtkSmartPointer<vtkPolyDataWriter>::New();
   wr->SetFileName(argv[4]);
   wr->SetInputData(poly);
   wr->Write();

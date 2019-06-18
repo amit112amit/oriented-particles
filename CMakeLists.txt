@@ -39,7 +39,13 @@ endif( ${SHTOOLS_INCLUDE_DIR} STREQUAL "SHTOOLS_INCLUDE_DIR-NOTFOUND" )
 #endif()
 
 # Set path for qwt
-set(QWT_INCLUDE_DIRS "/usr/include/qwt" CACHE PATH "Set Path for qwt header files.")
-set(QWT_LIBRARIES "qwt" CACHE STRING "Name of qwt library.")
+if(CMAKE_HOST_UNIX)
+	set(QWT_INCLUDE_DIRS "/usr/include/qwt" CACHE PATH "Set Path for qwt header files.")
+	set(QWT_LIBRARIES "qwt" CACHE STRING "Name of qwt library.")
+endif(CMAKE_HOST_UNIX)
+if(CMAKE_HOST_WIN32 AND MSYS)
+	set(QWT_INCLUDE_DIRS "C:/msys64/mingw64/include/qwt" CACHE PATH "Set Path for qwt header files.")
+	set(QWT_LIBRARIES "C:/msys64/mingw64/lib/libqwt.dll.a" CACHE STRING "Name of qwt library.")
+endif(CMAKE_HOST_WIN32 AND MSYS)
 
 add_subdirectory(src)

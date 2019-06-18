@@ -13,5 +13,7 @@ compile_commands.json
 .ycm_extra_conf.py
 # Ignore .vscode folder
 .vscode
-# Ignore build folder
+# Ignore build folders
 build
+buildmsys
+buildwsl

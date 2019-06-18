@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
     initPos = state.getInitPos();
   } else {
     // No state file found. So we need to start a new simulation
-    vtkNew<vtkPolyDataReader> reader;
+    auto reader = vtkSmartPointer<vtkPolyDataReader>::New();
     reader->SetFileName(inFile.c_str());
     reader->ReadAllVectorsOn();
     reader->Update();
