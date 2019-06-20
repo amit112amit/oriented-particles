@@ -17,3 +17,6 @@ compile_commands.json
 build
 buildmsys
 buildwsl
+buildmingw
+#Ignore test folder
+test
