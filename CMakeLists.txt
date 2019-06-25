@@ -11,7 +11,13 @@ set(CMAKE_CXX_STANDARD 14)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(VTK REQUIRED)
+find_package(VTK REQUIRED COMPONENTS
+  vtkFiltersExtraction
+  vtkFiltersGeometry
+  vtkFiltersSources
+  vtkGUISupportQt
+  vtkIOLegacy
+)
 include(${VTK_USE_FILE})
 
 find_package(CGAL REQUIRED)
@@ -41,7 +47,7 @@ endif( ${SHTOOLS_INCLUDE_DIR} STREQUAL "SHTOOLS_INCLUDE_DIR-NOTFOUND" )
 # Set path for qwt
 if(CMAKE_HOST_UNIX)
 	set(QWT_INCLUDE_DIRS "/usr/include/qwt" CACHE PATH "Set Path for qwt header files.")
-	set(QWT_LIBRARIES "qwt" CACHE STRING "Name of qwt library.")
+	set(QWT_LIBRARIES "qwt-qt5" CACHE STRING "Name of qwt library.")
 endif(CMAKE_HOST_UNIX)
 if(CMAKE_HOST_WIN32)
 	set(QWT_INCLUDE_DIRS "C:/msys64/mingw64/include/qwt" CACHE PATH "Set Path for qwt header files.")

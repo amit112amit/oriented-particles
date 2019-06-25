@@ -13,7 +13,8 @@
 #include "vtkSmartPointer.h"
 #include <Eigen/Dense>
 #include <QMainWindow>
-#include <QVTKOpenGLWidget.h>
+//#include <QVTKOpenGLWidget.h>
+#include <QVTKOpenGLNativeWidget.h>
 #include <cstdlib>
 #include <math.h>
 

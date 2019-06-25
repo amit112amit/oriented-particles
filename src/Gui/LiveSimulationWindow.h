@@ -13,7 +13,8 @@
 #include <QThread>
 #include <QToolBar>
 #include <QVBoxLayout>
-#include <QVTKOpenGLWidget.h>
+//#include <QVTKOpenGLWidget.h>
+#include <QVTKOpenGLNativeWidget.h>
 #include <boost/circular_buffer.hpp>
 #include <mutex>
 #include <qwt_plot.h>

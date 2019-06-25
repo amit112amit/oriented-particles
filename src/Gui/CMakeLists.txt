@@ -1,12 +1,12 @@
 project(Gui)
 
-find_package(Qt5 COMPONENTS Core Gui Widgets)
+find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets)
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(SRCS1 LiveSimulationWindow.cxx LiveSimulation.cxx
-        RunLiveSimulation.cxx)
+	RunLiveSimulation.cxx)
 
 set(SRCS2 RoughnessWidget.cxx RunRoughnessGUI.cxx)
 
@@ -24,13 +24,12 @@ set(EXECS opsLive roughness)
 # Include OPS directories
 set(INCLD Bodies Model Solvers Helpers)
 foreach(EXE ${EXECS})
-        target_link_libraries(${EXE} Qt5::Core Qt5::Gui
-	    Qt5::Widgets ${VTK_LIBRARIES} ${QWT_LIBRARIES} Eigen3::Eigen)
-        target_include_directories(${EXE} PUBLIC ${QWT_INCLUDE_DIRS}
-                ${Boost_INCLUDE_DIRS})
-        foreach(DIR ${INCLD})
-                target_link_libraries(${EXE} ${DIR})
-                target_include_directories(${EXE} PRIVATE "${PROJECT_SOURCE_DIR}/../${DIR}")
-        endforeach(DIR)
+	target_link_libraries(${EXE} PRIVATE ${QWT_LIBRARIES} Eigen3::Eigen vtkFiltersSources vtkGUISupportQt vtkIOLegacy)
+	target_include_directories(${EXE} PRIVATE ${QWT_INCLUDE_DIRS}
+		${Boost_INCLUDE_DIRS})
+	foreach(DIR ${INCLD})
+		target_link_libraries(${EXE} PRIVATE ${DIR})
+		target_include_directories(${EXE} PRIVATE "${PROJECT_SOURCE_DIR}/../${DIR}")
+	endforeach(DIR)
 endforeach(EXE)
 

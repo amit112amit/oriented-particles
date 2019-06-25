@@ -20,12 +20,10 @@ set(DRIVERS opsConsistency asphericity heatOPS inertia plate opsModel printDoF)
 
 #For each driver link libraries and set the include paths
 foreach(DRIVER ${DRIVERS})
-    target_link_libraries(${DRIVER} ${VTK_LIBRARIES} ${HDF5_LIBRARIES}
-	Eigen3::Eigen)
-    target_include_directories(${DRIVER} PRIVATE ${VTK_INCLUDE_DIRS}
-	    ${HDF5_INCLUDE_DIRS})
-    foreach(DIR ${INCLD})
-        target_link_libraries(${DRIVER} ${DIR})
-        target_include_directories(${DRIVER} PRIVATE "${PROJECT_SOURCE_DIR}/../${DIR}")
-    endforeach(DIR)
+	target_link_libraries(${DRIVER} PRIVATE ${HDF5_LIBRARIES} Eigen3::Eigen vtkIOLegacy)
+	target_include_directories(${DRIVER} PRIVATE ${HDF5_INCLUDE_DIRS})
+	foreach(DIR ${INCLD})
+		target_link_libraries(${DRIVER} PRIVATE ${DIR})
+		target_include_directories(${DRIVER} PRIVATE "${PROJECT_SOURCE_DIR}/../${DIR}")
+	endforeach(DIR)
 endforeach(DRIVER)
