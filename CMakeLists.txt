@@ -11,12 +11,30 @@ set(CMAKE_CXX_STANDARD 14)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(VTK REQUIRED COMPONENTS
-  vtkFiltersExtraction
-  vtkFiltersGeometry
-  vtkFiltersSources
-  vtkGUISupportQt
-  vtkIOLegacy
+find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets)
+
+#find_package(VTK REQUIRED COMPONENTS
+#  vtkFiltersExtraction
+#  vtkFiltersGeometry
+#  vtkFiltersSources
+#  vtkGUISupportQt
+#  vtkIOLegacy
+#)
+find_package(VTK
+ COMPONENTS
+    vtkCommonCore
+    vtkCommonDataModel
+    vtkFiltersCore
+    vtkFiltersExtraction
+    vtkFiltersGeneral
+    vtkFiltersGeometry
+    vtkFiltersSources
+    vtkIOLegacy
+    vtkRenderingCore
+    vtkRenderingOpenGL2
+    vtkRenderingFreeType
+    vtkInteractionStyle
+    vtkRenderingGL2PSOpenGL2
 )
 include(${VTK_USE_FILE})
 
@@ -46,8 +64,10 @@ endif( ${SHTOOLS_INCLUDE_DIR} STREQUAL "SHTOOLS_INCLUDE_DIR-NOTFOUND" )
 
 # Set path for qwt
 if(CMAKE_HOST_UNIX)
-	set(QWT_INCLUDE_DIRS "/usr/include/qwt" CACHE PATH "Set Path for qwt header files.")
-	set(QWT_LIBRARIES "qwt-qt5" CACHE STRING "Name of qwt library.")
+	find_package(PkgConfig REQUIRED)
+	pkg_search_module(QWT REQUIRED Qt5Qwt6)
+	#set(QWT_INCLUDE_DIRS "/usr/include/qt5/qwt6" CACHE PATH "Set Path for qwt header files.")
+	#set(QWT_LIBRARIES "qwt" CACHE STRING "Name of qwt library.")
 endif(CMAKE_HOST_UNIX)
 if(CMAKE_HOST_WIN32)
 	set(QWT_INCLUDE_DIRS "C:/msys64/mingw64/include/qwt" CACHE PATH "Set Path for qwt header files.")

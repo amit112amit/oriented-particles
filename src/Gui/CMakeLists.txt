@@ -1,7 +1,5 @@
 project(Gui)
 
-find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets)
-
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -24,7 +22,10 @@ set(EXECS opsLive roughness)
 # Include OPS directories
 set(INCLD Bodies Model Solvers Helpers)
 foreach(EXE ${EXECS})
-	target_link_libraries(${EXE} PRIVATE ${QWT_LIBRARIES} Eigen3::Eigen vtkFiltersSources vtkGUISupportQt vtkIOLegacy)
+	target_link_libraries(${EXE} PRIVATE ${QWT_LIBRARIES} Eigen3::Eigen
+		vtkFiltersSources vtkGUISupportQt vtkIOLegacy vtkRenderingCore
+		vtkRenderingOpenGL2 vtkRenderingFreeType vtkInteractionStyle
+		vtkRenderingGL2PSOpenGL2)
 	target_include_directories(${EXE} PRIVATE ${QWT_INCLUDE_DIRS}
 		${Boost_INCLUDE_DIRS})
 	foreach(DIR ${INCLD})
