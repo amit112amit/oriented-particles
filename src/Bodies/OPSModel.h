@@ -58,7 +58,7 @@ public:
   typedef CGAL::Delaunay_triangulation_2<K, Tds> Delaunay;
   typedef Delaunay::Face_circulator Face_circulator;
 
-  OPSModel(size_t n, double_t &f, RefVXd x, RefVXd g, RefVXd pX);
+  OPSModel(size_t n, double_t &f, RefVXd x, RefVXd g, RefVXd pX, double_t R0);
   double_t operator()(const VectorXd &x, VectorXd &grad);
   void applyKabschAlgorithm();
   virtual void compute();
@@ -127,7 +127,7 @@ public:
 protected:
   bool _updateArea = true, _updateRadius = true, _updateVolume = true;
   double_t _area = 0, _radius = 0, _volume = 0, _morseEn, _normalEn, _circEn,
-           _re = 1.0, _a = 4.62098120373, _gamma_inv = 10.0, _msd, _msd_tgt;
+           _re = 1.0, _a = 4.62098120373, _gamma_inv = 10.0, _msd, _msd_tgt, _R0 = 0;
   int _N;
   MapM3Xd _positions, _posGradient, _rotGradient, _rotationVectors, _prevX;
   MapVXd _x, _g, _pX;

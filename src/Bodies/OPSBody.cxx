@@ -4,12 +4,14 @@ namespace OPS
 {
 
 //! Constructor for BrownOPS
-OPSBody::OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
-                 RefM3Xd rG, RefM3Xd pX)
+OPSBody::OPSBody(size_t n, double_t &f, double_t R0, RefM3Xd pos, RefM3Xd rot,
+                 RefM3Xd pG, RefM3Xd rG, RefM3Xd pX)
     : _f(f), _positions(pos.data(), 3, n), _rotationVectors(rot.data(), 3, n),
       _posGradient(pG.data(), 3, n), _rotGradient(rG.data(), 3, n),
       _prevX(pX.data(), 3, n)
 {
+  // Store the initial average radius
+  _R0 = R0;
 
   // Ensure that there is enough memory for n-particles
   assert(n <= pos.cols() && n <= rot.cols() && n <= pG.cols() &&
@@ -194,6 +196,8 @@ double_t OPSBody::getAverageEdgeLength()
 void OPSBody::compute()
 {
 
+  double_t factor = 0.66666666667 * _a * _a * _R0 * _R0 / _gamma;
+
   // Initialize energies and forces to be zero
   _morseEn = 0.0;
   _normalEn = 0.0;
@@ -259,11 +263,10 @@ void OPSBody::compute()
 
       Vector3d centerDx, centerDv, neighborDx, neighborDv;
 
-      centerDx = dMorseXi + dPhi_cXi / _gamma;
-      centerDv = (dPhi_nVi + dPhi_cVi) / _gamma;
-
-      neighborDx = dMorseXj + (dPhi_cXj) / _gamma;
-      neighborDv = (dPhi_nVj + dPhi_cVj) / _gamma;
+      centerDx = dMorseXi + dPhi_cXi * factor;
+      centerDv = (dPhi_nVi + dPhi_cVi) * factor;
+      neighborDx = dMorseXj + (dPhi_cXj)*factor;
+      neighborDv = (dPhi_nVj + dPhi_cVj) * factor;
 
       _posGradient.col(i) += centerDx;
       _posGradient.col(currId) += neighborDx;
@@ -271,10 +274,9 @@ void OPSBody::compute()
       _rotGradient.col(currId) += neighborDv;
 
       _morseEn += morseEn;
-      _normalEn += Phi_n / _gamma;
-      _circEn += Phi_c / _gamma;
-
-      _f += morseEn + (Phi_n + Phi_c) / _gamma;
+      _normalEn += Phi_n * factor;
+      _circEn += Phi_c * factor;
+      _f += morseEn + (Phi_n + Phi_c) * factor;
     }
   }
   return;

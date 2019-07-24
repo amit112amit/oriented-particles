@@ -127,10 +127,11 @@ private:
   size_t _step = 0, _N, _resetStepVal = 0;
   double_t _alpha = 2.5e5;
   double_t _beta = 10;
-  double_t _gamma = 0.01;
+  double_t _gamma = 0.3;
   double_t _pressure = 0.0;
   double_t _zeroRmsAdVal, _zeroOpsEnVal, _zeroVolVal;
   double_t _f = 0.0;
+  double_t _R0 = 0.0;
   std::vector<double_t> _gammaDat, _areaDat, _rmsAdDat, _opsEnDat, _volDat;
   std::string _dataOutputFile;
   std::string _inputVTK = "T7.vtk";

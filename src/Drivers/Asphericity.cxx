@@ -8,11 +8,13 @@
 
 using namespace OPS;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   clock_t t1, t2, t3;
   t1 = clock();
 
-  if (argc != 2) {
+  if (argc != 2)
+  {
     cout << "usage: " << argv[0] << " <filename>\n";
     return -1;
   }
@@ -36,6 +38,12 @@ int main(int argc, char *argv[]) {
   InputParameters miscInp = OPS::readKeyValueInput("miscInp.dat");
   re = std::stod(miscInp["re"]);
   percentStrain = std::stod(miscInp["percentStrain"]);
+  if (percentStrain < 1.0)
+  {
+    std::cout << "Please check the value of `percentStrain`. Do you really want to use "
+              << percentStrain << "%? Or do you mean " << percentStrain * 100
+              << "%?" << std::endl;
+  }
   initialSearchRad = std::stod(miscInp["initialSearchRad"]);
   finalSearchRad = std::stod(miscInp["finalSearchRad"]);
 
@@ -44,7 +52,8 @@ int main(int argc, char *argv[]) {
   std::vector<double_t> coolVec;
   double_t currGamma;
 
-  while (coolFile >> currGamma) {
+  while (coolFile >> currGamma)
+  {
     coolVec.push_back(currGamma);
   }
   coolFile.close();
@@ -57,13 +66,12 @@ int main(int argc, char *argv[]) {
 
   // Generate Rotation Vectors from input point coordinates
   Eigen::Matrix3Xd coords(3, N);
-  for (auto i = 0; i < N; ++i) {
+  for (auto i = 0; i < N; ++i)
+  {
     Eigen::Vector3d cp = Eigen::Vector3d::Zero();
     mesh->GetPoint(i, &(cp(0)));
     coords.col(i) = cp;
   }
-  Eigen::Matrix3Xd rotVecs(3, N);
-  OPSBody::initialRotationVector(coords, rotVecs);
 
   // Prepare memory for energy, force
   double_t f;
@@ -75,12 +83,18 @@ int main(int argc, char *argv[]) {
   Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(), 3, N), xrot(&(x(3 * N)), 3, N),
       prevPos(pX.data(), 3, N);
   xpos = coords;
-  xrot = rotVecs;
+
+  // Renormalize by average edge length
+  x /= getPointCloudAvgEdgeLen(inputFileName);
+  OPSBody::initialRotationVector(xpos, xrot);
+
+  // Calculate the average radius
+  double_t R0 = xpos.colwise().norm().sum() / N;
 
   // Create OPSBody
   Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(), 3, N),
       rotGrad(&g(3 * N), 3, N);
-  OPSMesh ops(N, f, xpos, xrot, posGrad, rotGrad, prevPos);
+  OPSMesh ops(N, f, R0, xpos, xrot, posGrad, rotGrad, prevPos);
   ops.setMorseDistance(re);
   s = 100 * log(2.0) / (re * percentStrain);
   ops.setMorseWellWidth(s);
@@ -139,10 +153,11 @@ int main(int argc, char *argv[]) {
   std::cout << "Initial Avg Edge Length = " << avgEdgeLen << std::endl;
 
   // Renormalize positions such that avgEdgeLen = 1.0
-  for (auto i = 0; i < N; ++i) {
+  for (auto i = 0; i < N; ++i)
+  {
     xpos.col(i) = xpos.col(i) / avgEdgeLen;
   }
-  ops.setSearchRadius(finalSearchRad);
+  ops.setSearchRadius(ops.determineSearchRadius());
   ops.updatePolyData();
   ops.updateNeighbors();
   // ******************************************************************//
@@ -150,7 +165,8 @@ int main(int argc, char *argv[]) {
   t3 = clock();
   // ************************ SOLUTION LOOP **********************//
   int step = 0;
-  for (auto gamma : coolVec) {
+  for (auto gamma : coolVec)
+  {
     std::cout << "Iteration number = " << step << std::endl;
 
     // Update OPS params
@@ -185,5 +201,11 @@ int main(int argc, char *argv[]) {
   float diff((float)t2 - (float)t1);
   std::cout << "Solution loop execution time: " << diff / CLOCKS_PER_SEC
             << " seconds" << std::endl;
+  if (percentStrain < 1.0)
+  {
+    std::cout << "Please check the value of `percentStrain`. Do you really want to use "
+              << percentStrain << "%? Or do you mean " << percentStrain * 100
+              << "%?" << std::endl;
+  }
   return 1;
 }

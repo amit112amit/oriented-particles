@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
   std::string inFile = argv[1];
   std::string baseFileName = inFile.substr(0, inFile.length() - 4);
 
-  double_t alpha = 1.0, beta = 1.0, gamma = 1.0, re = 1.0, f = 0,
+  double_t alpha = 1.0, beta = 1.0, gamma = 1.0, re = 1.0, f = 0, R0 = 0,
            percentStrain = 15, s = (100 / (re * percentStrain)) * log(2.0);
 
   size_t viterMax, nameSuffix = 0, step = 0, N = 10, saveFreq = 100000;
@@ -54,6 +54,7 @@ int main(int argc, char *argv[]) {
     N = state.getN();
     engine = state.getRandomEngine();
     rng = state.getRandomGenerator();
+    R0 = state.getRadius0();
     // Resize matrices and vectors
     x.resize(6 * N);
     g.resize(6 * N);
@@ -84,8 +85,12 @@ int main(int argc, char *argv[]) {
     // Renormalize by the average edge length
     x /= getPointCloudAvgEdgeLen(inFile);
 
-    // Generate rotation vectors from input point coordinates
     Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(), 3, N), xrot(&x(3 * N), 3, N);
+
+    // The average radius
+    R0 = xpos.colwise().norm().sum() / N;
+
+    // Generate rotation vectors from input point coordinates
     OPSBody::initialRotationVector(xpos, xrot);
   }
   // ****************************************************************//
@@ -94,7 +99,7 @@ int main(int argc, char *argv[]) {
 
   // Create OPSModel
   g.setZero(g.size());
-  OPSModel ops(N, f, x, g, prevX);
+  OPSModel ops(N, f, x, g, prevX, R0);
   ops.setMorseDistance(re);
   ops.setMorseWellWidth(s);
   ops.updateTriangles();
@@ -253,7 +258,7 @@ int main(int argc, char *argv[]) {
       if (step % saveFreq == (saveFreq - 1)) {
         engine = ops.getRandomEngine();
         rng = ops.getRandomGenerator();
-        state = SimulationState(N, nameSuffix, step, gamma, beta, x, prevX,
+        state = SimulationState(N, nameSuffix, step, gamma, R0, beta, x, prevX,
                                 initPos, neighbors, engine, rng);
         state.writeToFile("SimulationState.dat");
       }

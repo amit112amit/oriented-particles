@@ -4,12 +4,14 @@ namespace OPS
 {
 
 //! Constructor for BrownOPS
-OPSModel::OPSModel(size_t n, double_t &f, RefVXd x, RefVXd g, RefVXd pX)
+OPSModel::OPSModel(size_t n, double_t &f, RefVXd x, RefVXd g, RefVXd pX, double_t R0)
     : _positions(x.data(), 3, n), _rotationVectors(&x(3 * n), 3, n),
       _posGradient(g.data(), 3, n), _rotGradient(&g(3 * n), 3, n),
       _prevX(pX.data(), 3, n), _f(f), _x(x.data(), 3 * n), _g(g.data(), 3 * n),
       _pX(pX.data(), 3 * n)
 {
+  // Store the initial average radius
+  _R0 = R0;
 
   // Set number of particles
   _N = n;
@@ -144,6 +146,10 @@ double_t OPSModel::getAverageEdgeLength()
 //! Compute the OPSBody energy
 void OPSModel::compute()
 {
+
+  // Calcuate the pre-factor of bending terms
+  double_t factor = 0.666666666666667 * _a * _a * _R0 * _R0 * _gamma_inv;
+
   // Initialize energies and forces to be zero
   _morseEn = 0.0;
   _normalEn = 0.0;
@@ -180,15 +186,22 @@ void OPSModel::compute()
 
     // Update the energies
     _morseEn += morseEn;
-    _normalEn += Phi_n * _gamma_inv;
-    _circEn += Phi_c * _gamma_inv;
-    _f += morseEn + (Phi_n + Phi_c) * _gamma_inv;
+    //_normalEn += Phi_n * _gamma_inv;
+    //_circEn += Phi_c * _gamma_inv;
+    //_f += morseEn + (Phi_n + Phi_c) * _gamma_inv;
+    _normalEn += Phi_n * factor;
+    _circEn += Phi_c * factor;
+    _f += morseEn + (Phi_n + Phi_c) * factor;
 
     // Calculate the total derivatives of energy wrt xi, vi and vj
-    _posGradient.col(e[0]) -= dMdr + dCdr * _gamma_inv;
-    _posGradient.col(e[1]) += dMdr + dCdr * _gamma_inv;
-    _rotGradient.col(e[0]) += (dPhi_nVi + dPhi_cVi) * _gamma_inv;
-    _rotGradient.col(e[1]) += (dPhi_nVj + dPhi_cVj) * _gamma_inv;
+    //_posGradient.col(e[0]) -= dMdr + dCdr * _gamma_inv;
+    //_posGradient.col(e[1]) += dMdr + dCdr * _gamma_inv;
+    //_rotGradient.col(e[0]) += (dPhi_nVi + dPhi_cVi) * _gamma_inv;
+    //_rotGradient.col(e[1]) += (dPhi_nVj + dPhi_cVj) * _gamma_inv;
+    _posGradient.col(e[0]) -= dMdr + dCdr * factor;
+    _posGradient.col(e[1]) += dMdr + dCdr * factor;
+    _rotGradient.col(e[0]) += (dPhi_nVi + dPhi_cVi) * factor;
+    _rotGradient.col(e[1]) += (dPhi_nVj + dPhi_cVj) * factor;
   }
 
   // Prepare area constraint variables
@@ -643,6 +656,9 @@ double_t OPSModel::operator()(const VectorXd &x, VectorXd &g)
   _normalEn = 0.0;
   _circEn = 0.0;
 
+  // Pre-factor for bending terms
+  double_t factor = 0.666666666666667 * _a * _a * _R0 * _R0 * _gamma_inv;
+
   computeNormals(x);
   diffNormalRotVec(x);
 
@@ -675,15 +691,22 @@ double_t OPSModel::operator()(const VectorXd &x, VectorXd &g)
 
     // Update the energies
     _morseEn += morseEn;
-    _normalEn += Phi_n * _gamma_inv;
-    _circEn += Phi_c * _gamma_inv;
-    f += morseEn + (Phi_n + Phi_c) * _gamma_inv;
+    //_normalEn += Phi_n * _gamma_inv;
+    //_circEn += Phi_c * _gamma_inv;
+    //f += morseEn + (Phi_n + Phi_c) * _gamma_inv;
+    _normalEn += Phi_n * factor;
+    _circEn += Phi_c * factor;
+    f += morseEn + (Phi_n + Phi_c) * factor;
 
     // Calculate the total derivatives of energy wrt xi, vi and vj
-    posG.col(e[0]) -= dMdr + dCdr * _gamma_inv;
-    posG.col(e[1]) += dMdr + dCdr * _gamma_inv;
-    rotG.col(e[0]) += (dPhi_nVi + dPhi_cVi) * _gamma_inv;
-    rotG.col(e[1]) += (dPhi_nVj + dPhi_cVj) * _gamma_inv;
+    //posG.col(e[0]) -= dMdr + dCdr * _gamma_inv;
+    //posG.col(e[1]) += dMdr + dCdr * _gamma_inv;
+    //rotG.col(e[0]) += (dPhi_nVi + dPhi_cVi) * _gamma_inv;
+    //rotG.col(e[1]) += (dPhi_nVj + dPhi_cVj) * _gamma_inv;
+    posG.col(e[0]) -= dMdr + dCdr * factor;
+    posG.col(e[1]) += dMdr + dCdr * factor;
+    rotG.col(e[0]) += (dPhi_nVi + dPhi_cVi) * factor;
+    rotG.col(e[1]) += (dPhi_nVj + dPhi_cVj) * factor;
   }
 
   // Prepare area constraint variables

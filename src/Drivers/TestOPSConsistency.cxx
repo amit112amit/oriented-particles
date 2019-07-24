@@ -10,7 +10,8 @@
 
 using namespace OPS;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 
   // ***************** Read Input VTK File *****************//
   std::string inputFileName = argv[1];
@@ -27,13 +28,12 @@ int main(int argc, char *argv[]) {
 
   // Generate Rotation Vectors from input point coordinates
   Eigen::Matrix3Xd coords(3, N);
-  for (auto i = 0; i < N; ++i) {
+  for (auto i = 0; i < N; ++i)
+  {
     Eigen::Vector3d cp = Eigen::Vector3d::Zero();
     mesh->GetPoint(i, &(cp(0)));
     coords.col(i) = cp;
   }
-  Eigen::Matrix3Xd rotVecs(3, N);
-  OPSBody::initialRotationVector(coords, rotVecs);
 
   // Prepare memory for energy and force
   double_t f;
@@ -45,13 +45,15 @@ int main(int argc, char *argv[]) {
   Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(), 3, N), xrot(&(x(3 * N)), 3, N),
       prevPos(prevX.data(), 3, N);
   xpos = coords;
-  xrot = rotVecs;
+  x /= getPointCloudAvgEdgeLen(inputFileName);
   prevX = x.head(3 * N);
+  OPSBody::initialRotationVector(xpos, xrot);
 
   // Create OPSBody
+  double_t R0 = xpos.colwise().norm().sum() / N;
   Eigen::Map<Eigen::Matrix3Xd> pos(x.data(), 3, N), rot(&x(3 * N), 3, N),
       posGrad(g.data(), 3, N), rotGrad(&g(3 * N), 3, N);
-  OPSMesh ops(N, f, pos, rot, posGrad, rotGrad, prevPos);
+  OPSMesh ops(N, f, R0, pos, rot, posGrad, rotGrad, prevPos);
   ops.updateNeighbors();
 
   // Create a pressure body
@@ -99,7 +101,8 @@ int main(int argc, char *argv[]) {
   double_t end = -3;
   Eigen::VectorXd hvec(hSize), err(hSize);
 
-  for (auto i = 0; i < hSize; ++i) {
+  for (auto i = 0; i < hSize; ++i)
+  {
     double_t currPow = start + i * (end - start) / hSize;
     hvec(i) = std::pow(10, currPow);
   }
@@ -110,12 +113,14 @@ int main(int argc, char *argv[]) {
   gAna = g; /*!< Copies the derivative */
 
   // Calculate the error
-  for (auto i = 0; i < hSize; ++i) {
+  for (auto i = 0; i < hSize; ++i)
+  {
     Eigen::VectorXd gNum(g.size());
     gNum.setZero(g.size());
     double_t h = hvec(i);
     // Calculate the numerical derivative
-    for (auto j = 0; j < x.size(); ++j) {
+    for (auto j = 0; j < x.size(); ++j)
+    {
       double_t fp, fm;
       x(j) += h;
       model.compute();

@@ -23,7 +23,8 @@
 #include <vtkPolyDataWriter.h>
 #include <vtkSmartPointer.h>
 
-namespace OPS {
+namespace OPS
+{
 typedef std::map<std::string, std::string> InputParameters;
 typedef Eigen::VectorXd Vec;
 typedef Eigen::Matrix3Xd M3X;
@@ -38,15 +39,17 @@ typedef CGAL::Triangulation_data_structure_2<Vb> Tds;
 typedef CGAL::Delaunay_triangulation_2<K, Tds> Delaunay;
 typedef Delaunay::Face_circulator Face_circulator;
 
-class SimulationState {
+class SimulationState
+{
 public:
   SimulationState()
       : N(0), nameSuffix(0), step(0), x(1), prevX(1), initPos(3, 1),
-        rng(0., 1.) {}
-  SimulationState(size_t n, size_t ns, size_t s, double_t g, double_t b, Vec xi,
-                  Vec pi, M3X ip, IdList l, Engine e, NormD r)
+        rng(0., 1.), radius0(1.0) {}
+  SimulationState(size_t n, size_t ns, size_t s, double_t g, double_t b, double_t rad,
+                  Vec xi, Vec pi, M3X ip, IdList l, Engine e, NormD r)
       : N(n), nameSuffix(ns), step(s), x(6 * n), prevX(3 * n), initPos(3, n),
-        engine(e), rng(r), gamma(g), beta(b) {
+        engine(e), rng(r), gamma(g), beta(b), radius0(rad)
+  {
     nn = l;
     x = xi;
     prevX = pi;
@@ -57,6 +60,7 @@ public:
   size_t getStep() { return step; }
   double_t getGamma() { return gamma; }
   double_t getBeta() { return beta; }
+  double_t getRadius0() { return radius0; }
   Vec getX() { return x; }
   Vec getPrevX() { return prevX; }
   M3X getInitPos() { return initPos; }
@@ -70,7 +74,7 @@ private:
   size_t N;
   size_t nameSuffix;
   size_t step;
-  double_t gamma = 0.01, beta = 10.0;
+  double_t gamma = 0.01, beta = 10.0, radius0 = 1.0;
   static const size_t numsPerLine = 9;
   IdList nn;
   Vec x, prevX;
@@ -80,7 +84,8 @@ private:
 };
 
 //! A struct to store a vtkIdType and an angle
-struct neighbors {
+struct neighbors
+{
   vtkIdType _id;
   double_t _angle;
   neighbors(vtkIdType i, double_t a) : _id(i), _angle(a) {}

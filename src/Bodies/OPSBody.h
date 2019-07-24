@@ -32,13 +32,15 @@
 #include <vtkPolyDataWriter.h>
 #include <vtkSmartPointer.h>
 
-namespace OPS {
+namespace OPS
+{
 // ************************* OPSBody Class *********************************//
 /*!
  * \brief The OPSBody class
  * Computes energy and forces on a Oriented Particle System
  */
-class OPSBody : public Body {
+class OPSBody : public Body
+{
 public:
   typedef Eigen::Vector3d Vector3d;
   typedef Eigen::Map<Vector3d> MapV3d;
@@ -61,8 +63,8 @@ public:
   typedef Delaunay::Vertex_handle Vertex_handle;
   typedef Delaunay::Face_circulator Face_circulator;
 
-  OPSBody(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd posGrad,
-          RefM3Xd rotGrad, RefM3Xd pX);
+  OPSBody(size_t n, double_t &f, double_t R0, RefM3Xd pos, RefM3Xd rot,
+          RefM3Xd posGrad, RefM3Xd rotGrad, RefM3Xd pX);
   void applyKabschAlgorithm();
   virtual void compute();
   void computeNormals();
@@ -87,7 +89,8 @@ public:
   void printVTKFile(const std::string name);
   void resetToInitialPositions();
   void saveInitialPosition() { _initialPositions = _positions; }
-  void setInitialNeighbors(std::vector<size_t> &x) {
+  void setInitialNeighbors(std::vector<size_t> &x)
+  {
     _initialNearestNeighbor = x;
   }
   void setInitialPositions(M3X p) { _initialPositions = p; }
@@ -105,6 +108,8 @@ protected:
   double_t &_f, _area = 0, _radius = 0, _volume = 0, _morseEn, _normalEn,
                 _circEn, _msd_tgt = 0, _re = 1.0, _a = 4.62098120373,
                 _gamma = 0.1, _searchRadius = 1.4, _msd;
+  // The original zero temperature radius is stored here
+  double_t _R0 = 0.0;
   int _N;
   MapM3Xd _positions, _posGradient, _rotGradient, _rotationVectors, _prevX;
   Matrix3Xd _normals, _initialPositions;

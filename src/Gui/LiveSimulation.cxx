@@ -1,8 +1,10 @@
 #include "LiveSimulation.h"
 
-namespace OPS {
+namespace OPS
+{
 
-void LiveSimulation::Initialize() {
+void LiveSimulation::Initialize()
+{
   // Initialize circular buffer with capacity 50000
   _rmsAD = new QwtCircBuffSeriesData(5000);
   _opsEn = new QwtCircBuffSeriesData(5000);
@@ -38,33 +40,42 @@ void LiveSimulation::Initialize() {
 
   // Read point coordinates from input mesh
   Eigen::Matrix3Xd coords(3, _N);
-  for (auto i = 0; i < _N; ++i) {
+  for (auto i = 0; i < _N; ++i)
+  {
     Eigen::Vector3d cp = Eigen::Vector3d::Zero();
     mesh->GetPoint(i, &(cp(0)));
     coords.col(i) = cp;
   }
-
-  // Generate rotation vectors from input point coordinates
-  Eigen::Matrix3Xd rotVecs(3, _N);
-  OPSBody::initialRotationVector(coords, rotVecs);
 
   // Prepare memory for energy, force
   _x = Eigen::VectorXd(6 * _N);
   _g = Eigen::VectorXd(6 * _N);
   _prevX = Eigen::VectorXd(3 * _N);
   _initialX = Eigen::VectorXd(6 * _N);
+  _x.setZero(_x.size());
+  _g.setZero(_g.size());
+  _prevX.setZero(_prevX.size());
+  _initialX.setZero(_initialX.size());
 
   // Fill _x with coords and rotVecs
-  Eigen::Map<Eigen::Matrix3Xd> xpos(_x.data(), 3, _N),
-      xrot(&(_x(3 * _N)), 3, _N), prevPos(_prevX.data(), 3, _N);
+  Eigen::Map<Eigen::Matrix3Xd> xpos(_x.data(), 3, _N), prevPos(_prevX.data(), 3, _N);
   xpos = coords;
-  xrot = rotVecs;
+
+  // Renormalize by the average edge length
+  _x /= getPointCloudAvgEdgeLen(inputFileName);
   _prevX = _x.head(3 * _N);
+
+  // Generate rotation vectors from input point coordinates
+  Eigen::Map<Eigen::Matrix3Xd> xrot(&(_x(3 * _N)), 3, _N);
+  OPSBody::initialRotationVector(xpos, xrot);
+
+  // Calculate the starting average radius
+  _R0 = xpos.colwise().norm().sum() / _N;
 
   // Create OPSBody
   Eigen::Map<Eigen::Matrix3Xd> posGrad(_g.data(), 3, _N),
       rotGrad(&_g(3 * _N), 3, _N);
-  _ops = new OPSMesh(_N, _f, xpos, xrot, posGrad, rotGrad, prevPos);
+  _ops = new OPSMesh(_N, _f, _R0, xpos, xrot, posGrad, rotGrad, prevPos);
   _ops->setFVK(_gamma);
   _ops->setMorseDistance(re);
   _ops->setMorseWellWidth(s);
@@ -129,23 +140,17 @@ void LiveSimulation::Initialize() {
   // *****************************************************************//
 
   // ********************* Prepare data for simulation ****************//
-  // Calculate Average Edge Length
-  double_t avgEdgeLen = _ops->getAverageEdgeLength();
-
-  // Renormalize positions such that avgEdgeLen = 1.0
-  for (auto i = 0; i < _N; ++i) {
-    xpos.col(i) = xpos.col(i) / avgEdgeLen;
-  }
-
   // Update the OPSBody member variables as per new positions
   _ops->updatePolyData();
   _ops->updateNeighbors();
   _ops->saveInitialPosition();
-  avgEdgeLen = _ops->getAverageEdgeLength();
+  double_t avgEdgeLen = _ops->getAverageEdgeLength();
 
   // Relax at zero temperature once
   _brown->setCoefficient(0.0);
   _visco->setViscosity(0.0);
+  _constraint->setLagrangeCoeff(0.0);
+  _constraint->setPenaltyCoeff(0.0);
   _solver->solve();
   _prevX = _x.head(3 * _N);
 
@@ -162,7 +167,8 @@ void LiveSimulation::Initialize() {
 }
 
 //! Load simulation state from a SimulationState object
-void LiveSimulation::LoadState(QString st) {
+void LiveSimulation::LoadState(QString st)
+{
   // Delete existing objects assigned using new
   delete _ops, _brown, _visco, _constraint, _pressureBody, _model, _solver;
 
@@ -173,6 +179,7 @@ void LiveSimulation::LoadState(QString st) {
   _resetStepVal = _step;
   _gamma = state.getGamma();
   _beta = state.getBeta();
+  _R0 = state.getRadius0();
   _alpha = 2.5e5;
   std::vector<size_t> neighbors(_N);
   neighbors = state.getNeighbors();
@@ -210,7 +217,7 @@ void LiveSimulation::LoadState(QString st) {
       rotGrad(&_g(3 * _N), 3, _N);
 
   // Create OPSBody
-  _ops = new OPSMesh(_N, _f, xpos, xrot, posGrad, rotGrad, prevPos);
+  _ops = new OPSMesh(_N, _f, _R0, xpos, xrot, posGrad, rotGrad, prevPos);
   _ops->setFVK(_gamma);
   _ops->setMorseDistance(re);
   _ops->setMorseWellWidth(s);
@@ -286,25 +293,30 @@ void LiveSimulation::LoadState(QString st) {
 }
 
 //! Save Simulation State
-void LiveSimulation::SaveState(QString s) {
+void LiveSimulation::SaveState(QString s)
+{
   Engine engine = _brown->getRandomEngine();
   NormD rng = _brown->getRandomGenerator();
   Eigen::Matrix3Xd initPos(3, _N);
   _ops->getInitialPositions(initPos);
   std::vector<size_t> neighbors = _ops->getInitialNeighbors();
   SimulationState state = SimulationState(
-      _N, 0, _step, _gamma, _beta, _x, _prevX, initPos, neighbors, engine, rng);
+      _N, 0, _step, _gamma, _beta, _R0, _x, _prevX, initPos, neighbors, engine, rng);
   state.writeToFile(s.toStdString());
 }
 
 //! Interpolation of area
 double_t LiveSimulation::GetInterpolatedValue(double_t x,
-                                              std::vector<double_t> &y) {
+                                              std::vector<double_t> &y)
+{
   int size = _gammaDat.size();
   int i = 0;
-  if (x >= _gammaDat[size - 2]) {
+  if (x >= _gammaDat[size - 2])
+  {
     i = size - 2;
-  } else {
+  }
+  else
+  {
     while (x > _gammaDat[i + 1])
       i++;
   }
@@ -318,7 +330,8 @@ double_t LiveSimulation::GetInterpolatedValue(double_t x,
 }
 
 // Read gamma and area data from file
-void LiveSimulation::ReadFvKAreaData(std::string s) {
+void LiveSimulation::ReadFvKAreaData(std::string s)
+{
   ifstream inputFile(s.c_str());
   std::string line;
   double_t gamma, area, volume, rmsAd, opsEn, ignore;
@@ -330,7 +343,8 @@ void LiveSimulation::ReadFvKAreaData(std::string s) {
   _rmsAdDat.clear();
   // Eat up the header line
   std::getline(inputFile, line);
-  while (std::getline(inputFile, line)) {
+  while (std::getline(inputFile, line))
+  {
     std::istringstream ss(line);
     ss >> gamma >> ignore >> ignore >> volume >> area >> ignore >> ignore >>
         ignore >> opsEn >> rmsAd;
@@ -349,10 +363,9 @@ void LiveSimulation::ReadFvKAreaData(std::string s) {
 }
 
 // Update gamma and area constraint value
-void LiveSimulation::UpdateGamma(double g) {
-  //_gamma = g;
-  _gamma = g / 254.5627868209322; // To match the values in Thesis
-  //_ops->setFVK(g);
+void LiveSimulation::UpdateGamma(double g)
+{
+  _gamma = g;
   _ops->setFVK(_gamma);
   _constraint->setConstraint(GetInterpolatedValue(_gamma, _areaDat));
   emit updateZeroOpsEn(GetInterpolatedValue(_gamma, _opsEnDat));
@@ -361,16 +374,23 @@ void LiveSimulation::UpdateGamma(double g) {
 }
 
 // Update pressure value
-void LiveSimulation::UpdatePressure(double p) {
+void LiveSimulation::UpdatePressure(double p)
+{
   _pressure = p;
   _pressureBody->setPressure(p);
 }
 
 // Update beta and viscosity and brownian coefficients
-void LiveSimulation::UpdateBeta(double b) {
-  if (b < 1e-6) {
+void LiveSimulation::UpdateBeta(double b)
+{
+  if (b < 1e-6)
+  {
     _alpha = 0;
-  } else {
+    _constraint->setLagrangeCoeff(0.0);
+    _constraint->setPenaltyCoeff(0.0);
+  }
+  else
+  {
     _alpha = 2.5e5;
     _beta = 1.0 / b;
   }
@@ -379,13 +399,18 @@ void LiveSimulation::UpdateBeta(double b) {
 }
 
 // Start running
-void LiveSimulation::SolveOneStep() {
-  if (_keepRunning) {
-    if (_step == 0) {
+void LiveSimulation::SolveOneStep()
+{
+  if (_keepRunning)
+  {
+    if (_step == 0)
+    {
       // Relax at zero temperature once
       _brown->setCoefficient(0.0);
       _visco->setViscosity(0.0);
       _pressureBody->setPressure(0.0);
+      _constraint->setLagrangeCoeff(0.0);
+      _constraint->setPenaltyCoeff(0.0);
       _solver->solve();
       _prevX = _x.head(3 * _N);
       _ops->updatePolyData();
@@ -407,7 +432,8 @@ void LiveSimulation::SolveOneStep() {
     bool constraintMet = false;
     size_t alIter = 0, alMaxIter = 10;
 
-    while (!constraintMet && (alIter < alMaxIter)) {
+    while (!constraintMet && (alIter < alMaxIter))
+    {
       // Solve the unconstrained minimization
       _solver->solve();
 
@@ -464,8 +490,10 @@ void LiveSimulation::SolveOneStep() {
   }
 }
 
-vtkSmartPointer<vtkPolyData> LiveSimulation::GetPolyData() {
-  if (_computeVoronoi) {
+vtkSmartPointer<vtkPolyData> LiveSimulation::GetPolyData()
+{
+  if (_computeVoronoi)
+  {
     auto copyOpsPolyData = vtkSmartPointer<vtkPolyData>::New();
     copyOpsPolyData->DeepCopy(_ops->getPolyData());
     copyOpsPolyData->BuildLinks();
@@ -477,10 +505,12 @@ vtkSmartPointer<vtkPolyData> LiveSimulation::GetPolyData() {
     vtkSmartPointer<vtkCellArray> cells = copyOpsPolyData->GetPolys();
     auto cellPointIds = vtkSmartPointer<vtkIdList>::New();
     cells->InitTraversal();
-    while (cells->GetNextCell(cellPointIds)) {
+    while (cells->GetNextCell(cellPointIds))
+    {
       size_t numCellPoints = cellPointIds->GetNumberOfIds();
       Vector3d centroid(0.0, 0.0, 0.0);
-      for (size_t i = 0; i < numCellPoints; i++) {
+      for (size_t i = 0; i < numCellPoints; i++)
+      {
         vtkIdType currCellPoint = cellPointIds->GetId(i);
         copyOpsPolyData->GetPoint(currCellPoint, &points[currCellPoint][0]);
         centroid += points[currCellPoint];
@@ -496,7 +526,8 @@ vtkSmartPointer<vtkPolyData> LiveSimulation::GetPolyData() {
 
     // Prepare new cell array for polygons
     auto newPolys = vtkSmartPointer<vtkCellArray>::New();
-    for (size_t a = 0; a < npts; a++) {
+    for (size_t a = 0; a < npts; a++)
+    {
       auto currPolyPtIds = vtkSmartPointer<vtkIdList>::New();
       std::list<neighbors> currPoly;
       Vector3d vec0, vecj, currCross, axis, centroid(0.0, 0.0, 0.0);
@@ -510,7 +541,8 @@ vtkSmartPointer<vtkPolyData> LiveSimulation::GetPolyData() {
       neighbors pt0(currId, 0.0);
       currPoly.push_back(pt0);
       // For remaining centroids
-      for (auto j = 1; j < numCellPoints; j++) {
+      for (auto j = 1; j < numCellPoints; j++)
+      {
         currId = currPolyPtIds->GetId(j);
         newPts->GetPoint(currId, &centroid[0]);
         vecj = (centroid - points[a]).normalized();
@@ -527,7 +559,8 @@ vtkSmartPointer<vtkPolyData> LiveSimulation::GetPolyData() {
       // Sort the list of neigbors and make a polygon
       currPoly.sort();
       newPolys->InsertNextCell(numCellPoints);
-      for (auto t = currPoly.begin(); t != currPoly.end(); ++t) {
+      for (auto t = currPoly.begin(); t != currPoly.end(); ++t)
+      {
         neighbors n = *t;
         newPolys->InsertCellPoint(n._id);
       }
@@ -539,13 +572,15 @@ vtkSmartPointer<vtkPolyData> LiveSimulation::GetPolyData() {
     newPolyData->SetPolys(newPolys);
     newPolyData->GetCellData()->AddArray(valence);
     return newPolyData;
-
-  } else {
+  }
+  else
+  {
     return _ops->getPolyData();
   }
 }
 
-void LiveSimulation::Reset() {
+void LiveSimulation::Reset()
+{
   // Stop the simulation
   _keepRunning = false;
   // Set number of steps to 0
@@ -590,7 +625,8 @@ void LiveSimulation::Reset() {
   emit resetCompeleted();
 }
 
-void LiveSimulation::SaveScene(QString s) {
+void LiveSimulation::SaveScene(QString s)
+{
   _ops->printVTKFile(s.toStdString());
 }
 

@@ -4,7 +4,7 @@ namespace OPS {
 
 SimulationState SimulationState::readFromFile(std::string file) {
   size_t n, ns, s;
-  double_t g, b;
+  double_t g, b, r0;
   ifstream f(file);
   std::string line;
   // Read number of particles
@@ -28,6 +28,10 @@ SimulationState SimulationState::readFromFile(std::string file) {
   std::getline(f, line);
   std::getline(f, line);
   b = std::stod(line);
+  // Read radius0 or the starting radius
+  std::getline(f, line);
+  std::getline(f, line);
+  r0 = std::stod(line);
   // Read random engine state
   std::getline(f, line);
   std::getline(f, line);
@@ -89,7 +93,7 @@ SimulationState SimulationState::readFromFile(std::string file) {
   }
 
   f.close();
-  SimulationState sims(n, ns, s, g, b, xv, pX, ip, l, en, rg);
+  SimulationState sims(n, ns, s, g, b, r0, xv, pX, ip, l, en, rg);
   return sims;
 }
 
@@ -107,6 +111,8 @@ void SimulationState::writeToFile(std::string file) {
     << gamma << std::endl
     << "# Beta or 1/Temperature" << std::endl
     << beta << std::endl
+    << "# Radius0 or starting radius" << std::endl
+    << radius0 << std::endl
     << "# State of the random number engine" << std::endl
     << engine << std::endl
     << "# State of the random number generator" << std::endl

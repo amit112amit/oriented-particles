@@ -1,10 +1,12 @@
 #include "OPSMesh.h"
 
-namespace OPS {
+namespace OPS
+{
 //! Constructor for OPSMesh
-OPSMesh::OPSMesh(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
-                 RefM3Xd rG, RefM3Xd pX)
-    : OPSBody(n, f, pos, rot, pG, rG, pX) {
+OPSMesh::OPSMesh(size_t n, double_t &f, double_t R0, RefM3Xd pos, RefM3Xd rot,
+                 RefM3Xd pG, RefM3Xd rG, RefM3Xd pX)
+    : OPSBody(n, f, R0, pos, rot, pG, rG, pX)
+{
   _edges = vtkSmartPointer<vtkCellArray>::New();
   _edgePoly = vtkSmartPointer<vtkPolyData>::New();
   _numBonds = (int)((12 * 5 + (n - 12) * 6) / 2);
@@ -12,7 +14,8 @@ OPSMesh::OPSMesh(size_t n, double_t &f, RefM3Xd pos, RefM3Xd rot, RefM3Xd pG,
 
 //! Extract the edges of the polydata
 //! assuming that the _polyData has been updated
-void OPSMesh::updateNeighbors() {
+void OPSMesh::updateNeighbors()
+{
   // Create the VTK objects
   auto extract = vtkSmartPointer<vtkExtractEdges>::New();
   auto idf = vtkSmartPointer<vtkIdFilter>::New();
@@ -33,7 +36,8 @@ void OPSMesh::updateNeighbors() {
   // Convert edges in terms of the original point ids
   _edges->Reset();
   newEdges->InitTraversal();
-  while (newEdges->GetNextCell(verts)) {
+  while (newEdges->GetNextCell(verts))
+  {
     _edges->InsertNextCell(2);
     vtkIdType id = (vtkIdType)origIds->GetTuple1(verts->GetId(0));
     _edges->InsertCellPoint(id);
@@ -43,8 +47,11 @@ void OPSMesh::updateNeighbors() {
 }
 
 //! Compute the OPSBody energy
-void OPSMesh::compute() {
+void OPSMesh::compute()
+{
   auto pts = vtkSmartPointer<vtkIdList>::New();
+
+  auto factor = 0.666666666666667 * _a * _a * _R0 * _R0 / _gamma;
 
   // Initialize energies and forces to be zero
   _morseEn = 0.0;
@@ -55,7 +62,8 @@ void OPSMesh::compute() {
   diffNormalRotVec();
 
   _edges->InitTraversal();
-  while (_edges->GetNextCell(pts)) {
+  while (_edges->GetNextCell(pts))
+  {
 
     double_t r, n_dot_rn, exp_1, exp_2, morseEn, Phi_n, Phi_c;
     Matrix3d M, N;
@@ -102,15 +110,15 @@ void OPSMesh::compute() {
     dPhi_cVj = (2 * n_dot_rn) * N * rn;
 
     // Calculate the total derivatives of energy wrt xi, vi and vj
-    Dxi = -(dMdr + dCdr / _gamma);
-    Dvi = (dPhi_nVi + dPhi_cVi) / _gamma;
-    Dvj = (dPhi_nVj + dPhi_cVj) / _gamma;
+    Dxi = -(dMdr + dCdr * factor);
+    Dvi = (dPhi_nVi + dPhi_cVi) * factor;
+    Dvj = (dPhi_nVj + dPhi_cVj) * factor;
 
     // Update the energies
     _morseEn += morseEn;
-    _normalEn += Phi_n / _gamma;
-    _circEn += Phi_c / _gamma;
-    _f += morseEn + (Phi_n + Phi_c) / _gamma;
+    _normalEn += Phi_n * factor;
+    _circEn += Phi_c * factor;
+    _f += morseEn + (Phi_n + Phi_c) * factor;
 
     // Update the derivatives
     _posGradient.col(i) += Dxi;
@@ -123,12 +131,14 @@ void OPSMesh::compute() {
 
 //! Function to return the difference between normals of all points connected
 //! with a bond
-void OPSMesh::getDiffNormals(Matrix3Xd &in) {
+void OPSMesh::getDiffNormals(Matrix3Xd &in)
+{
   in = Matrix3Xd::Zero(3, _numBonds);
   auto pts = vtkSmartPointer<vtkIdList>::New();
   _edges->InitTraversal();
   auto index = 0;
-  while (_edges->GetNextCell(pts)) {
+  while (_edges->GetNextCell(pts))
+  {
     Vector3d p, q;
     vtkIdType i, j;
 

@@ -113,11 +113,6 @@ int main(int argc, char *argv[]) {
     coords.col(i) = cp;
   }
 
-  // Generate initial rotation vectors either from starting point coordinates
-  Eigen::Matrix3Xd rotVecs(3, N);
-  // Generate rotation vectors from input point coordinates
-  OPSBody::initialRotationVector(coords, rotVecs);
-
   // Prepare memory for energy, force
   double_t f;
   Eigen::VectorXd x(6 * N), g(6 * N), prevX(3 * N);
@@ -128,13 +123,21 @@ int main(int argc, char *argv[]) {
   Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(), 3, N), xrot(&(x(3 * N)), 3, N),
       prevPos(prevX.data(), 3, N);
   xpos = coords;
-  xrot = rotVecs;
+
+  // Renormalize the position vectors by average edge length
+  x /= getPointCloudAvgEdgeLen(inputFileName);
   prevX = x.head(3 * N);
+
+  // Generate initial rotation vectors either from starting point coordinates
+  OPSBody::initialRotationVector(xpos, xrot);
+
+  // The starting average radius
+  double_t R0 = xpos.colwise().norm().sum() / N;
 
   // Create OPSBody
   Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(), 3, N),
       rotGrad(&g(3 * N), 3, N);
-  OPSMesh ops(N, f, xpos, xrot, posGrad, rotGrad, prevPos);
+  OPSMesh ops(N, f, R0, xpos, xrot, posGrad, rotGrad, prevPos);
   ops.setMorseDistance(re);
   s = 100 * log(2.0) / (re * percentStrain);
   ops.setMorseWellWidth(s);

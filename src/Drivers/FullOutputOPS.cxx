@@ -172,8 +172,6 @@ int main(int argc, char *argv[]) {
     mesh->GetPoint(i, &(cp(0)));
     coords.col(i) = cp;
   }
-  Eigen::Matrix3Xd rotVecs(3, N);
-  OPSBody::initialRotationVector(coords, rotVecs);
 
   // Prepare memory for energy, force
   double_t f;
@@ -185,13 +183,20 @@ int main(int argc, char *argv[]) {
   Eigen::Map<Eigen::Matrix3Xd> xpos(x.data(), 3, N), xrot(&(x(3 * N)), 3, N),
       prevPos(prevX.data(), 3, N);
   xpos = coords;
-  xrot = rotVecs;
+
+  // Renormalize the shell by average edge length
+  x /= getPointCloudAvgEdgeLen(inputFileName);
   prevX = x.head(3 * N);
+  OPSBody::initialRotationVector(xpos, xrot);
+  
+
+  // The average radius
+  double_t R0 = xpos.colwise().norm().sum() / N;
 
   // Create OPSBody
   Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(), 3, N),
       rotGrad(&g(3 * N), 3, N);
-  OPSMesh ops(N, f, xpos, xrot, posGrad, rotGrad);
+  OPSMesh ops(N, f, R0, xpos, xrot, posGrad, rotGrad);
   ops.setMorseDistance(re);
   ops.setMorseEnergy(De);
   s = 100 * log(2.0) / (re * percentStrain);

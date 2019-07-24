@@ -14,11 +14,13 @@
 using namespace OPS;
 using namespace std;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   clock_t t1;
   t1 = clock();
 
-  if (argc != 2) {
+  if (argc != 2)
+  {
     cout << "usage: " << argv[0] << " <filename>\n";
     return -1;
   }
@@ -27,7 +29,7 @@ int main(int argc, char *argv[]) {
   std::string inFile = argv[1];
   std::string baseFileName = inFile.substr(0, inFile.length() - 4);
 
-  double_t alpha = 1.0, beta = 1.0, gamma = 1.0, re = 1.0, f = 0,
+  double_t alpha = 1.0, beta = 1.0, gamma = 1.0, re = 1.0, f = 0, R0 = 0.0,
            percentStrain = 15, s = (100 / (re * percentStrain)) * log(2.0);
 
   size_t viterMax, nameSuffix = 0, step = 0, N = 10, saveFreq = 100000;
@@ -47,7 +49,8 @@ int main(int argc, char *argv[]) {
   std::string stateFileName("SimulationState.dat");
   ifstream stateFile(stateFileName.c_str());
 
-  if (stateFile.good()) {
+  if (stateFile.good())
+  {
     // Read previously stored state to resume the simulation
     state = SimulationState::readFromFile(stateFileName);
     nameSuffix = state.getNameSuffix();
@@ -56,6 +59,7 @@ int main(int argc, char *argv[]) {
     N = state.getN();
     // gamma = state.getGamma();
     // beta = state.getBeta();
+    R0 = state.getRadius0();
     engine = state.getRandomEngine();
     rng = state.getRandomGenerator();
     // Resize matrices and vectors
@@ -72,15 +76,19 @@ int main(int argc, char *argv[]) {
     neighbors = state.getNeighbors();
     initPos = state.getInitPos();
     // Copy position and rotation vectors into coords, rotVecs
-    for (auto i = 0; i < N; ++i) {
+    for (auto i = 0; i < N; ++i)
+    {
       size_t si = 3 * i;
       coords.col(i) << x(si), x(si + 1), x(si + 2);
     }
-    for (auto i = 0; i < N; ++i) {
+    for (auto i = 0; i < N; ++i)
+    {
       size_t si = 3 * (N + i);
       rotVecs.col(i) << x(si), x(si + 1), x(si + 2);
     }
-  } else {
+  }
+  else
+  {
     // No state file found. So we need to start a new simulation
     vtkSmartPointer<vtkPolyData> mesh;
     auto reader = vtkSmartPointer<vtkPolyDataReader>::New();
@@ -98,7 +106,8 @@ int main(int argc, char *argv[]) {
     rotVecs.resize(3, N);
     neighbors.resize(N);
     // Read point coordinates from input mesh
-    for (auto i = 0; i < N; ++i) {
+    for (auto i = 0; i < N; ++i)
+    {
       Eigen::Vector3d cp = Eigen::Vector3d::Zero();
       mesh->GetPoint(i, &(cp(0)));
       coords.col(i) = cp;
@@ -106,6 +115,9 @@ int main(int argc, char *argv[]) {
     // Renormalize by the average edge length
     double_t avgEdgeLen = getPointCloudAvgEdgeLen(inFile);
     coords /= avgEdgeLen;
+
+    // Calculate the average radius
+    R0 = coords.colwise().norm().sum() / N;
 
     // Generate rotation vectors from input point coordinates
     OPSBody::initialRotationVector(coords, rotVecs);
@@ -124,7 +136,7 @@ int main(int argc, char *argv[]) {
   g.setZero(g.size());
   Eigen::Map<Eigen::Matrix3Xd> posGrad(g.data(), 3, N),
       rotGrad(&g(3 * N), 3, N);
-  OPSMesh ops(N, f, xpos, xrot, posGrad, rotGrad, prevPos);
+  OPSMesh ops(N, f, R0, xpos, xrot, posGrad, rotGrad, prevPos);
   ops.setMorseDistance(re);
   ops.setMorseWellWidth(s);
   ops.updatePolyData();
@@ -137,12 +149,15 @@ int main(int argc, char *argv[]) {
   BrownianBody brown(3 * N, brownCoeff, f, thermalX, thermalG, prevX);
 
   // Set ops history variables
-  if (stateFile.good()) {
+  if (stateFile.good())
+  {
     ops.setInitialNeighbors(neighbors);
     ops.setInitialPositions(initPos);
     brown.setRandomEngine(engine);
     brown.setRandomGenerator(rng);
-  } else {
+  }
+  else
+  {
     prevX = x.head(3 * N);
     neighbors = ops.getInitialNeighbors();
   }
@@ -172,7 +187,8 @@ int main(int argc, char *argv[]) {
   std::string headerline;
   std::getline(coolFile, headerline); // Eat up header line
   while (coolFile >> currAlpha >> currBeta >> currGamma >> currPercentStrain >>
-         currArea >> currViterMax >> currPrintStep) {
+         currArea >> currViterMax >> currPrintStep)
+  {
     std::vector<double> currLine;
     currLine.push_back(currAlpha);
     currLine.push_back(currBeta);
@@ -236,7 +252,8 @@ int main(int argc, char *argv[]) {
   // Determine the correct value for the loop start indices
   size_t rowId = 0, colId;
   size_t totSteps = 0;
-  while (totSteps < step) {
+  while (totSteps < step)
+  {
     totSteps += coolVec[rowId++][5];
   };
   rowId = rowId > 0 ? rowId - 1 : 0;
@@ -244,7 +261,8 @@ int main(int argc, char *argv[]) {
 
   // The outer loop
   size_t printStep;
-  for (auto z = rowId; z < coolVec.size(); ++z) {
+  for (auto z = rowId; z < coolVec.size(); ++z)
+  {
     alpha = coolVec[z][0];
     beta = coolVec[z][1];
     gamma = coolVec[z][2];
@@ -262,7 +280,8 @@ int main(int argc, char *argv[]) {
     constraint.setConstraint(constrainedVal);
 
     // For the very first iteration solve at zero temperature first
-    if (z == 0 && colId == 0) {
+    if (z == 0 && colId == 0)
+    {
       brown.setCoefficient(0.0);
       visco.setViscosity(0.0);
       solver.solve();
@@ -280,7 +299,8 @@ int main(int argc, char *argv[]) {
     visco.setViscosity(viscosity);
 
     //**************  INNER SOLUTION LOOP ******************//
-    for (auto viter = colId; viter < viterMax; ++viter) {
+    for (auto viter = colId; viter < viterMax; ++viter)
+    {
       // Generate Brownian Kicks
       brown.generateParallelKicks();
 
@@ -293,7 +313,8 @@ int main(int argc, char *argv[]) {
       bool constraintMet = false;
       size_t alIter = 0, alMaxIter = 10;
 
-      while (!constraintMet && (alIter < alMaxIter)) {
+      while (!constraintMet && (alIter < alMaxIter))
+      {
 
         // Solve the unconstrained minimization
         solver.solve();
@@ -315,16 +336,18 @@ int main(int argc, char *argv[]) {
       ops.updateNeighbors();
 
       // Check step and save state if needed
-      if (step % saveFreq == (saveFreq - 1)) {
+      if (step % saveFreq == (saveFreq - 1))
+      {
         engine = brown.getRandomEngine();
         rng = brown.getRandomGenerator();
-        state = SimulationState(N, nameSuffix, step, gamma, beta, x, prevX,
+        state = SimulationState(N, nameSuffix, step, gamma, beta, R0, x, prevX,
                                 initPos, neighbors, engine, rng);
         state.writeToFile("SimulationState.dat");
       }
 
       // We will print only after every currPrintStep iterations
-      if (viter % printStep == 0 && printStep <= viterMax) {
+      if (viter % printStep == 0 && printStep <= viterMax)
+      {
         sstm << fname << "-relaxed-" << nameSuffix++ << ".vtk";
         std::string rName = sstm.str();
         ops.printVTKFile(rName);
