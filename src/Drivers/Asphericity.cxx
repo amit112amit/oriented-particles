@@ -43,6 +43,7 @@ int main(int argc, char *argv[])
     std::cout << "Please check the value of `percentStrain`. Do you really want to use "
               << percentStrain << "%? Or do you mean " << percentStrain * 100
               << "%?" << std::endl;
+    return 0;
   }
   initialSearchRad = std::stod(miscInp["initialSearchRad"]);
   finalSearchRad = std::stod(miscInp["finalSearchRad"]);
@@ -201,11 +202,5 @@ int main(int argc, char *argv[])
   float diff((float)t2 - (float)t1);
   std::cout << "Solution loop execution time: " << diff / CLOCKS_PER_SEC
             << " seconds" << std::endl;
-  if (percentStrain < 1.0)
-  {
-    std::cout << "Please check the value of `percentStrain`. Do you really want to use "
-              << percentStrain << "%? Or do you mean " << percentStrain * 100
-              << "%?" << std::endl;
-  }
   return 1;
 }

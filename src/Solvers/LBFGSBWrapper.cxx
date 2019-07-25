@@ -18,11 +18,13 @@ using std::right;
 using std::scientific;
 using std::setw;
 
-namespace OPS {
+namespace OPS
+{
 //! Constructor
 LBFGSBWrapper::LBFGSBWrapper(LBFGSBParams &p, Model &m, double_t &f, RefV x,
                              RefV g)
-    : _model(m), _f(f), _x(x.data(), x.size(), 1), _g(g.data(), g.size(), 1) {
+    : _model(m), _f(f), _x(x.data(), x.size(), 1), _g(g.data(), g.size(), 1)
+{
   assert(_x.size() == _g.size());
   _n = _x.size();
   _m = p.getNumHessianCorrections();
@@ -34,8 +36,10 @@ LBFGSBWrapper::LBFGSBWrapper(LBFGSBParams &p, Model &m, double_t &f, RefV x,
   _projg = 0.0;
 }
 
-void LBFGSBParams::updateProperty(Params p, double_t val) {
-  switch (p) {
+void LBFGSBParams::updateProperty(Params p, double_t val)
+{
+  switch (p)
+  {
   case m:
     _m = std::round(val);
     break;
@@ -57,7 +61,8 @@ void LBFGSBParams::updateProperty(Params p, double_t val) {
   }
 }
 
-void LBFGSBWrapper::resize(size_t n) {
+void LBFGSBWrapper::resize(size_t n)
+{
   _n = n;
   _iwa = IntVector_t::Zero(3 * _n);
   _wa = Vector_t::Zero(2 * _m * _n + 5 * _n + 11 * _m * _m + 8 * _m);
@@ -69,8 +74,10 @@ void LBFGSBWrapper::resize(size_t n) {
   _u = Vector_t::Zero(_n);
 }
 
-void LBFGSBWrapper::setBounds(const RefCI nbd, const RefCV l, const RefCV u) {
-  if (nbd.size() != _n || l.size() != _n || u.size() != _n) {
+void LBFGSBWrapper::setBounds(const RefCI nbd, const RefCV l, const RefCV u)
+{
+  if (nbd.size() != _n || l.size() != _n || u.size() != _n)
+  {
     std::cout
         << "LBFGSBWrapper::setBounds(): input arrays are incorrectly sized."
         << std::endl;
@@ -82,7 +89,8 @@ void LBFGSBWrapper::setBounds(const RefCI nbd, const RefCV l, const RefCV u) {
   return;
 }
 
-void LBFGSBWrapper::solve() {
+void LBFGSBWrapper::solve()
+{
   // set up misc. arrays and data
   char task[60], csave[60];
   for (int i = 0; i < 60; i++)
@@ -122,13 +130,15 @@ void LBFGSBWrapper::solve() {
   _model.compute();
 
   // ------- the beginning of the loop ----------
-  while (true) {
+  while (true)
+  {
 
     // This is the call to the L-BFGS-B code.
     setulb_(&_n, &_m, _x.data(), _l.data(), _u.data(), _nbd.data(), &_f,
             _g.data(), &_factr, &_pgtol, _wa.data(), _iwa.data(), &(task[0]),
             &iprint, &(csave[0]), &(lsave[0]), &(isave[0]), &(dsave[0]));
-    if (strncmp(task, "FG", 2) == 0) {
+    if (strncmp(task, "FG", 2) == 0)
+    {
       // The minimization routine has returned to request the
       // function f and gradient g values at the current x.
 
@@ -138,15 +148,19 @@ void LBFGSBWrapper::solve() {
       continue;
     }
 
-    else if (strncmp(task, "NEW_X", 5) == 0) {
+    else if (strncmp(task, "NEW_X", 5) == 0)
+    {
+
       // stop if maximum number of iterations has been reached
-      if (_maxIterations > 0 && isave[29] > _maxIterations) {
+      if (_maxIterations > 0 && isave[29] > _maxIterations)
+      {
         break;
       }
 
       // The minimization routine has returned with a new iterate,
       // and we have opted to continue the iteration.
-      if (_iprint > 0 && isave[29] % _iprint == 0) {
+      if (_iprint > 0 && isave[29] % _iprint == 0)
+      {
         PRINT(setw(14) << scientific << right << dsave[12] << setw(14)
                        << scientific << right << (_g.cwiseAbs()).maxCoeff()
                        << setw(14) << scientific << right << _f << setw(14)
@@ -156,20 +170,23 @@ void LBFGSBWrapper::solve() {
       continue;
     }
 
-    else if (strncmp(task, "CONV", 4) == 0) {
+    else if (strncmp(task, "CONV", 4) == 0)
+    {
       _model.compute();
       PRINT_CHAR_ARR(task, 49);
       break;
     }
 
-    else if (strncmp(task, "ABNORM", 6) == 0) {
+    else if (strncmp(task, "ABNORM", 6) == 0)
+    {
       _model.compute();
       PRINT_CHAR_ARR(task, 49);
       break;
     }
 
     // If task is neither FG nor NEW_X we terminate execution.
-    else {
+    else
+    {
       PRINT_CHAR_ARR(task, 49);
       break;
     }
