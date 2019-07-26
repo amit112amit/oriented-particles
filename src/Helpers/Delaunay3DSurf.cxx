@@ -91,11 +91,14 @@ double_t getPointCloudAvgEdgeLen(std::string file)
   auto reader = vtkSmartPointer<vtkPolyDataReader>::New();
   reader->SetFileName(file.c_str());
   reader->Update();
-  auto N = reader->GetOutput()->GetNumberOfPoints();
-  auto *arrPointer =
-      (double_t *)(reader->GetOutput()->GetPoints()->GetData()->GetVoidPointer(
-          0));
-  Eigen::Map<Eigen::Matrix3Xd> positions(arrPointer, 3, N);
+  auto polydata = reader->GetOutput();
+  auto N = polydata->GetNumberOfPoints();
+
+  // Read the point coordinates into an Eigen::Matrix
+  Eigen::Matrix3Xd positions(3, N);
+  for(auto i=0; i < N; ++i){
+    polydata->GetPoint(i, &positions(0, i));
+  }
 
   // Get a triangulation mesh
   Delaunay dt = delaunayStereo(positions);
