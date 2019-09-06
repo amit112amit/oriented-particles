@@ -321,24 +321,22 @@ void OPSBody::initialRotationVector(RefM3Xd pos, RefM3Xd rotVec)
     Vector3d x = pos.col(i);
     x.normalize();
     Vector3d axis, cross_prod;
-    double_t angle, cross_prod_norm, p3;
+    double_t angle;
 
-    // Cross-product of x with z-axis.
+    // Cross-product of x with z-axis gives the axis of rotation
     cross_prod << -x(1), x(0), 0.0;
-    cross_prod_norm = cross_prod.norm();
+
     // Check if x is parallel or anti-parallel to z-axis
-    p3 = x(2);
-    if (cross_prod_norm < 1e-10)
+    if (cross_prod.norm() < 1e-9)
     {
-      axis << 1.0, 0.0,
-          0.0; // Arbitrarily choose the x-axis
-      angle = (p3 > 0.0) ? 0.0 : M_PI;
+      axis << 1.0, 0.0, 0.0; // Arbitrarily choose the x-axis
+      angle = (x(2) > 0.0) ? 0.0 : M_PI;
     }
     else
     {
-      angle = asin(cross_prod_norm);
-      angle = (p3 < 0.0) ? (M_PI - angle) : angle;
       axis = cross_prod.normalized();
+      // Dot-product with the z-axis will give the angle of rotation
+      angle = acos(x(2));
     }
     rotVec.col(i) = angle * axis;
   }
