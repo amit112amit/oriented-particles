@@ -64,10 +64,14 @@ endif( ${SHTOOLS_INCLUDE_DIR} STREQUAL "SHTOOLS_INCLUDE_DIR-NOTFOUND" )
 
 # Set path for qwt
 if(CMAKE_HOST_UNIX)
-	find_package(PkgConfig REQUIRED)
-	pkg_search_module(QWT REQUIRED Qt5Qwt6)
-	#set(QWT_INCLUDE_DIRS "/usr/include/qt5/qwt6" CACHE PATH "Set Path for qwt header files.")
-	#set(QWT_LIBRARIES "qwt" CACHE STRING "Name of qwt library.")
+	# qwt has different locations on different linux distributions
+	find_path(QWT_INCLUDE_DIRS "qwt_series_data.h"
+		  HINTS "/usr/include/" "/usr/local/include"
+		  PATH_SUFFIXES "qwt" "qt5/qwt6"
+		  DOC "qwt header files location.")
+	find_library(QWT_LIBRARIES NAMES "qwt" "qwt-qt5"
+		  HINTS "/usr/lib/" "/usr/local/lib"
+		  DOC "qwt shared library.")
 endif(CMAKE_HOST_UNIX)
 if(CMAKE_HOST_WIN32)
 	set(QWT_INCLUDE_DIRS "C:/msys64/mingw64/include/qwt" CACHE PATH "Set Path for qwt header files.")
