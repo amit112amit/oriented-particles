@@ -24,7 +24,7 @@ RoughnessWidget::RoughnessWidget(QWidget *parent) : QMainWindow(parent) {
   Ren1->SetBackground(0.318, 0.341, 0.431);
   auto renwin1 = vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
   renwin1->AddRenderer(Ren1);
-  qVTK1->SetRenderWindow(renwin1);
+  qVTK1->setRenderWindow(renwin1);
 
   // put poly2 in other window
   auto mapper2 = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -44,7 +44,7 @@ RoughnessWidget::RoughnessWidget(QWidget *parent) : QMainWindow(parent) {
   Ren2->SetBackground(0.318, 0.341, 0.431);
   auto renwin2 = vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
   renwin2->AddRenderer(Ren2);
-  qVTK2->SetRenderWindow(renwin2);
+  qVTK2->setRenderWindow(renwin2);
 
   // Set Asphericity and RMS Angle Deficit
   double_t rmsAd, asphericity, ratio;
@@ -90,7 +90,7 @@ void RoughnessWidget::on_slider1_valueChanged(double position) {
   txt = QString("Ratio: %1").arg(ratio, 0, 'g', 3);
   label5->setText(txt);
   poly1->Modified();
-  qVTK1->GetRenderWindow()->Render();
+  qVTK1->renderWindow()->Render();
 }
 
 void RoughnessWidget::on_slider2_valueChanged(double position) {
@@ -116,7 +116,7 @@ void RoughnessWidget::on_slider2_valueChanged(double position) {
   txt = QString("Ratio: %1").arg(ratio, 0, 'g', 3);
   label6->setText(txt);
   poly2->Modified();
-  qVTK2->GetRenderWindow()->Render();
+  qVTK2->renderWindow()->Render();
 }
 
 double_t

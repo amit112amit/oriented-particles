@@ -1,0 +1,306 @@
+FROM docker.io/ubuntu:latest AS build
+
+# Some build-time environment variables
+ARG DEBIAN_FRONTEND=noninteractive
+ARG SHTOOLS_VERSION=4.6.2
+ARG VTK_VERSION=9.0.0
+
+# Install the dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	build-essential \
+	cmake \
+	gfortran \
+	git \
+	qt5-default \
+	mesa-common-dev \
+	mesa-utils \
+	freeglut3-dev \
+	ninja-build \
+	libboost-filesystem-dev \
+	libcgal-dev \
+	libeigen3-dev \
+	libfftw3-dev \
+	libopenblas-dev \
+	libqwt-qt5-dev \
+	wget \
+	ca-certificates && \
+	rm -rf /var/lib/apt/lists/*
+
+# Get, build and install SHTOOLS. Don't use `make -jn`. It seems problematic.
+RUN mkdir /build && cd /build && \
+	wget -c "https://github.com/SHTOOLS/SHTOOLS/archive/v$SHTOOLS_VERSION.tar.gz" -O "SHTOOLS-v$SHTOOLS_VERSION.tar.gz" && \
+	tar xf "SHTOOLS-v$SHTOOLS_VERSION.tar.gz" && \
+	cd "SHTOOLS-$SHTOOLS_VERSION" && \
+	make all && \
+	make install-fortran && \
+	cd /
+
+# Get, build and install VTK. 
+RUN cd /build && \
+	wget -c "https://www.vtk.org/files/release/9.0/VTK-${VTK_VERSION}.tar.gz" -O "VTK-${VTK_VERSION}.tar.gz" && \
+	tar xf "VTK-${VTK_VERSION}.tar.gz" && \
+	cd "VTK-${VTK_VERSION}" && \
+	mkdir build && \
+	cd build && \
+	cmake \
+		-DCMAKE_BUILD_TYPE="Release" \
+		-DBUILD_SHARED_LIBRARIES="ON" \
+		-DCMAKE_INSTALL_PREFIX="/usr/local" \
+		-DVTK_GROUP_ENABLE_Imaging="NO" \
+		-DVTK_GROUP_ENABLE_MPI="NO" \
+		-DVTK_GROUP_ENABLE_Qt="WANT" \
+		-DVTK_GROUP_ENABLE_Rendering="WANT" \
+		-DVTK_GROUP_ENABLE_StandAlone="DONT_WANT" \
+		-DVTK_GROUP_ENABLE_Views="DONT_WANT" \
+		-DVTK_GROUP_ENABLE_Web="DONT_WANT" \
+		-DVTK_INSTALL_SDK:BOOL="ON" \
+		-DVTK_MAX_THREADS="7" \
+		-DVTK_MODULE_ENABLE_VTK_AcceleratorsVTKm="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ChartsCore="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_CommonArchive="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_CommonColor="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_CommonComputationalGeometry="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_CommonCore="WANT" \
+		-DVTK_MODULE_ENABLE_VTK_CommonDataModel="WANT" \
+		-DVTK_MODULE_ENABLE_VTK_CommonExecutionModel="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_CommonMath="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_CommonMisc="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_CommonSystem="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_CommonTransforms="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_DICOMParser="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_DomainsChemistry="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_DomainsChemistryOpenGL2="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_DomainsMicroscopy="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_DomainsParallelChemistry="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersAMR="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersCore="WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersExtraction="WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersFlowPaths="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersGeneral="WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersGeneric="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersGeometry="WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersHybrid="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersHyperTree="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersImaging="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersModeling="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersOpenTURNS="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersParallel="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersParallelDIY2="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersParallelFlowPaths="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersParallelGeometry="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersParallelImaging="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersParallelMPI="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersParallelStatistics="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersParallelVerdict="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersPoints="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersProgrammable="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersReebGraph="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersSMP="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersSelection="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersSources="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersStatistics="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersTexture="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersTopology="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_FiltersVerdict="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_GUISupportQt="WANT" \
+		-DVTK_MODULE_ENABLE_VTK_GUISupportQtSQL="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_GeovisCore="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_GeovisGDAL="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOADIOS2="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOAMR="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOAsynchronous="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOCityGML="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOCore="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOEnSight="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOExodus="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOExport="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOExportGL2PS="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOExportPDF="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOFFMPEG="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOGDAL="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOGeoJSON="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOGeometry="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOH5part="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOImage="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOImport="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOInfovis="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOLAS="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOLSDyna="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOLegacy="WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOMINC="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOMPIImage="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOMPIParallel="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOMotionFX="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOMovie="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOMySQL="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IONetCDF="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOODBC="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOOggTheora="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOPDAL="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOPIO="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOPLY="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOParallel="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOParallelExodus="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOParallelLSDyna="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOParallelNetCDF="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOParallelXML="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOParallelXdmf3="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOPostgreSQL="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOSQL="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOSegY="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOTRUCHAS="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOTecplotTable="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOVPIC="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOVeraOut="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOVideo="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOXML="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOXMLParser="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOXdmf2="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_IOXdmf3="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ImagingColor="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ImagingCore="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ImagingFourier="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ImagingGeneral="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ImagingHybrid="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ImagingMath="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ImagingMorphological="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ImagingOpenGL2="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ImagingSources="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ImagingStatistics="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ImagingStencil="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_InfovisBoost="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_InfovisBoostGraphAlgorithms="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_InfovisCore="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_InfovisLayout="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_InteractionImage="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_InteractionStyle="WANT" \
+		-DVTK_MODULE_ENABLE_VTK_InteractionWidgets="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_MomentInvariants="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ParallelCore="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ParallelDIY="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ParallelMPI="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_PoissonReconstruction="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_Powercrust="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_PythonInterpreter="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingAnnotation="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingContext2D="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingContextOpenGL2="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingCore="WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingExternal="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingFreeType="WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingFreeTypeFontConfig="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingGL2PSOpenGL2="WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingImage="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingLICOpenGL2="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingLOD="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingLabel="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingMatplotlib="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingOpenGL2="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingOpenVR="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingParallel="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingParallelLIC="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingQt="WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingRayTracing="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingSceneGraph="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingUI="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingVolume="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingVolumeAMR="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingVolumeOpenGL2="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_RenderingVtkJS="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_SignedTensor="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_SplineDrivenImageSlicer="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_TestingCore="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_TestingGenericBridge="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_TestingIOSQL="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_TestingRendering="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_UtilitiesBenchmarks="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ViewsContext2D="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ViewsCore="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ViewsInfovis="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ViewsQt="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_WebCore="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_WebGLExporter="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_WrappingPythonCore="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_WrappingTools="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_diy2="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_doubleconversion="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_eigen="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_exodusII="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_expat="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_freetype="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_gl2ps="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_glew="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_h5part="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_hdf5="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_jpeg="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_jsoncpp="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_kissfft="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_kwiml="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_libharu="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_libproj="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_libxml2="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_lz4="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_lzma="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_metaio="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_netcdf="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_octree="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_ogg="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_opengl="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_pegtl="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_png="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_pugixml="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_sqlite="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_theora="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_tiff="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_utf8="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_verdict="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_vpic="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_vtkDICOM="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_vtkm="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_vtksys="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_xdmf2="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_xdmf3="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_zfp="DONT_WANT" \
+		-DVTK_MODULE_ENABLE_VTK_zlib="DONT_WANT" \
+		-DVTK_REPORT_OPENGL_ERRORS="ON" \
+		-DVTK_REPORT_OPENGL_ERRORS_IN_RELEASE_BUILDS="OFF" \
+		-DVTK_SMP_IMPLEMENTATION_TYPE="Sequential" \
+		../ && \
+		make -j4 && \
+		make install
+
+# Get oriented-particles source files
+RUN cd /build && \
+	git clone https://github.com/amit112amit/oriented-particles.git && \
+	cd oriented-particles && \
+	mkdir build && \
+	cd build
+
+# Build and install oriented-particles executables
+RUN cd /build/oriented-particles/build && \
+	cmake \
+		-DCMAKE_BUILD_TYPE="Release" \
+		-DCMAKE_INSTALL_PREFIX="/usr/local" \
+	../ && \
+	make -j4 && \
+	make install
+
+# Clean up oriented-particles source
+RUN rm -rf /build/oriented-particles
+
+FROM docker.io/ubuntu:latest
+
+COPY --from=build /usr/local /usr/local
+COPY --from=build /usr/lib /usr/lib
+
+# Make a temporary user
+RUN useradd -m temp
+
+# Switch to the temporary users home directory
+WORKDIR /home/temp
+
+# Switch to user temp
+USER temp
+
+# The default command for the container is to run opsLive
+CMD ["/usr/local/bin/opsLive"]

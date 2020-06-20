@@ -13,7 +13,7 @@ target_include_directories(postProc PRIVATE ${CGAL_INCLUDE_DIRS})
 add_dependencies(postProc shtoolswrapper)
 
 add_executable(plotRow PlotRow.cxx)
-target_link_libraries(plotRow PRIVATE vtkIOLegacy Eigen3::Eigen ${CGAL_LIBRARIES})
+target_link_libraries(plotRow PRIVATE VTK::IOLegacy Eigen3::Eigen ${CGAL_LIBRARIES})
 target_include_directories(plotRow PRIVATE ${CGAL_INCLUDE_DIRS})
 
 add_executable(calcVolume CalculateVolume.cxx)

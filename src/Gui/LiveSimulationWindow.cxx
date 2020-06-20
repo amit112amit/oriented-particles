@@ -114,14 +114,14 @@ LiveSimulationWindow::LiveSimulationWindow(QWidget *parent) {
   _energyCurve->attach(_energyPlot);
   _enMarker->attach(_energyPlot);
 
-  // Set up QVTKOpenGLWidget
+  // Set up QVTKOpenGLStereWidget
   _poly = vtkSmartPointer<vtkPolyData>::New();
   _glyphSource = vtkSmartPointer<vtkSphereSource>::New();
   _glyphSource->SetRadius(0.15);
   _glyphSource->SetThetaResolution(10);
   _glyphSource->SetPhiResolution(10);
   auto renderWin = vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
-  _qVTK->SetRenderWindow(renderWin);
+  _qVTK->setRenderWindow(renderWin);
 
   // Set up connections for worker _thread and object
   _thread = new QThread;
@@ -234,8 +234,8 @@ void LiveSimulationWindow::setUpVTKPipeAndPlotData() {
   renderer->AddViewProp(_actor);
   renderer->AddViewProp(_gActor);
   renderer->SetBackground(0.318, 0.341, 0.431);
-  _qVTK->GetRenderWindow()->AddRenderer(renderer);
-  _qVTK->GetRenderWindow()->Render();
+  _qVTK->renderWindow()->AddRenderer(renderer);
+  _qVTK->renderWindow()->Render();
   // Also get addresses of plotting data circular buffers;
   _rmsAd = _worker->GetRmsAd();
   _totEn = _worker->GetOpsEn();
@@ -270,7 +270,7 @@ void LiveSimulationWindow::refreshVTKSceneAndPlots(int s) {
     _mapper->ScalarVisibilityOff();
     _actor->GetProperty()->SetColor(0.6666667, 1., 1.);
   }
-  _qVTK->GetRenderWindow()->Render();
+  _qVTK->renderWindow()->Render();
   // Update the plots
   qreal x1, y1, x2, y2;
   _angleDeficitCurve->boundingRect().getCoords(&x1, &y1, &x2, &y2);
@@ -324,7 +324,7 @@ void LiveSimulationWindow::resetVTKSceneAndPlots() {
     _mapper->ScalarVisibilityOff();
     _actor->GetProperty()->SetColor(0.6666667, 1., 1.);
   }
-  _qVTK->GetRenderWindow()->Render();
+  _qVTK->renderWindow()->Render();
   _timeStepValLbl->setText(QString::number(int(_xmin)));
   _startStopBtn->setText(QString("Start"));
 }

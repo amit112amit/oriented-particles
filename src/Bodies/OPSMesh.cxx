@@ -24,7 +24,7 @@ void OPSMesh::updateNeighbors()
   auto verts = vtkSmartPointer<vtkIdList>::New();
 
   // Extract the edges
-  idf->SetIdsArrayName("PointIds");
+  idf->SetPointIdsArrayName("PointIds");
   idf->PointIdsOn();
   idf->SetInputData(_polyData);
   extract->SetInputConnection(idf->GetOutputPort());

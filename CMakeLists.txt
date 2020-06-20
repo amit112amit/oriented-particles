@@ -13,30 +13,22 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets)
 
-#find_package(VTK REQUIRED COMPONENTS
-#  vtkFiltersExtraction
-#  vtkFiltersGeometry
-#  vtkFiltersSources
-#  vtkGUISupportQt
-#  vtkIOLegacy
-#)
 find_package(VTK
  COMPONENTS
-    vtkCommonCore
-    vtkCommonDataModel
-    vtkFiltersCore
-    vtkFiltersExtraction
-    vtkFiltersGeneral
-    vtkFiltersGeometry
-    vtkFiltersSources
-    vtkIOLegacy
-    vtkRenderingCore
-    vtkRenderingOpenGL2
-    vtkRenderingFreeType
-    vtkInteractionStyle
-    vtkRenderingGL2PSOpenGL2
+    CommonCore
+    CommonDataModel
+    FiltersCore
+    FiltersExtraction
+    FiltersGeneral
+    FiltersGeometry
+    FiltersSources
+    IOLegacy
+    RenderingCore
+    RenderingOpenGL2
+    RenderingFreeType
+    InteractionStyle
+    RenderingGL2PSOpenGL2
 )
-include(${VTK_USE_FILE})
 
 find_package(CGAL REQUIRED)
 include( ${CGAL_USE_FILE} )
@@ -77,5 +69,8 @@ if(CMAKE_HOST_WIN32)
 	set(QWT_INCLUDE_DIRS "C:/msys64/mingw64/include/qwt" CACHE PATH "Set Path for qwt header files.")
 	set(QWT_LIBRARIES "C:/msys64/mingw64/lib/libqwt.dll.a" CACHE STRING "Name of qwt library.")
 endif(CMAKE_HOST_WIN32)
+
+# We will add two resource files for opsLive gui demo
+install(FILES resources/T7.vtk resources/T7_OPS_Asphericity.dat TYPE BIN)
 
 add_subdirectory(src)

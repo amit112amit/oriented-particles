@@ -164,7 +164,7 @@ void OPSBody::printVTKFile(const std::string name)
   idf->SetInputData(_polyData);
   idf->PointIdsOn();
   idf->CellIdsOff();
-  idf->SetIdsArrayName("PointIds");
+  idf->SetPointIdsArrayName("PointIds");
   idf->Update();
 
   writer->SetFileName(name.c_str());
@@ -627,7 +627,7 @@ void OPSBody::sphericalDelaunay()
   }
   unitSphere->SetPoints(pts);
 
-  idf->SetIdsArrayName("PointIds");
+  idf->SetPointIdsArrayName("PointIds");
   idf->PointIdsOn();
   idf->SetInputData(unitSphere);
 
