@@ -25,6 +25,7 @@
 #include <vtkDoubleArray.h>
 #include <vtkExtractEdges.h>
 #include <vtkIdFilter.h>
+#include <vtkIdTypeArray.h>
 #include <vtkMassProperties.h>
 #include <vtkOctreePointLocator.h>
 #include <vtkPointData.h>

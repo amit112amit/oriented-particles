@@ -25,12 +25,12 @@
 =========================================================================*/
 
 #include "QVTKApplication.h"
-#include "QVTKOpenGLWidget.h"
+#include "QVTKOpenGLStereWidget.h"
 #include "RoughnessWidget.h"
 #include <QSurfaceFormat>
 
 int main(int argc, char **argv) {
-  QSurfaceFormat::setDefaultFormat(QVTKOpenGLWidget::defaultFormat());
+  QSurfaceFormat::setDefaultFormat(QVTKOpenGLStereWidget::defaultFormat());
   QVTKApplication app(argc, argv);
   RoughnessWidget widget;
 

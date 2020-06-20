@@ -5,4 +5,5 @@ set(SRCS Kabsch.cxx Delaunay3DSurf.cxx ReadInputFile.cxx
     InterpolationFromData.cxx SimulationState.cxx StereoGraphicProjection.cxx)
 
 add_library(Helpers STATIC ${SRCS})
-target_link_libraries(Helpers PRIVATE Eigen3::Eigen vtkFiltersCore vtkFiltersExtraction vtkFiltersGeometry vtkIOLegacy)
+target_link_libraries(Helpers PRIVATE Eigen3::Eigen VTK::FiltersCore
+	VTK::FiltersExtraction VTK::FiltersGeometry VTK::IOLegacy)

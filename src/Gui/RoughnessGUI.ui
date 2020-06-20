@@ -48,10 +48,10 @@
        <number>0</number>
       </property>
       <item>
-       <widget class="QVTKOpenGLWidget" name="qVTK1"/>
+       <widget class="QVTKOpenGLStereWidget" name="qVTK1"/>
       </item>
       <item>
-       <widget class="QVTKOpenGLWidget" name="qVTK2"/>
+       <widget class="QVTKOpenGLStereWidget" name="qVTK2"/>
       </item>
      </layout>
     </item>
@@ -268,9 +268,9 @@
    <header>qwt_slider.h</header>
   </customwidget>
   <customwidget>
-   <class>QVTKOpenGLWidget</class>
+   <class>QVTKOpenGLStereWidget</class>
    <extends>QOpenGLWidget</extends>
-   <header>QVTKOpenGLWidget.h</header>
+   <header>QVTKOpenGLStereWidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

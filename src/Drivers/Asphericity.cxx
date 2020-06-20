@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
   sstm.str("");
   sstm.clear();
 
-  ofstream outputFile;
+  std::ofstream outputFile;
   outputFile.open(outputFileName.c_str());
   outputFile << "#Step"
              << "\t"

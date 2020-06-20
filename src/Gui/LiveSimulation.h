@@ -143,7 +143,7 @@ private:
   ExactAreaConstraint *_constraint;
   Model *_model;
   LBFGSBWrapper *_solver;
-  ofstream _detailedOP;
+  std::ofstream _detailedOP;
   VectorXd _x, _g, _prevX, _initialX;
   std::mutex _mut;
   QwtCircBuffSeriesData *_rmsAD, *_opsEn, *_vol;

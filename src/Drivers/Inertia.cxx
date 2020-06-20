@@ -182,7 +182,7 @@ int main(int argc, char *argv[]) {
   std::string dataOutputFile;
 
   // Detailed output data file
-  ofstream detailedOP;
+std:;ofstream detailedOP;
   sstm << fname << "-DetailedOutput.dat";
   dataOutputFile = sstm.str();
   sstm.str("");

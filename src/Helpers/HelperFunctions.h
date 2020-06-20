@@ -16,6 +16,7 @@
 #include <vtkDoubleArray.h>
 #include <vtkExtractEdges.h>
 #include <vtkIdFilter.h>
+#include <vtkIdTypeArray.h>
 #include <vtkKdTree.h>
 #include <vtkPointData.h>
 #include <vtkPolyData.h>

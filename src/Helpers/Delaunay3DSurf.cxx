@@ -42,7 +42,7 @@ void delaunay3DSurf(vtkSmartPointer<vtkPolyData> poly, std::string fi)
 
   unitSphere->SetPoints(pts2);
 
-  idf->SetIdsArrayName("PointIds");
+  idf->SetPointIdsArrayName("PointIds");
   idf->PointIdsOn();
   idf->SetInputData(unitSphere);
 

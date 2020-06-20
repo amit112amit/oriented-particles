@@ -5,7 +5,7 @@ namespace OPS {
 SimulationState SimulationState::readFromFile(std::string file) {
   size_t n, ns, s;
   double_t g, b, r0;
-  ifstream f(file);
+  std::ifstream f(file);
   std::string line;
   // Read number of particles
   std::getline(f, line);
@@ -99,7 +99,7 @@ SimulationState SimulationState::readFromFile(std::string file) {
 
 void SimulationState::writeToFile(std::string file) {
   // Overwrite any existing file
-  ofstream f(file.c_str());
+  std::ofstream f(file.c_str());
   f << "# !!! Auto-generated file DO NOT EDIT !!! #" << std::endl
     << "# Number of particles" << std::endl
     << N << std::endl

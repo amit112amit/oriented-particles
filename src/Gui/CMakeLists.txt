@@ -23,9 +23,9 @@ set(EXECS opsLive roughness)
 set(INCLD Bodies Model Solvers Helpers)
 foreach(EXE ${EXECS})
 	target_link_libraries(${EXE} PRIVATE ${QWT_LIBRARIES} Eigen3::Eigen
-		vtkFiltersSources vtkGUISupportQt vtkIOLegacy vtkRenderingCore
-		vtkRenderingOpenGL2 vtkRenderingFreeType vtkInteractionStyle
-		vtkRenderingGL2PSOpenGL2)
+		VTK::FiltersSources VTK::GUISupportQt VTK::IOLegacy VTK::RenderingCore
+		VTK::RenderingOpenGL2 VTK::RenderingFreeType VTK::InteractionStyle
+		VTK::RenderingGL2PSOpenGL2)
 	target_include_directories(${EXE} PRIVATE ${QWT_INCLUDE_DIRS}
 		${Boost_INCLUDE_DIRS})
 	foreach(DIR ${INCLD})
@@ -34,3 +34,4 @@ foreach(EXE ${EXECS})
 	endforeach(DIR)
 endforeach(EXE)
 
+install(TARGETS opsLive roughness RUNTIME OPTIONAL)
