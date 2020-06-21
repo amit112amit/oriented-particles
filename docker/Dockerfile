@@ -1,4 +1,4 @@
-FROM docker.io/ubuntu:latest AS build
+FROM docker.io/ubuntu:latest as build
 
 # Some build-time environment variables
 ARG DEBIAN_FRONTEND=noninteractive
@@ -281,24 +281,16 @@ RUN cd /build && \
 	make -j4 && \
 	make install
 
-# Clean up oriented-particles source
-RUN rm -rf /build/oriented-particles
+RUN useradd -m -G sudo temp && \
+	cp /usr/local/bin/T7* /home/temp
 
-FROM docker.io/ubuntu:latest
+USER temp
 
-COPY --from=build /usr/local /usr/local
-COPY --from=build /usr/lib /usr/lib
-COPY --from=build /usr/lib64 /usr/lib64
-COPY --from=build /usr/bin /usr/bin
-
-# Make a temporary user
-RUN useradd -m temp
-
-# Switch to the temporary users home directory
+# Change the working directory to where the resource files are
 WORKDIR /home/temp
 
-# Switch to user temp
-USER temp
+# Set the ENV variable so that libraries can be detected
+ENV LD_LIBRARY_PATH=/usr/lib:/usr/local/lib:/usr/lib/x86_64-linux-gnu:
 
 # The default command for the container is to run opsLive
 CMD ["/usr/local/bin/opsLive"]
