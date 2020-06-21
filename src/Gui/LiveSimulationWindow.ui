@@ -199,7 +199,7 @@
        <number>0</number>
       </property>
       <item>
-       <widget class="QVTKOpenGLStereWidget" name="_qVTK">
+       <widget class="QVTKOpenGLStereoWidget" name="_qVTK">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
           <horstretch>0</horstretch>
@@ -337,9 +337,9 @@
    <header>qwt_text_label.h</header>
   </customwidget>
   <customwidget>
-   <class>QVTKOpenGLStereWidget</class>
+   <class>QVTKOpenGLStereoWidget</class>
    <extends>QOpenGLWidget</extends>
-   <header>QVTKOpenGLStereWidget.h</header>
+   <header>QVTKOpenGLStereoWidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

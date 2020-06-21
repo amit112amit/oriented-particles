@@ -352,7 +352,7 @@ double_t LiveSimulation::GetInterpolatedValue(double_t x,
 // Read gamma and area data from file
 void LiveSimulation::ReadFvKAreaData(std::string s)
 {
-  ifstream inputFile(s.c_str());
+  std::ifstream inputFile(s.c_str());
   std::string line;
   double_t gamma, area, volume, rmsAd, opsEn, ignore;
   // Clean the existing vectors

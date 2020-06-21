@@ -44,7 +44,6 @@ RUN cd /build && \
 	cd build && \
 	cmake \
 		-DCMAKE_BUILD_TYPE="Release" \
-		-DBUILD_SHARED_LIBRARIES="ON" \
 		-DCMAKE_INSTALL_PREFIX="/usr/local" \
 		-DVTK_GROUP_ENABLE_Imaging="NO" \
 		-DVTK_GROUP_ENABLE_MPI="NO" \
@@ -274,10 +273,7 @@ RUN cd /build && \
 	git clone https://github.com/amit112amit/oriented-particles.git && \
 	cd oriented-particles && \
 	mkdir build && \
-	cd build
-
-# Build and install oriented-particles executables
-RUN cd /build/oriented-particles/build && \
+	cd build && \
 	cmake \
 		-DCMAKE_BUILD_TYPE="Release" \
 		-DCMAKE_INSTALL_PREFIX="/usr/local" \
@@ -292,6 +288,8 @@ FROM docker.io/ubuntu:latest
 
 COPY --from=build /usr/local /usr/local
 COPY --from=build /usr/lib /usr/lib
+COPY --from=build /usr/lib64 /usr/lib64
+COPY --from=build /usr/bin /usr/bin
 
 # Make a temporary user
 RUN useradd -m temp

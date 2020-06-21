@@ -114,7 +114,7 @@ LiveSimulationWindow::LiveSimulationWindow(QWidget *parent) {
   _energyCurve->attach(_energyPlot);
   _enMarker->attach(_energyPlot);
 
-  // Set up QVTKOpenGLStereWidget
+  // Set up QVTKOpenGLStereoWidget
   _poly = vtkSmartPointer<vtkPolyData>::New();
   _glyphSource = vtkSmartPointer<vtkSphereSource>::New();
   _glyphSource->SetRadius(0.15);
